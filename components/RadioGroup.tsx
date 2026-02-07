@@ -25,3 +25,5 @@ export const RadioGroup = <T extends string>({ name, value, onChange, options }:
     </div>
   )
 }
+
+RadioGroup.displayName = "RadioGroup"

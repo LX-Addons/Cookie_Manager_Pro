@@ -22,3 +22,5 @@ export const CheckboxGroup = ({ options }: Props) => {
     </div>
   )
 }
+
+CheckboxGroup.displayName = "CheckboxGroup"

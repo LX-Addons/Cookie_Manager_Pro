@@ -454,10 +454,10 @@ function IndexPopup() {
               let clearedDomains = new Set<string>()
 
               for (const cookie of cookies) {
-                const cookieDomain = cookie.domain.replace(/^\./, '')
+                const cookieDomain = cleanDomain(cookie.domain)
                 if (isInList(cookieDomain, blacklist)) {
-                  const cleanDomain = cookie.domain.replace(/^\./, '')
-                  const url = `http${cookie.secure ? 's' : ''}://${cleanDomain}${cookie.path}`
+                  const cleanedDomain = cleanDomain(cookie.domain)
+                  const url = `http${cookie.secure ? 's' : ''}://${cleanedDomain}${cookie.path}`
                   await chrome.cookies.remove({ url, name: cookie.name })
                   count++
                   clearedDomains.add(cookieDomain)

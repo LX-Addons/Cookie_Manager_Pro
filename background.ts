@@ -63,10 +63,10 @@ const performCleanup = async (domain: string, options?: { clearType?: CookieClea
 
     // 清理 Cookie
     const cleanedDomain = cleanDomain(cookie.domain)
-      const url = `http${cookie.secure ? 's' : ''}://${cleanedDomain}${cookie.path}`
-      await chrome.cookies.remove({ url, name: cookie.name })
-      count++
-      clearedDomains.add(cleanedDomain)
+    const url = `http${cookie.secure ? 's' : ''}://${cleanedDomain}${cookie.path}`
+    await chrome.cookies.remove({ url, name: cookie.name })
+    count++
+    clearedDomains.add(cleanedDomain)
   }
 
   // 清理浏览器数据
