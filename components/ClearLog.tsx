@@ -1,6 +1,6 @@
 import { useStorage } from "@plasmohq/storage/hook"
 import { CLEAR_LOG_KEY, SETTINGS_KEY } from "~store"
-import type { ClearLog, Settings } from "~types"
+import type { ClearLog as ClearLogType, Settings } from "~types"
 import { CookieClearType, LogRetention, ThemeMode, ModeType } from "~types"
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const ClearLog = ({ onMessage }: Props) => {
-  const [logs, setLogs] = useStorage<ClearLog[]>(CLEAR_LOG_KEY, [])
+  const [logs, setLogs] = useStorage<ClearLogType[]>(CLEAR_LOG_KEY, [])
   const [settings] = useStorage<Settings>(SETTINGS_KEY, {
     clearType: CookieClearType.ALL,
     logRetention: LogRetention.SEVEN_DAYS,

@@ -21,7 +21,7 @@ function IndexPopup() {
   const [blacklist, setBlacklist] = useStorage<DomainList>(BLACKLIST_KEY, [])
   const [settings] = useStorage<SettingsType>(SETTINGS_KEY, {
     clearType: CookieClearType.ALL,
-    logRetention: "7days",
+    logRetention: LogRetention.SEVEN_DAYS,
     themeMode: ThemeMode.AUTO,
     mode: ModeType.WHITELIST,
     clearLocalStorage: false,
@@ -208,16 +208,21 @@ function IndexPopup() {
     if (settings.clearIndexedDB) {
       const databases = await indexedDB.databases()
       for (const db of databases) {
-        indexedDB.deleteDatabase(db.name)
+        if (db.name) {
+          indexedDB.deleteDatabase(db.name)
+        }
       }
     }
 
     if (settings.clearCache) {
-      await chrome.browsingData.remove({
-        cacheStorage: true,
-        fileSystems: true,
-        serviceWorkers: true
-      })
+      await chrome.browsingData.remove(
+        { origins: [currentDomain ? `http://${currentDomain}` : `http://${window.location.hostname}`] },
+        {
+          cacheStorage: true,
+          fileSystems: true,
+          serviceWorkers: true
+        }
+      )
     }
 
     showMessage(`${successMsg} ${count} 个Cookie`)
@@ -249,16 +254,21 @@ function IndexPopup() {
         if (settings.clearIndexedDB) {
           const databases = await indexedDB.databases()
           for (const db of databases) {
-            indexedDB.deleteDatabase(db.name)
+            if (db.name) {
+              indexedDB.deleteDatabase(db.name)
+            }
           }
         }
         
         if (settings.clearCache) {
-          await chrome.browsingData.remove({
-            cacheStorage: true,
-            fileSystems: true,
-            serviceWorkers: true
-          })
+          await chrome.browsingData.remove(
+            { origins: [`http://${domain}`] },
+            {
+              cacheStorage: true,
+              fileSystems: true,
+              serviceWorkers: true
+            }
+          )
         }
         
         if (count > 0) {

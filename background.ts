@@ -58,16 +58,21 @@ const performCleanup = async (domain: string) => {
   if (settings.clearIndexedDB) {
     const databases = await indexedDB.databases()
     for (const db of databases) {
-      indexedDB.deleteDatabase(db.name)
+      if (db.name) {
+        indexedDB.deleteDatabase(db.name)
+      }
     }
   }
 
   if (settings.clearCache) {
-    await chrome.browsingData.remove({
-      cacheStorage: true,
-      fileSystems: true,
-      serviceWorkers: true
-    })
+    await chrome.browsingData.remove(
+      { origins: [url] },
+      {
+        cacheStorage: true,
+        fileSystems: true,
+        serviceWorkers: true
+      }
+    )
   }
 }
 

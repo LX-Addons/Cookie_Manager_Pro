@@ -1,6 +1,6 @@
 import { useStorage } from "@plasmohq/storage/hook"
 import { SETTINGS_KEY } from "~store"
-import type { Settings } from "~types"
+import type { Settings as SettingsType } from "~types"
 import { CookieClearType, LogRetention, ThemeMode, ModeType } from "~types"
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const Settings = ({ onMessage }: Props) => {
-  const [settings, setSettings] = useStorage<Settings>(SETTINGS_KEY, {
+  const [settings, setSettings] = useStorage<SettingsType>(SETTINGS_KEY, {
     clearType: CookieClearType.ALL,
     logRetention: LogRetention.SEVEN_DAYS,
     themeMode: ThemeMode.AUTO,
@@ -22,7 +22,7 @@ export const Settings = ({ onMessage }: Props) => {
     cleanupExpiredCookies: false
   })
 
-  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+  const updateSetting = <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => {
     setSettings({ ...settings, [key]: value })
     onMessage("设置已保存")
   }
