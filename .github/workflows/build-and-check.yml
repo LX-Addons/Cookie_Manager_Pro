@@ -23,29 +23,71 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Dependency audit
+        run: npm audit --production
+
       - name: TypeScript check
         run: npx tsc --noEmit
+
+      - name: Lint check
+        run: |
+          if [ -f "package.json" ] && grep -q "eslint" package.json; then
+            npm run lint
+          else
+            echo "ℹ️ ESLint not configured, skipping lint check"
+          fi
+
+      - name: Format check
+        run: |
+          if [ -f "package.json" ] && grep -q "prettier" package.json; then
+            npm run format:check
+          else
+            echo "ℹ️ Prettier not configured, skipping format check"
+          fi
+
+      - name: Check manifest validity
+        run: |
+          if [ -f "package.json" ]; then
+            echo "✓ Checking manifest configuration in package.json"
+            cat package.json | grep -A 20 "manifest"
+          else
+            echo "✗ package.json not found"
+            exit 1
+          fi
 
       - name: Build extension
         run: npm run build
 
-      - name: Package extension
-        run: npm run package
-
-      - name: Verify build artifacts
+      - name: Verify build success
         run: |
-          ls -la build/
-          ls -la build/chrome-mv3-prod/
+          if [ ! -d "build" ]; then
+            echo "✗ Build directory not found"
+            exit 1
+          fi
+          if [ ! -d "build/chrome-mv3-prod" ]; then
+            echo "✗ Production build directory not found"
+            exit 1
+          fi
 
       - name: Check manifest.json
         run: |
           if [ -f "build/chrome-mv3-prod/manifest.json" ]; then
             echo "✓ manifest.json exists"
             cat build/chrome-mv3-prod/manifest.json
+            # Validate manifest.json format
+            if command -v jq &> /dev/null; then
+              jq '.' build/chrome-mv3-prod/manifest.json
+              echo "✓ manifest.json is valid JSON"
+            else
+              echo "ℹ️ jq not available, skipping JSON validation"
+            fi
           else
             echo "✗ manifest.json not found"
             exit 1
           fi
+
+      - name: Package extension
+        run: npm run package
 
       - name: Verify zip file creation
         run: |
@@ -53,9 +95,47 @@ jobs:
           if [ -f "$ZIP_FILE" ]; then
             echo "✓ Zip file created: $ZIP_FILE"
             ls -la "$ZIP_FILE"
+            # Check zip file size
+            ZIP_SIZE=$(stat -c "%s" "$ZIP_FILE")
+            echo "✓ Zip file size: $ZIP_SIZE bytes"
+            if [ "$ZIP_SIZE" -lt 1000 ]; then
+              echo "⚠️ Zip file is very small, may be incomplete"
+            fi
           else
             echo "✗ Zip file not found"
             exit 1
+          fi
+
+      - name: Verify build artifacts
+        run: |
+          echo "📁 Build artifacts:"
+          ls -la build/
+          echo "📁 Production build:"
+          ls -la build/chrome-mv3-prod/
+          # Check for required files
+          REQUIRED_FILES=("manifest.json" "popup.html" "background.js")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ -f "build/chrome-mv3-prod/$file" ]; then
+              echo "✓ $file exists"
+            else
+              echo "✗ $file missing"
+              exit 1
+            fi
+          done
+
+      - name: Security check
+        run: |
+          echo "🔒 Running security checks..."
+          # Check for common security issues
+          if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" .; then
+            echo "⚠️  Found eval() usage, potential security risk"
+          else
+            echo "✓ No eval() usage found"
+          fi
+          if grep -r "innerHTML" --include="*.ts" --include="*.tsx" --include="*.js" .; then
+            echo "⚠️  Found innerHTML usage, potential XSS risk"
+          else
+            echo "✓ No innerHTML usage found"
           fi
 
       - name: Upload build artifacts
@@ -65,14 +145,18 @@ jobs:
           path: |
             build/
             *.zip
+          retention-days: 7
 
       - name: Summary
         run: |
           echo "## Build Summary"
+          echo "✅ All checks passed"
           echo "✅ Build completed successfully"
           echo "✅ TypeScript check passed"
+          echo "✅ Dependency audit completed"
           echo "✅ Extension packaged"
           ZIP_FILE=$(find . -name "*.zip" | head -1)
           if [ -f "$ZIP_FILE" ]; then
             echo "✅ Zip file: $(basename "$ZIP_FILE")"
           fi
+          echo "✅ Ready for deployment"
