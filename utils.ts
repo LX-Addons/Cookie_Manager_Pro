@@ -1,4 +1,10 @@
-export const clearBrowserData = async (domains: Set<string>, options: { clearCache?: boolean, clearLocalStorage?: boolean, clearIndexedDB?: boolean }) => {
+export interface ClearBrowserDataOptions {
+  clearCache?: boolean;
+  clearLocalStorage?: boolean;
+  clearIndexedDB?: boolean;
+}
+
+export const clearBrowserData = async (domains: Set<string>, options: ClearBrowserDataOptions) => {
   const { clearCache, clearLocalStorage, clearIndexedDB } = options
 
   if (clearCache && domains.size > 0) {

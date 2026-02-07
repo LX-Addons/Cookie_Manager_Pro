@@ -19,11 +19,22 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
 
   const addDomain = (domain: string) => {
     const trimmed = domain.trim()
-    if (trimmed && !list.includes(trimmed)) {
-      setList([...list, trimmed])
-      setInputValue("")
-      onMessage(`已添加到${type === "whitelist" ? "白名单" : "黑名单"}`)
+    if (!trimmed) {
+      onMessage("域名不能为空")
+      return
     }
+    if (list.includes(trimmed)) {
+      onMessage(`${trimmed} 已在${type === "whitelist" ? "白名单" : "黑名单"}中`)
+      return
+    }
+    // 简单的域名格式验证
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$/.test(trimmed)) {
+      onMessage("域名格式不正确")
+      return
+    }
+    setList([...list, trimmed])
+    setInputValue("")
+    onMessage(`已添加到${type === "whitelist" ? "白名单" : "黑名单"}`)
   }
 
   const removeDomain = (domain: string) => {
