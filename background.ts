@@ -1,7 +1,7 @@
 import { Storage } from "@plasmohq/storage"
 import { WHITELIST_KEY, BLACKLIST_KEY, SETTINGS_KEY } from "~store"
 import type { Settings } from "~types"
-import { ModeType } from "~types"
+import { ModeType, CookieClearType, isInList, isDomainMatch } from "~types"
 
 const storage = new Storage()
 
@@ -18,41 +18,52 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 })
 
-const performCleanup = async (domain: string) => {
+const performCleanup = async (domain: string, options?: { clearType?: CookieClearType, clearCache?: boolean }) => {
   const settings = await storage.get<Settings>(SETTINGS_KEY)
   if (!settings) return
 
   const whitelist = await storage.get<string[]>(WHITELIST_KEY) || []
   const blacklist = await storage.get<string[]>(BLACKLIST_KEY) || []
 
+  const clearType = options?.clearType ?? settings.clearType
+  const shouldClearCache = options?.clearCache ?? settings.clearCache
+
   let shouldCleanup = false
   
   if (settings.mode === ModeType.WHITELIST) {
-    const isWhitelisted = whitelist.some(w => domain.includes(w) || w.includes(domain))
-    shouldCleanup = !isWhitelisted
+    shouldCleanup = !isInList(domain, whitelist)
   } else if (settings.mode === ModeType.BLACKLIST) {
-    const isBlacklisted = blacklist.some(b => domain.includes(b) || b.includes(domain))
-    shouldCleanup = isBlacklisted
+    shouldCleanup = isInList(domain, blacklist)
   }
   
   if (!shouldCleanup) return
 
   const cookies = await chrome.cookies.getAll({})
   let count = 0
+  const clearedDomains = new Set<string>()
 
   for (const cookie of cookies) {
-    const cookieDomain = cookie.domain.replace(/^\./, '')
-    if (cookieDomain.includes(domain) || domain.includes(cookieDomain)) {
-      const url = `http${cookie.secure ? 's' : ''}://${cookie.domain}${cookie.path}`
-      await chrome.cookies.remove({ url, name: cookie.name })
-      count++
-    }
+    if (!isDomainMatch(cookie.domain, domain)) continue
+
+    const isSession = !cookie.expirationDate
+    if (clearType === CookieClearType.SESSION && !isSession) continue
+    if (clearType === CookieClearType.PERSISTENT && isSession) continue
+
+    const cleanDomain = cookie.domain.replace(/^\./, '')
+    const url = `http${cookie.secure ? 's' : ''}://${cleanDomain}${cookie.path}`
+    await chrome.cookies.remove({ url, name: cookie.name })
+    count++
+    clearedDomains.add(cleanDomain)
   }
 
-  if (settings.clearCache) {
+  if (shouldClearCache && clearedDomains.size > 0) {
     try {
+      const origins: string[] = []
+      clearedDomains.forEach(d => {
+        origins.push(`http://${d}`, `https://${d}`)
+      })
       await chrome.browsingData.remove(
-        { origins: [`http://${domain}`, `https://${domain}`] },
+        { origins },
         {
           cacheStorage: true,
           fileSystems: true,
@@ -63,6 +74,8 @@ const performCleanup = async (domain: string) => {
       console.error("Failed to clear cache:", e)
     }
   }
+
+  return { count, clearedDomains: Array.from(clearedDomains) }
 }
 
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
@@ -74,12 +87,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   const settings = await storage.get<Settings>(SETTINGS_KEY)
   if (!settings?.enableAutoCleanup || !settings?.cleanupOnTabDiscard) return
 
-  if (changeInfo.url && tab.url) {
+  if (changeInfo.discarded && tab.url) {
     try {
       const url = new URL(tab.url)
       await performCleanup(url.hostname)
     } catch (e) {
-      console.error("Failed to cleanup on tab update:", e)
+      console.error("Failed to cleanup on tab discard:", e)
     }
   }
 })

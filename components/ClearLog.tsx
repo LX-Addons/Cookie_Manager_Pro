@@ -41,40 +41,30 @@ export const ClearLog = ({ onMessage }: Props) => {
   }
 
   const clearOldLogs = () => {
-    const now = Date.now()
-    let retentionMs: number
-    switch (settings.logRetention) {
-      case '1hour':
-        retentionMs = 1 * 60 * 60 * 1000
-        break
-      case '6hours':
-        retentionMs = 6 * 60 * 60 * 1000
-        break
-      case '12hours':
-        retentionMs = 12 * 60 * 60 * 1000
-        break
-      case '1day':
-        retentionMs = 1 * 24 * 60 * 60 * 1000
-        break
-      case '3days':
-        retentionMs = 3 * 24 * 60 * 60 * 1000
-        break
-      case '7days':
-        retentionMs = 7 * 24 * 60 * 60 * 1000
-        break
-      case '10days':
-        retentionMs = 10 * 24 * 60 * 60 * 1000
-        break
-      case '30days':
-        retentionMs = 30 * 24 * 60 * 60 * 1000
-        break
-      default:
-        return
+    if (settings.logRetention === LogRetention.FOREVER) {
+      onMessage("日志保留设置为永久，无需清理")
+      return
     }
+    
+    const now = Date.now()
+    const retentionMap: Record<string, number> = {
+      [LogRetention.ONE_HOUR]: 1 * 60 * 60 * 1000,
+      [LogRetention.SIX_HOURS]: 6 * 60 * 60 * 1000,
+      [LogRetention.TWELVE_HOURS]: 12 * 60 * 60 * 1000,
+      [LogRetention.ONE_DAY]: 1 * 24 * 60 * 60 * 1000,
+      [LogRetention.THREE_DAYS]: 3 * 24 * 60 * 60 * 1000,
+      [LogRetention.SEVEN_DAYS]: 7 * 24 * 60 * 60 * 1000,
+      [LogRetention.TEN_DAYS]: 10 * 24 * 60 * 60 * 1000,
+      [LogRetention.THIRTY_DAYS]: 30 * 24 * 60 * 60 * 1000
+    }
+    
+    const retentionMs = retentionMap[settings.logRetention] || 7 * 24 * 60 * 60 * 1000
     const filteredLogs = logs.filter(log => now - log.timestamp <= retentionMs)
     if (filteredLogs.length < logs.length) {
       setLogs(filteredLogs)
       onMessage(`已清除 ${logs.length - filteredLogs.length} 条过期日志`)
+    } else {
+      onMessage("没有需要清理的过期日志")
     }
   }
 
