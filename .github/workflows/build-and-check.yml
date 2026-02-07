@@ -1,0 +1,78 @@
+name: Build and Check Browser Extension
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Package extension
+        run: npm run package
+
+      - name: Verify build artifacts
+        run: |
+          ls -la build/
+          ls -la build/chrome-mv3-prod/
+
+      - name: Check manifest.json
+        run: |
+          if [ -f "build/chrome-mv3-prod/manifest.json" ]; then
+            echo "✓ manifest.json exists"
+            cat build/chrome-mv3-prod/manifest.json
+          else
+            echo "✗ manifest.json not found"
+            exit 1
+          fi
+
+      - name: Verify zip file creation
+        run: |
+          ZIP_FILE=$(find . -name "*.zip" | head -1)
+          if [ -f "$ZIP_FILE" ]; then
+            echo "✓ Zip file created: $ZIP_FILE"
+            ls -la "$ZIP_FILE"
+          else
+            echo "✗ Zip file not found"
+            exit 1
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-build
+          path: |
+            build/
+            *.zip
+
+      - name: Summary
+        run: |
+          echo "## Build Summary"
+          echo "✅ Build completed successfully"
+          echo "✅ TypeScript check passed"
+          echo "✅ Extension packaged"
+          ZIP_FILE=$(find . -name "*.zip" | head -1)
+          if [ -f "$ZIP_FILE" ]; then
+            echo "✅ Zip file: $(basename "$ZIP_FILE")"
+          fi
