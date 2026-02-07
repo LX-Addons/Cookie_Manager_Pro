@@ -129,7 +129,7 @@ export const Settings = ({ onMessage }: Props) => {
       <div className="section">
         <h3>自动清理</h3>
         <div className="radio-group">
-          <label className="radio-label">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={settings.enableAutoCleanup}
@@ -137,7 +137,7 @@ export const Settings = ({ onMessage }: Props) => {
             />
             <span>启用自动清理</span>
           </label>
-          <label className="radio-label">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={settings.cleanupOnTabDiscard}
@@ -145,7 +145,7 @@ export const Settings = ({ onMessage }: Props) => {
             />
             <span>启用已丢弃/未加载标签的清理</span>
           </label>
-          <label className="radio-label">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={settings.cleanupOnStartup}
@@ -153,7 +153,7 @@ export const Settings = ({ onMessage }: Props) => {
             />
             <span>启动时清理打开标签页的 Cookie</span>
           </label>
-          <label className="radio-label">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={settings.cleanupExpiredCookies}
@@ -167,7 +167,7 @@ export const Settings = ({ onMessage }: Props) => {
       <div className="section">
         <h3>高级清理</h3>
         <div className="radio-group">
-          <label className="radio-label">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={settings.clearLocalStorage}
@@ -175,7 +175,7 @@ export const Settings = ({ onMessage }: Props) => {
             />
             <span>清理本地存储</span>
           </label>
-          <label className="radio-label">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={settings.clearIndexedDB}
@@ -183,7 +183,7 @@ export const Settings = ({ onMessage }: Props) => {
             />
             <span>清理索引数据库</span>
           </label>
-          <label className="radio-label">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={settings.clearCache}

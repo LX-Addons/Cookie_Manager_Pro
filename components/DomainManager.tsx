@@ -7,9 +7,10 @@ interface Props {
   type: "whitelist" | "blacklist"
   currentDomain: string
   onMessage: (msg: string) => void
+  onClearBlacklist?: () => void
 }
 
-export const DomainManager = ({ type, currentDomain, onMessage }: Props) => {
+export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist }: Props) => {
   const [inputValue, setInputValue] = useState("")
   const [list, setList] = useStorage<DomainList>(
     type === "whitelist" ? WHITELIST_KEY : BLACKLIST_KEY,
@@ -55,12 +56,9 @@ export const DomainManager = ({ type, currentDomain, onMessage }: Props) => {
         disabled={!currentDomain}>
         添加当前网站
       </button>
-      {type === "blacklist" && (
+      {type === "blacklist" && onClearBlacklist && (
         <button 
-          onClick={() => {
-            const event = new CustomEvent('clear-blacklist');
-            window.dispatchEvent(event);
-          }}
+          onClick={onClearBlacklist}
           className="btn btn-danger" 
           style={{ marginTop: '8px' }}>
           清除黑名单Cookie

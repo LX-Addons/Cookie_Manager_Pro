@@ -4,9 +4,10 @@ import { DomainManager } from "~components/DomainManager"
 import { Settings } from "~components/Settings"
 import { ClearLog } from "~components/ClearLog"
 import { CookieList } from "~components/CookieList"
-import { WHITELIST_KEY, BLACKLIST_KEY, SETTINGS_KEY, CLEAR_LOG_KEY, DEFAULT_SETTINGS } from "~store"
+import { WHITELIST_KEY, BLACKLIST_KEY, SETTINGS_KEY, CLEAR_LOG_KEY, DEFAULT_SETTINGS, LOG_RETENTION_MAP } from "~store"
 import type { DomainList, CookieStats, Settings as SettingsType, ClearLog as ClearLogType, Cookie } from "~types"
 import { CookieClearType, ThemeMode, LogRetention, ModeType, isDomainMatch, isInList } from "~types"
+import { clearBrowserData } from "~utils"
 import "./style.css"
 
 function IndexPopup() {
@@ -60,39 +61,6 @@ function IndexPopup() {
     }
   }, [currentDomain])
 
-  useEffect(() => {
-    const handleClearBlacklist = async () => {
-      const cookies = await chrome.cookies.getAll({})
-      let count = 0
-      let clearedDomains = new Set<string>()
-      
-      for (const cookie of cookies) {
-        const cookieDomain = cookie.domain.replace(/^\./, '')
-        if (isInList(cookieDomain, blacklist)) {
-          const cleanDomain = cookie.domain.replace(/^\./, '')
-          const url = `http${cookie.secure ? 's' : ''}://${cleanDomain}${cookie.path}`
-          await chrome.cookies.remove({ url, name: cookie.name })
-          count++
-          clearedDomains.add(cookieDomain)
-        }
-      }
-      
-      if (count > 0) {
-        const domainStr = clearedDomains.size === 1 ? Array.from(clearedDomains)[0] : 
-                         clearedDomains.size > 1 ? `${Array.from(clearedDomains)[0]} 等${clearedDomains.size}个域名` : 
-                         "黑名单网站"
-        addLog(domainStr, CookieClearType.ALL, count)
-        showMessage(`已清除黑名单网站的 ${count} 个Cookie`)
-        updateStats()
-      } else {
-        showMessage("黑名单网站暂无Cookie可清除")
-      }
-    }
-
-    window.addEventListener('clear-blacklist', handleClearBlacklist)
-    return () => window.removeEventListener('clear-blacklist', handleClearBlacklist)
-  }, [blacklist, logs])
-
   const applyTheme = () => {
     const themeMode = settings.themeMode
     if (themeMode === ThemeMode.AUTO) {
@@ -139,20 +107,9 @@ function IndexPopup() {
       setLogs([newLog, ...logs])
       return
     }
-    
+
     const now = Date.now()
-    const retentionMap: Record<string, number> = {
-      [LogRetention.ONE_HOUR]: 1 * 60 * 60 * 1000,
-      [LogRetention.SIX_HOURS]: 6 * 60 * 60 * 1000,
-      [LogRetention.TWELVE_HOURS]: 12 * 60 * 60 * 1000,
-      [LogRetention.ONE_DAY]: 1 * 24 * 60 * 60 * 1000,
-      [LogRetention.THREE_DAYS]: 3 * 24 * 60 * 60 * 1000,
-      [LogRetention.SEVEN_DAYS]: 7 * 24 * 60 * 60 * 1000,
-      [LogRetention.TEN_DAYS]: 10 * 24 * 60 * 60 * 1000,
-      [LogRetention.THIRTY_DAYS]: 30 * 24 * 60 * 60 * 1000
-    }
-    
-    const retentionMs = retentionMap[settings.logRetention] || 7 * 24 * 60 * 60 * 1000
+    const retentionMs = LOG_RETENTION_MAP[settings.logRetention] || 7 * 24 * 60 * 60 * 1000
     const filteredLogs = logs.filter(log => now - log.timestamp <= retentionMs)
     setLogs([newLog, ...filteredLogs])
   }
@@ -195,58 +152,11 @@ function IndexPopup() {
       addLog(domainStr, logType, count)
     }
 
-    if (settings.clearCache && clearedDomains.size > 0) {
-      try {
-        const origins: string[] = []
-        clearedDomains.forEach(d => {
-          origins.push(`http://${d}`, `https://${d}`)
-        })
-        await chrome.browsingData.remove(
-          { origins },
-          {
-            cacheStorage: true,
-            fileSystems: true,
-            serviceWorkers: true
-          }
-        )
-      } catch (e) {
-        console.error("Failed to clear cache:", e)
-      }
-    }
-
-    if (settings.clearLocalStorage && clearedDomains.size > 0) {
-      try {
-        const origins: string[] = []
-        clearedDomains.forEach(d => {
-          origins.push(`http://${d}`, `https://${d}`)
-        })
-        await chrome.browsingData.remove(
-          { origins },
-          {
-            localStorage: true
-          }
-        )
-      } catch (e) {
-        console.error("Failed to clear localStorage:", e)
-      }
-    }
-
-    if (settings.clearIndexedDB && clearedDomains.size > 0) {
-      try {
-        const origins: string[] = []
-        clearedDomains.forEach(d => {
-          origins.push(`http://${d}`, `https://${d}`)
-        })
-        await chrome.browsingData.remove(
-          { origins },
-          {
-            indexedDB: true
-          }
-        )
-      } catch (e) {
-        console.error("Failed to clear IndexedDB:", e)
-      }
-    }
+    await clearBrowserData(clearedDomains, {
+      clearCache: settings.clearCache,
+      clearLocalStorage: settings.clearLocalStorage,
+      clearIndexedDB: settings.clearIndexedDB
+    })
 
     showMessage(`${successMsg} ${count} 个Cookie`)
     updateStats()
@@ -283,26 +193,11 @@ function IndexPopup() {
           count++
           clearedDomains.add(cleanDomain)
         }
-        
-        if (settings.clearCache && clearedDomains.size > 0) {
-          try {
-            const origins: string[] = []
-            clearedDomains.forEach(d => {
-              origins.push(`http://${d}`, `https://${d}`)
-            })
-            await chrome.browsingData.remove(
-              { origins },
-              {
-                cacheStorage: true,
-                fileSystems: true,
-                serviceWorkers: true
-              }
-            )
-          } catch (e) {
-            console.error("Failed to clear cache:", e)
-          }
-        }
-        
+
+        await clearBrowserData(clearedDomains, {
+          clearCache: settings.clearCache
+        })
+
         if (count > 0) {
           addLog("启动清理", settings.clearType, count)
         }
@@ -461,6 +356,33 @@ function IndexPopup() {
             type="blacklist"
             currentDomain={currentDomain}
             onMessage={showMessage}
+            onClearBlacklist={async () => {
+              const cookies = await chrome.cookies.getAll({})
+              let count = 0
+              let clearedDomains = new Set<string>()
+
+              for (const cookie of cookies) {
+                const cookieDomain = cookie.domain.replace(/^\./, '')
+                if (isInList(cookieDomain, blacklist)) {
+                  const cleanDomain = cookie.domain.replace(/^\./, '')
+                  const url = `http${cookie.secure ? 's' : ''}://${cleanDomain}${cookie.path}`
+                  await chrome.cookies.remove({ url, name: cookie.name })
+                  count++
+                  clearedDomains.add(cookieDomain)
+                }
+              }
+
+              if (count > 0) {
+                const domainStr = clearedDomains.size === 1 ? Array.from(clearedDomains)[0] :
+                                 clearedDomains.size > 1 ? `${Array.from(clearedDomains)[0]} 等${clearedDomains.size}个域名` :
+                                 "黑名单网站"
+                addLog(domainStr, CookieClearType.ALL, count)
+                showMessage(`已清除黑名单网站的 ${count} 个Cookie`)
+                updateStats()
+              } else {
+                showMessage("黑名单网站暂无Cookie可清除")
+              }
+            }}
           />
         </div>
       )}

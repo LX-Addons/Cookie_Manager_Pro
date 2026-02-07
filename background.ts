@@ -2,6 +2,7 @@ import { Storage } from "@plasmohq/storage"
 import { WHITELIST_KEY, BLACKLIST_KEY, SETTINGS_KEY } from "~store"
 import type { Settings } from "~types"
 import { ModeType, CookieClearType, isInList, isDomainMatch } from "~types"
+import { clearBrowserData } from "~utils"
 
 const storage = new Storage()
 
@@ -58,58 +59,11 @@ const performCleanup = async (domain: string, options?: { clearType?: CookieClea
     clearedDomains.add(cleanDomain)
   }
 
-  if (shouldClearCache && clearedDomains.size > 0) {
-    try {
-      const origins: string[] = []
-      clearedDomains.forEach(d => {
-        origins.push(`http://${d}`, `https://${d}`)
-      })
-      await chrome.browsingData.remove(
-        { origins },
-        {
-          cacheStorage: true,
-          fileSystems: true,
-          serviceWorkers: true
-        }
-      )
-    } catch (e) {
-      console.error("Failed to clear cache:", e)
-    }
-  }
-
-  if (shouldClearLocalStorage && clearedDomains.size > 0) {
-    try {
-      const origins: string[] = []
-      clearedDomains.forEach(d => {
-        origins.push(`http://${d}`, `https://${d}`)
-      })
-      await chrome.browsingData.remove(
-        { origins },
-        {
-          localStorage: true
-        }
-      )
-    } catch (e) {
-      console.error("Failed to clear localStorage:", e)
-    }
-  }
-
-  if (shouldClearIndexedDB && clearedDomains.size > 0) {
-    try {
-      const origins: string[] = []
-      clearedDomains.forEach(d => {
-        origins.push(`http://${d}`, `https://${d}`)
-      })
-      await chrome.browsingData.remove(
-        { origins },
-        {
-          indexedDB: true
-        }
-      )
-    } catch (e) {
-      console.error("Failed to clear IndexedDB:", e)
-    }
-  }
+  await clearBrowserData(clearedDomains, {
+    clearCache: shouldClearCache,
+    clearLocalStorage: shouldClearLocalStorage,
+    clearIndexedDB: shouldClearIndexedDB
+  })
 
   return { count, clearedDomains: Array.from(clearedDomains) }
 }
