@@ -1,0 +1,59 @@
+{
+  "name": "cookie-manager-pro",
+  "displayName": "Cookie Manager Pro",
+  "version": "1.0.0",
+  "description": "高级Cookie管理，支持白名单/黑名单功能和选择性Cookie清除",
+
+  "packageManager": "npm@10.0.0",
+  "scripts": {
+    "dev": "plasmo dev",
+    "build": "plasmo build",
+    "package": "plasmo package"
+  },
+  "dependencies": {
+    "@plasmohq/storage": "^1.10.0",
+    "plasmo": "0.90.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.258",
+    "@types/node": "20.11.5",
+    "@types/react": "18.2.48",
+    "@types/react-dom": "18.2.18",
+    "typescript": "5.3.3"
+  },
+  "manifest": {
+    "permissions": [
+      "cookies",
+      "storage",
+      "tabs",
+      "browsingData"
+    ],
+    "host_permissions": [
+      "https://*/*",
+      "http://*/*"
+    ],
+    "action": {
+      "default_title": "Cookie Manager Pro",
+      "default_popup": "popup.html"
+    }
+  },
+  "plasmo": {
+    "assets": [
+      "assets/icon.png"
+    ],
+    "manifest": {
+      "action": {
+        "default_icon": "icon.png",
+        "default_popup": "popup.html"
+      },
+      "icons": {
+        "16": "icon.png",
+        "32": "icon.png",
+        "48": "icon.png",
+        "128": "icon.png"
+      }
+    }
+  }
+}
