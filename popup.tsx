@@ -17,7 +17,6 @@ function IndexPopup() {
   const [stats, setStats] = useState<CookieStats>({ total: 0, current: 0, session: 0, persistent: 0 })
   const [currentCookies, setCurrentCookies] = useState<Cookie[]>([])
   const [theme, setTheme] = useState<ThemeMode>(ThemeMode.AUTO)
-  const [loading, setLoading] = useState(false)
 
   const [whitelist, setWhitelist] = useStorage<DomainList>(WHITELIST_KEY, [])
   const [blacklist, setBlacklist] = useStorage<DomainList>(BLACKLIST_KEY, [])
@@ -149,26 +148,23 @@ function IndexPopup() {
 
   // 清除 Cookie 函数
   const clearCookies = async (filterFn: (domain: string) => boolean, successMsg: string, logType: CookieClearType) => {
-    setLoading(true)
     try {
       let count = 0
       let clearedDomains = new Set<string>()
 
-      if (settings.mode === ModeType.WHITELIST) {
-        const result = await clearCookiesUtil({
-          filterFn: (domain) => filterFn(domain) && !isInList(domain, whitelist),
-          clearType: logType
-        })
-        count = result.count
-        clearedDomains = result.clearedDomains
-      } else if (settings.mode === ModeType.BLACKLIST) {
-        const result = await clearCookiesUtil({
-          filterFn: (domain) => filterFn(domain) && isInList(domain, blacklist),
-          clearType: logType
-        })
-        count = result.count
-        clearedDomains = result.clearedDomains
-      }
+      const isInWhitelist = settings.mode === ModeType.WHITELIST
+      const domainList = isInWhitelist ? whitelist : blacklist
+      const shouldIncludeDomain = isInWhitelist 
+        ? (domain: string) => !isInList(domain, domainList)
+        : (domain: string) => isInList(domain, domainList)
+
+      const result = await clearCookiesUtil({
+        filterFn: (domain) => filterFn(domain) && shouldIncludeDomain(domain),
+        clearType: logType
+      })
+
+      count = result.count
+      clearedDomains = result.clearedDomains
 
       if (count > 0) {
         const domainStr = clearedDomains.size === 1 ? Array.from(clearedDomains)[0] : 
@@ -192,8 +188,6 @@ function IndexPopup() {
     } catch (e) {
       console.error("Failed to clear cookies:", e)
       showMessage("清除Cookie失败", true)
-    } finally {
-      setLoading(false)
     }
   }
 
