@@ -146,12 +146,31 @@ function IndexPopup() {
     setLogs([newLog, ...filteredLogs])
   }
 
+  const buildDomainString = (clearedDomains: Set<string>, successMsg: string): string => {
+    if (clearedDomains.size === 1) {
+      return Array.from(clearedDomains)[0]
+    }
+    if (clearedDomains.size > 1) {
+      return `${Array.from(clearedDomains)[0]} 等${clearedDomains.size}个域名`
+    }
+    return successMsg.includes("所有") ? "所有网站" : currentDomain
+  }
+
+  const clearBrowserDataSafely = async (clearedDomains: Set<string>) => {
+    try {
+      await clearBrowserData(clearedDomains, {
+        clearCache: settings.clearCache,
+        clearLocalStorage: settings.clearLocalStorage,
+        clearIndexedDB: settings.clearIndexedDB
+      })
+    } catch (e) {
+      console.error("Failed to clear browser data:", e)
+    }
+  }
+
   // 清除 Cookie 函数
   const clearCookies = async (filterFn: (domain: string) => boolean, successMsg: string, logType: CookieClearType) => {
     try {
-      let count = 0
-      let clearedDomains = new Set<string>()
-
       const isInWhitelist = settings.mode === ModeType.WHITELIST
       const domainList = isInWhitelist ? whitelist : blacklist
       const shouldIncludeDomain = isInWhitelist 
@@ -163,27 +182,13 @@ function IndexPopup() {
         clearType: logType
       })
 
-      count = result.count
-      clearedDomains = result.clearedDomains
-
-      if (count > 0) {
-        const domainStr = clearedDomains.size === 1 ? Array.from(clearedDomains)[0] : 
-                         clearedDomains.size > 1 ? `${Array.from(clearedDomains)[0]} 等${clearedDomains.size}个域名` : 
-                         successMsg.includes("所有") ? "所有网站" : currentDomain
-        addLog(domainStr, logType, count)
+      if (result.count > 0) {
+        const domainStr = buildDomainString(result.clearedDomains, successMsg)
+        addLog(domainStr, logType, result.count)
       }
 
-      try {
-        await clearBrowserData(clearedDomains, {
-          clearCache: settings.clearCache,
-          clearLocalStorage: settings.clearLocalStorage,
-          clearIndexedDB: settings.clearIndexedDB
-        })
-      } catch (e) {
-        console.error("Failed to clear browser data:", e)
-      }
-
-      showMessage(`${successMsg} ${count} 个Cookie`)
+      await clearBrowserDataSafely(result.clearedDomains)
+      showMessage(`${successMsg} ${result.count} 个Cookie`)
       await updateStats()
     } catch (e) {
       console.error("Failed to clear cookies:", e)
@@ -403,9 +408,7 @@ function IndexPopup() {
               })
               
               if (result.count > 0) {
-                const domainStr = result.clearedDomains.size === 1 ? Array.from(result.clearedDomains)[0] :
-                                 result.clearedDomains.size > 1 ? `${Array.from(result.clearedDomains)[0]} 等${result.clearedDomains.size}个域名` :
-                                 "黑名单网站"
+                const domainStr = buildDomainString(result.clearedDomains, "黑名单网站")
                 addLog(domainStr, CookieClearType.ALL, result.count)
                 showMessage(`已清除黑名单网站的 ${result.count} 个Cookie`)
                 updateStats()
