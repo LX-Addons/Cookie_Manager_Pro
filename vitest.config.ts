@@ -11,6 +11,7 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       exclude: ["node_modules/", "tests/", "**/*.config.{ts,js}", "**/*.d.ts"],
     },
+    exclude: ["**/node_modules/**", "**/tests/e2e/**"],
   },
   resolve: {
     alias: {
