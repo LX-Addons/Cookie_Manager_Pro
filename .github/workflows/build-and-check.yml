@@ -67,6 +67,20 @@ jobs:
           flags: unittests
           fail_ci_if_error: false
 
+      - name: Build extension
+        run: npm run build
+
+      - name: Verify build success
+        run: |
+          if [ ! -d "build" ]; then
+            echo "✗ Build directory not found"
+            exit 1
+          fi
+          if [ ! -d "build/chrome-mv3-prod" ]; then
+            echo "✗ Production build directory not found"
+            exit 1
+          fi
+
       - name: Install Playwright browsers
         run: |
           if [ -f "package.json" ] && grep -q "@playwright/test" package.json; then
@@ -110,20 +124,6 @@ jobs:
           echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
           echo "build_dir=${PROJECT_NAME}-${VERSION}" >> $GITHUB_OUTPUT
           echo "zip_file=${PROJECT_NAME}-${VERSION}.zip" >> $GITHUB_OUTPUT
-
-      - name: Build extension
-        run: npm run build
-
-      - name: Verify build success
-        run: |
-          if [ ! -d "build" ]; then
-            echo "✗ Build directory not found"
-            exit 1
-          fi
-          if [ ! -d "build/chrome-mv3-prod" ]; then
-            echo "✗ Production build directory not found"
-            exit 1
-          fi
 
       - name: Check manifest.json
         run: |
