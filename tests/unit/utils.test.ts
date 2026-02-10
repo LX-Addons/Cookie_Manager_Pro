@@ -4,8 +4,30 @@ import type { CookieClearType } from "../../types";
 
 // Test fixtures
 const createMockCookies = (): chrome.cookies.Cookie[] => [
-  { name: "test1", domain: "example.com", path: "/", secure: false, httpOnly: false, storeId: "0", value: "", session: true, hostOnly: false, sameSite: "no_restriction" },
-  { name: "test2", domain: "test.org", path: "/", secure: true, httpOnly: true, storeId: "0", value: "", session: true, hostOnly: false, sameSite: "no_restriction" },
+  {
+    name: "test1",
+    domain: "example.com",
+    path: "/",
+    secure: false,
+    httpOnly: false,
+    storeId: "0",
+    value: "",
+    session: true,
+    hostOnly: false,
+    sameSite: "no_restriction",
+  },
+  {
+    name: "test2",
+    domain: "test.org",
+    path: "/",
+    secure: true,
+    httpOnly: true,
+    storeId: "0",
+    value: "",
+    session: true,
+    hostOnly: false,
+    sameSite: "no_restriction",
+  },
 ];
 
 const createMockCookiesWithTypes = (): chrome.cookies.Cookie[] => [
