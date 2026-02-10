@@ -39,12 +39,14 @@ commit_parsers = [
     { message = "^[Cc]hore", group = "🔧 Miscellaneous" },
     { message = "^[Bb]uild", group = "🏗️ Build" },
     { message = "^[Cc]i", group = "🔁 CI/CD" },
+    { message = "^[Uu]i", group = "💄 Styling" },
     { body = ".*[Ss]ecurity", group = "🔒 Security" },
     { message = "^[Uu]pdate", group = "📝 Other Changes" },
     { message = "^[Dd]elete", group = "📝 Other Changes" },
     { message = "^[Cc]reate", group = "📝 Other Changes" },
     { message = "^[Aa]dd", group = "📝 Other Changes" },
     { message = "^[Mm]erge", group = "📝 Other Changes" },
+    { message = "^\\[", group = "📝 Other Changes" },
     { message = ".*", group = "📝 Other Changes" },
 ]
 protect_breaking_commits = false
