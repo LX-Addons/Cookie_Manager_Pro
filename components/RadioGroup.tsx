@@ -1,11 +1,11 @@
 interface Props<T extends string> {
-  name: string
-  value: T
-  onChange: (value: T) => void
+  name: string;
+  value: T;
+  onChange: (value: T) => void;
   options: Array<{
-    value: T
-    label: string
-  }>
+    value: T;
+    label: string;
+  }>;
 }
 
 export const RadioGroup = <T extends string>({ name, value, onChange, options }: Props<T>) => {
@@ -23,7 +23,7 @@ export const RadioGroup = <T extends string>({ name, value, onChange, options }:
         </label>
       ))}
     </div>
-  )
-}
+  );
+};
 
-RadioGroup.displayName = "RadioGroup"
+RadioGroup.displayName = "RadioGroup";

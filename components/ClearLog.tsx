@@ -1,53 +1,53 @@
-import { useStorage } from "@plasmohq/storage/hook"
-import { CLEAR_LOG_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, LOG_RETENTION_MAP } from "~store"
-import type { ClearLog as ClearLogType, Settings } from "~types"
-import { CookieClearType, LogRetention, getCookieTypeName } from "~types"
-import { useMemo } from "react"
+import { useStorage } from "@plasmohq/storage/hook";
+import { CLEAR_LOG_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, LOG_RETENTION_MAP } from "~store";
+import type { ClearLog as ClearLogType, Settings } from "~types";
+import { LogRetention, getCookieTypeName } from "~types";
+import { useMemo } from "react";
 
 interface Props {
-  onMessage: (msg: string) => void
+  onMessage: (msg: string) => void;
 }
 
 export const ClearLog = ({ onMessage }: Props) => {
-  const [logs, setLogs] = useStorage<ClearLogType[]>(CLEAR_LOG_KEY, [])
-  const [settings] = useStorage<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS)
+  const [logs, setLogs] = useStorage<ClearLogType[]>(CLEAR_LOG_KEY, []);
+  const [settings] = useStorage<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS);
 
   const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+    const date = new Date(timestamp);
+    return date.toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const clearAllLogs = () => {
     if (confirm("确定要清除所有日志记录吗？")) {
-      setLogs([])
-      onMessage("已清除所有日志")
+      setLogs([]);
+      onMessage("已清除所有日志");
     }
-  }
+  };
 
   const clearOldLogs = () => {
     if (settings.logRetention === LogRetention.FOREVER) {
-      onMessage("日志保留设置为永久，无需清理")
-      return
+      onMessage("日志保留设置为永久，无需清理");
+      return;
     }
 
-    const now = Date.now()
-    const retentionMs = LOG_RETENTION_MAP[settings.logRetention] || 7 * 24 * 60 * 60 * 1000
-    const filteredLogs = logs.filter(log => now - log.timestamp <= retentionMs)
+    const now = Date.now();
+    const retentionMs = LOG_RETENTION_MAP[settings.logRetention] || 7 * 24 * 60 * 60 * 1000;
+    const filteredLogs = logs.filter((log) => now - log.timestamp <= retentionMs);
     if (filteredLogs.length < logs.length) {
-      setLogs(filteredLogs)
-      onMessage(`已清除 ${logs.length - filteredLogs.length} 条过期日志`)
+      setLogs(filteredLogs);
+      onMessage(`已清除 ${logs.length - filteredLogs.length} 条过期日志`);
     } else {
-      onMessage("没有需要清理的过期日志")
+      onMessage("没有需要清理的过期日志");
     }
-  }
+  };
 
-  const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp - a.timestamp), [logs])
+  const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp - a.timestamp), [logs]);
 
   return (
     <div className="log-container">
@@ -86,5 +86,5 @@ export const ClearLog = ({ onMessage }: Props) => {
         </ul>
       )}
     </div>
-  )
-}
+  );
+};

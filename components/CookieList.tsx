@@ -1,31 +1,31 @@
-import { useState, memo } from "react"
-import type { Cookie } from "~types"
+import { useState, memo } from "react";
+import type { Cookie } from "~types";
 
 interface Props {
-  cookies: Cookie[]
+  cookies: Cookie[];
 }
 
 export const CookieList = memo(({ cookies }: Props) => {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false);
 
   if (cookies.length === 0) {
     return (
       <div className="cookie-list-empty">
         <p>当前网站暂无 Cookie</p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="cookie-list-container">
-      <button 
+      <button
         type="button"
-        className="cookie-list-header" 
+        className="cookie-list-header"
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
       >
         <h3>Cookie 详情 ({cookies.length})</h3>
-        <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▼</span>
+        <span className={`expand-icon ${isExpanded ? "expanded" : ""}`}>▼</span>
       </button>
 
       {isExpanded && (
@@ -47,21 +47,21 @@ export const CookieList = memo(({ cookies }: Props) => {
                 </div>
                 <div className="cookie-detail-row">
                   <span className="detail-label">安全:</span>
-                  <span className="detail-value">{cookie.secure ? '是' : '否'}</span>
+                  <span className="detail-value">{cookie.secure ? "是" : "否"}</span>
                 </div>
                 <div className="cookie-detail-row">
                   <span className="detail-label">仅 HTTP:</span>
-                  <span className="detail-value">{cookie.httpOnly ? '是' : '否'}</span>
+                  <span className="detail-value">{cookie.httpOnly ? "是" : "否"}</span>
                 </div>
                 <div className="cookie-detail-row">
                   <span className="detail-label">SameSite:</span>
-                  <span className="detail-value">{cookie.sameSite || '未设置'}</span>
+                  <span className="detail-value">{cookie.sameSite || "未设置"}</span>
                 </div>
                 {cookie.expirationDate && (
                   <div className="cookie-detail-row">
                     <span className="detail-label">过期时间:</span>
                     <span className="detail-value">
-                      {new Date(cookie.expirationDate * 1000).toLocaleString('zh-CN')}
+                      {new Date(cookie.expirationDate * 1000).toLocaleString("zh-CN")}
                     </span>
                   </div>
                 )}
@@ -71,7 +71,7 @@ export const CookieList = memo(({ cookies }: Props) => {
         </div>
       )}
     </div>
-  )
-})
+  );
+});
 
-CookieList.displayName = "CookieList"
+CookieList.displayName = "CookieList";

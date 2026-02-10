@@ -1,9 +1,9 @@
 interface Props {
   options: Array<{
-    checked: boolean
-    label: string
-    onChange: (checked: boolean) => void
-  }>
+    checked: boolean;
+    label: string;
+    onChange: (checked: boolean) => void;
+  }>;
 }
 
 export const CheckboxGroup = ({ options }: Props) => {
@@ -20,7 +20,7 @@ export const CheckboxGroup = ({ options }: Props) => {
         </label>
       ))}
     </div>
-  )
-}
+  );
+};
 
-CheckboxGroup.displayName = "CheckboxGroup"
+CheckboxGroup.displayName = "CheckboxGroup";

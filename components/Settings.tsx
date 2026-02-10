@@ -1,21 +1,21 @@
-import { useStorage } from "@plasmohq/storage/hook"
-import { SETTINGS_KEY, DEFAULT_SETTINGS } from "~store"
-import type { Settings as SettingsType } from "~types"
-import { CookieClearType, LogRetention, ThemeMode, ModeType } from "~types"
-import { RadioGroup } from "~components/RadioGroup"
-import { CheckboxGroup } from "~components/CheckboxGroup"
+import { useStorage } from "@plasmohq/storage/hook";
+import { SETTINGS_KEY, DEFAULT_SETTINGS } from "~store";
+import type { Settings as SettingsType } from "~types";
+import { CookieClearType, LogRetention, ThemeMode, ModeType } from "~types";
+import { RadioGroup } from "~components/RadioGroup";
+import { CheckboxGroup } from "~components/CheckboxGroup";
 
 interface Props {
-  onMessage: (msg: string) => void
+  onMessage: (msg: string) => void;
 }
 
 export const Settings = ({ onMessage }: Props) => {
-  const [settings, setSettings] = useStorage<SettingsType>(SETTINGS_KEY, DEFAULT_SETTINGS)
+  const [settings, setSettings] = useStorage<SettingsType>(SETTINGS_KEY, DEFAULT_SETTINGS);
 
   const updateSetting = <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => {
-    setSettings({ ...settings, [key]: value })
-    onMessage("设置已保存")
-  }
+    setSettings({ ...settings, [key]: value });
+    onMessage("设置已保存");
+  };
 
   return (
     <div className="settings-container">
@@ -27,7 +27,7 @@ export const Settings = ({ onMessage }: Props) => {
           onChange={(value) => updateSetting("mode", value)}
           options={[
             { value: ModeType.WHITELIST, label: "白名单模式：仅白名单内网站不执行清理" },
-            { value: ModeType.BLACKLIST, label: "黑名单模式：仅黑名单内网站执行清理" }
+            { value: ModeType.BLACKLIST, label: "黑名单模式：仅黑名单内网站执行清理" },
           ]}
         />
       </div>
@@ -41,7 +41,7 @@ export const Settings = ({ onMessage }: Props) => {
           options={[
             { value: CookieClearType.SESSION, label: "仅清除会话Cookie" },
             { value: CookieClearType.PERSISTENT, label: "仅清除持久Cookie" },
-            { value: CookieClearType.ALL, label: "清除所有Cookie" }
+            { value: CookieClearType.ALL, label: "清除所有Cookie" },
           ]}
         />
       </div>
@@ -74,7 +74,7 @@ export const Settings = ({ onMessage }: Props) => {
           options={[
             { value: ThemeMode.AUTO, label: "跟随浏览器" },
             { value: ThemeMode.LIGHT, label: "亮色" },
-            { value: ThemeMode.DARK, label: "暗色" }
+            { value: ThemeMode.DARK, label: "暗色" },
           ]}
         />
       </div>
@@ -86,23 +86,23 @@ export const Settings = ({ onMessage }: Props) => {
             {
               checked: settings.enableAutoCleanup,
               label: "启用自动清理",
-              onChange: (checked) => updateSetting("enableAutoCleanup", checked)
+              onChange: (checked) => updateSetting("enableAutoCleanup", checked),
             },
             {
               checked: settings.cleanupOnTabDiscard,
               label: "启用已丢弃/未加载标签的清理",
-              onChange: (checked) => updateSetting("cleanupOnTabDiscard", checked)
+              onChange: (checked) => updateSetting("cleanupOnTabDiscard", checked),
             },
             {
               checked: settings.cleanupOnStartup,
               label: "启动时清理打开标签页的 Cookie",
-              onChange: (checked) => updateSetting("cleanupOnStartup", checked)
+              onChange: (checked) => updateSetting("cleanupOnStartup", checked),
             },
             {
               checked: settings.cleanupExpiredCookies,
               label: "清理所有过期的 Cookie",
-              onChange: (checked) => updateSetting("cleanupExpiredCookies", checked)
-            }
+              onChange: (checked) => updateSetting("cleanupExpiredCookies", checked),
+            },
           ]}
         />
       </div>
@@ -114,21 +114,21 @@ export const Settings = ({ onMessage }: Props) => {
             {
               checked: settings.clearLocalStorage,
               label: "清理本地存储",
-              onChange: (checked) => updateSetting("clearLocalStorage", checked)
+              onChange: (checked) => updateSetting("clearLocalStorage", checked),
             },
             {
               checked: settings.clearIndexedDB,
               label: "清理索引数据库",
-              onChange: (checked) => updateSetting("clearIndexedDB", checked)
+              onChange: (checked) => updateSetting("clearIndexedDB", checked),
             },
             {
               checked: settings.clearCache,
               label: "清理缓存",
-              onChange: (checked) => updateSetting("clearCache", checked)
-            }
+              onChange: (checked) => updateSetting("clearCache", checked),
+            },
           ]}
         />
       </div>
     </div>
-  )
-}
+  );
+};
