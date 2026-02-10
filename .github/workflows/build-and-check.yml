@@ -253,10 +253,7 @@ jobs:
           
           # 如果没有生成内容，使用默认内容
           if [ -z "$NOTES" ] || [ "$NOTES" = "## [${{ steps.get_version.outputs.version }}]" ]; then
-            NOTES="## What's Changed
-
-- 版本更新至 ${{ steps.get_version.outputs.version }}
-- 详见提交历史"
+            NOTES=$(printf "## What's Changed\n\n- 版本更新至 %s\n- 详见提交历史" "${{ steps.get_version.outputs.version }}")
           fi
           
           # 设置多行输出
