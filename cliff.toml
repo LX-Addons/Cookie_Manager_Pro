@@ -6,15 +6,10 @@ All notable changes to this project will be documented in this file.
 
 """
 body = """
-{% if version %}
-## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
-{% else %}
-## [Unreleased]
-{% endif %}
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group | upper_first }}
 {% for commit in commits %}
-- {{ commit.message | upper_first }}
+- {{ commit.message | split(pat="\n") | first | upper_first }}
 {% endfor %}
 {% endfor %}
 """
@@ -25,7 +20,8 @@ conventional_commits = false
 filter_unconventional = false
 split_commits = false
 commit_preprocessors = [
-    { pattern = "^[^\\w]*", replace = "" },
+    { pattern = "^\\[.*?\\]\\s*", replace = "" },
+    { pattern = "^\\P{L}*", replace = "" },
 ]
 commit_parsers = [
     { message = "^[Ff]eat", group = "✨ Features" },
@@ -34,19 +30,19 @@ commit_parsers = [
     { message = "^[Pp]erf", group = "⚡ Performance" },
     { message = "^[Rr]efactor", group = "♻️ Refactoring" },
     { message = "^[Ss]tyle", group = "💄 Styling" },
-    { message = "^[Tt]est", group = "🧪 Testing" },
+    { message = "^[Tt]est", skip = true },
     { message = "^[Cc]hore\\(release\\)", skip = true },
     { message = "^[Cc]hore", group = "🔧 Miscellaneous" },
     { message = "^[Bb]uild", group = "🏗️ Build" },
-    { message = "^[Cc]i", group = "🔁 CI/CD" },
+    { message = "^[Cc]i", skip = true },
     { message = "^[Uu]i", group = "💄 Styling" },
     { body = ".*[Ss]ecurity", group = "🔒 Security" },
-    { message = "^[Uu]pdate", group = "📝 Other Changes" },
-    { message = "^[Dd]elete", group = "📝 Other Changes" },
-    { message = "^[Cc]reate", group = "📝 Other Changes" },
-    { message = "^[Aa]dd", group = "📝 Other Changes" },
-    { message = "^[Mm]erge", group = "📝 Other Changes" },
-    { message = "^\\[", group = "📝 Other Changes" },
+    { message = "^[Uu]pdate", skip = true },
+    { message = "^[Dd]elete", skip = true },
+    { message = "^[Cc]reate", skip = true },
+    { message = "^[Aa]dd", skip = true },
+    { message = "^[Mm]erge", skip = true },
+    { message = "^\\[", skip = true },
     { message = ".*", group = "📝 Other Changes" },
 ]
 protect_breaking_commits = false
