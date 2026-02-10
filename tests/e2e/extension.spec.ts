@@ -2,10 +2,9 @@ import { test, expect } from "@playwright/test";
 import path from "path";
 
 test.describe("Cookie Manager Pro Extension", () => {
-  let extensionPath: string;
+  const extensionPath = path.join(__dirname, "..", "..", "build", "chrome-mv3-prod");
 
-  test.beforeAll(async ({ context }) => {
-    extensionPath = path.join(__dirname, "..", "..", "build", "chrome-mv3-prod");
+  test.beforeEach(async ({ context }) => {
     await context.addInitScript({
       content: `
         window.chrome = {
