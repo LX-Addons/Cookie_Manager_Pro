@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { buildOrigins, clearCookies, clearBrowserData } from "../../utils";
-import type { CookieClearType } from "../../types";
+import type { CookieClearType } from "~types";
 
 // Test fixtures
 const createMockCookies = (): chrome.cookies.Cookie[] => [
@@ -58,11 +58,6 @@ const createMockCookiesWithTypes = (): chrome.cookies.Cookie[] => [
   },
 ];
 
-const mockRemoveResponse = {
-  name: "test",
-  url: "http://example.com",
-} as chrome.cookies.RemoveDetails;
-
 describe("buildOrigins", () => {
   it("should build origins for single domain", () => {
     const domains = new Set(["example.com"]);
@@ -90,7 +85,9 @@ describe("clearCookies", () => {
 
   const setupCookieMocks = (cookies: chrome.cookies.Cookie[]) => {
     vi.spyOn(chrome.cookies, "getAll").mockResolvedValue(cookies);
-    vi.spyOn(chrome.cookies, "remove").mockResolvedValue(mockRemoveResponse);
+    vi.spyOn(chrome.cookies, "remove").mockImplementation(
+      async (details: chrome.cookies.Details) => details
+    );
   };
 
   it("should clear all cookies when no options provided", async () => {

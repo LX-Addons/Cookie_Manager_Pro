@@ -9,7 +9,7 @@ test.describe("Cookie Manager Pro - 核心功能测试", () => {
     });
   });
 
-  test("应该能够添加域名到白名单", async ({ page, _context }) => {
+  test("应该能够添加域名到白名单", async ({ page }) => {
     await page.goto("https://example.com");
 
     const domain = "example.com";
@@ -25,7 +25,7 @@ test.describe("Cookie Manager Pro - 核心功能测试", () => {
     expect(isAdded).toBe(true);
   });
 
-  test("应该能够添加域名到黑名单", async ({ page, _context }) => {
+  test("应该能够添加域名到黑名单", async ({ page }) => {
     await page.goto("https://example.com");
 
     const domain = "example.com";
