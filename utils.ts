@@ -1,6 +1,4 @@
-import { CookieClearType } from "~types";
-
-export { CookieClearType };
+import { CookieClearType } from "./types";
 
 export const normalizeDomain = (domain: string): string => {
   return domain.replace(/^\./, "").toLowerCase();
