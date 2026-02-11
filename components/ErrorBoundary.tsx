@@ -28,7 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="error-boundary">
           <h2>出错了</h2>
-          <p>抱歉，扩展遇到了一个错误。请尝试重新加载。</p>
+          <p>{this.state.error?.message || "抱歉，扩展遇到了一个错误。请尝试重新加载。"}</p>
           <button
             onClick={() => {
               this.setState({ hasError: false, error: null });
