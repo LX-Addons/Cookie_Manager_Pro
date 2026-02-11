@@ -36,31 +36,6 @@
 
 ---
 
-## ⭐ GitHub 交互
-
-<div align="center">
-  <a href="https://github.com/LX-Addons/Cookie_Manager_Pro/stargazers">
-    <img src="https://img.shields.io/github/stars/LX-Addons/Cookie_Manager_Pro?style=social" alt="GitHub Stars" />
-  </a>
-  <a href="https://github.com/LX-Addons/Cookie_Manager_Pro/network/members">
-    <img src="https://img.shields.io/github/forks/LX-Addons/Cookie_Manager_Pro?style=social" alt="GitHub Forks" />
-  </a>
-  <a href="https://github.com/LX-Addons/Cookie_Manager_Pro/watchers">
-    <img src="https://img.shields.io/github/watchers/LX-Addons/Cookie_Manager_Pro?style=social" alt="GitHub Watchers" />
-  </a>
-</div>
-
-<div align="center">
-  <a href="https://github.com/LX-Addons/Cookie_Manager_Pro">
-    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/LX-Addons/Cookie_Manager_Pro?style=for-the-badge">
-  </a>
-  <a href="https://github.com/LX-Addons/Cookie_Manager_Pro/fork">
-    <img alt="GitHub forks" src="https://img.shields.io/github/forks/LX-Addons/Cookie_Manager_Pro?style=for-the-badge">
-  </a>
-</div>
-
----
-
 ## ✨ 核心功能
 
 ### 🛡️ 双模式智能管理
@@ -226,25 +201,9 @@ Cookie_Manager_Pro/
 
 ---
 
-## 📊 项目统计
-
-<div align="center">
-  <img src="https://img.shields.io/github/repo-size/LX-Addons/Cookie_Manager_Pro?style=flat-square" alt="Repo Size" />
-  <img src="https://img.shields.io/github/languages/code-size/LX-Addons/Cookie_Manager_Pro?style=flat-square" alt="Code Size" />
-  <img src="https://img.shields.io/github/languages/top/LX-Addons/Cookie_Manager_Pro?style=flat-square" alt="Top Language" />
-  <img src="https://img.shields.io/github/commit-activity/m/LX-Addons/Cookie_Manager_Pro?style=flat-square" alt="Commit Activity" />
-</div>
-
----
-
 <div align="center">
   <p>
     <strong>Made with ❤️ for privacy-conscious users</strong>
-  </p>
-  <p>
-    <a href="https://github.com/LX-Addons/Cookie_Manager_Pro">
-      <img src="https://img.shields.io/badge/GitHub-LX--Addons%2FCookie_Manager_Pro-181717?style=for-the-badge&logo=github" alt="GitHub" />
-    </a>
   </p>
   <p>
     <sub>Copyright © 2026 Cookie Manager Pro. All rights reserved.</sub>
