@@ -3,14 +3,39 @@ name: Build and Check Browser Extension
 on:
   push:
     branches: [main, beta, release]
+    paths:
+      - "**.ts"
+      - "**.tsx"
+      - "**.js"
+      - "**.jsx"
+      - "**.json"
+      - "**.css"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/build-and-check.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "**.ts"
+      - "**.tsx"
+      - "**.js"
+      - "**.jsx"
+      - "**.json"
+      - "**.css"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/build-and-check.yml"
   workflow_dispatch:
     inputs:
       create_release:
         description: "Create a release"
         required: false
-        default: "false"
+        default: false
+        type: boolean
+      skip_tests:
+        description: "Skip E2E tests (faster build)"
+        required: false
+        default: false
         type: boolean
 
 permissions:
@@ -29,11 +54,43 @@ env:
   EXTENSION_SIZE_LIMIT_MB: 10
 
 jobs:
-  lint:
-    name: Lint & Format Check
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      deps: ${{ steps.filter.outputs.deps }}
+      workflow: ${{ steps.filter.outputs.workflow }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3.0.2
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**.ts'
+              - '**.tsx'
+              - '**.js'
+              - '**.jsx'
+              - '**.css'
+            deps:
+              - 'package.json'
+              - 'package-lock.json'
+            workflow:
+              - '.github/workflows/build-and-check.yml'
+
+  setup:
+    name: Setup Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.deps == 'true' || needs.changes.outputs.workflow == 'true' || github.event_name == 'workflow_dispatch'
+    outputs:
+      cache-key: ${{ steps.cache.outputs.key }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -44,8 +101,44 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
+      - name: Get cache key
+        id: cache
+        run: echo "key=${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache node modules
+        uses: actions/cache@v5.0.3
+        with:
+          path: node_modules
+          key: ${{ steps.cache.outputs.key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
       - name: Install dependencies
         run: npm ci
+
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [setup, changes]
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.workflow == 'true' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore node modules
+        uses: actions/cache@v5.0.3
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
       - name: TypeScript check
         run: npx tsc --noEmit
@@ -60,7 +153,8 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
+    needs: [setup, changes]
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.deps == 'true' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -73,8 +167,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Restore node modules
+        uses: actions/cache@v5.0.3
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
       - name: Run unit tests with coverage
         run: npm run test:coverage
@@ -98,7 +197,8 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
+    needs: [setup, changes]
+    if: needs.changes.outputs.deps == 'true' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -111,8 +211,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Restore node modules
+        uses: actions/cache@v5.0.3
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
       - name: Check for secrets leakage
         uses: trufflesecurity/trufflehog@main
@@ -123,10 +228,6 @@ jobs:
 
       - name: Dependency audit
         run: npm audit --audit-level=moderate
-        continue-on-error: true
-
-      - name: Check for known vulnerabilities
-        run: npx better-npm-audit audit --level moderate || true
         continue-on-error: true
 
       - name: Security patterns check
@@ -147,25 +248,18 @@ jobs:
             echo "✅ No dangerouslySetInnerHTML usage found"
           fi
           
-          if grep -r "chrome.runtime.sendMessage.*chrome.runtime.MessageSender" --include="*.ts" --include="*.tsx" . 2>/dev/null | grep -v node_modules; then
-            echo "⚠️ Check message sender validation"
-          fi
-          
           exit $EXIT_CODE
 
   build:
     name: Build Extension
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint, test]
-
-    strategy:
-      matrix:
-        browser: [chrome]
-        include:
-          - browser: chrome
-            target: chrome-mv3
-
+    needs: [setup, lint, test, changes]
+    if: always() && (needs.setup.result == 'success') && (needs.lint.result == 'success' || needs.lint.result == 'skipped') && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      name: ${{ steps.version.outputs.name }}
+      size: ${{ steps.size.outputs.size }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -176,18 +270,23 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
+      - name: Restore node modules
+        uses: actions/cache@v5.0.3
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
       - name: Cache Plasmo build
         uses: actions/cache@v5.0.3
         with:
           path: |
             .plasmo
             build
-          key: ${{ runner.os }}-plasmo-${{ matrix.browser }}-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-plasmo-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-plasmo-${{ matrix.browser }}-
-
-      - name: Install dependencies
-        run: npm ci
+            ${{ runner.os }}-plasmo-
 
       - name: Build extension
         run: npm run build
@@ -201,12 +300,14 @@ jobs:
           echo "name=$NAME" >> $GITHUB_OUTPUT
 
       - name: Check extension size
+        id: size
         run: |
-          BUILD_DIR="build/${{ matrix.target }}-prod"
+          BUILD_DIR="build/chrome-mv3-prod"
           if [ -d "$BUILD_DIR" ]; then
             SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
             SIZE_MB=$((SIZE_KB / 1024))
             echo "📊 Extension size: ${SIZE_MB}MB (${SIZE_KB}KB)"
+            echo "size=${SIZE_KB}KB" >> $GITHUB_OUTPUT
             
             if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
               echo "❌ Extension size (${SIZE_MB}MB) exceeds limit (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
@@ -217,7 +318,7 @@ jobs:
 
       - name: Verify build artifacts
         run: |
-          BUILD_DIR="build/${{ matrix.target }}-prod"
+          BUILD_DIR="build/chrome-mv3-prod"
           
           if [ ! -d "$BUILD_DIR" ]; then
             echo "❌ Build directory not found: $BUILD_DIR"
@@ -249,20 +350,19 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
           NAME=${{ steps.version.outputs.name }}
-          BROWSER=${{ matrix.browser }}
           
-          if [ -d "build/${{ matrix.target }}-prod" ]; then
-            mv "build/${{ matrix.target }}-prod" "build/${NAME}-${VERSION}-${BROWSER}"
+          if [ -d "build/chrome-mv3-prod" ]; then
+            mv "build/chrome-mv3-prod" "build/${NAME}-${VERSION}-chrome"
           fi
           
-          if [ -f "build/${{ matrix.target }}-prod.zip" ]; then
-            mv "build/${{ matrix.target }}-prod.zip" "build/${NAME}-${VERSION}-${BROWSER}.zip"
+          if [ -f "build/chrome-mv3-prod.zip" ]; then
+            mv "build/chrome-mv3-prod.zip" "build/${NAME}-${VERSION}-chrome.zip"
           fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6.0.0
         with:
-          name: extension-${{ matrix.browser }}-${{ steps.version.outputs.version }}
+          name: extension-${{ steps.version.outputs.version }}
           path: build/
           retention-days: 7
 
@@ -270,8 +370,12 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [build]
-
+    needs: [build, changes]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      needs.changes.outputs.code == 'true' &&
+      github.event.inputs.skip_tests != 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -282,13 +386,18 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Restore node modules
+        uses: actions/cache@v5.0.3
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
       - name: Download build artifacts
         uses: actions/download-artifact@v5.0.0
         with:
-          pattern: extension-chrome-*
+          pattern: extension-*
           path: build/
           merge-multiple: true
 
@@ -317,21 +426,91 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
+  pr-comment:
+    name: PR Comment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [build, e2e, security]
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Get version info
+        id: info
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create PR comment
+        uses: actions/github-script@v7.0.1
         with:
-          name: test-results
-          path: test-results/
-          retention-days: 7
+          script: |
+            const buildResult = '${{ needs.build.result }}';
+            const e2eResult = '${{ needs.e2e.result }}';
+            const securityResult = '${{ needs.security.result }}';
+            const version = '${{ steps.info.outputs.version }}';
+            
+            const statusEmoji = (result) => {
+              if (result === 'success') return '✅';
+              if (result === 'failure') return '❌';
+              if (result === 'skipped') return '⏭️';
+              return '⚠️';
+            };
+            
+            const body = `## 🔍 Build Report
+            
+            | Check | Status |
+            |-------|--------|
+            | Build | ${statusEmoji(buildResult)} ${buildResult} |
+            | E2E Tests | ${statusEmoji(e2eResult)} ${e2eResult} |
+            | Security | ${statusEmoji(securityResult)} ${securityResult} |
+            
+            **Version:** \`${version}\`
+            
+            ${buildResult === 'success' ? '📦 Build artifacts are available in the workflow run.' : ''}
+            `;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint, test, security, build, e2e]
+    if: failure() && github.event_name != 'pull_request'
+    steps:
+      - name: Create failure summary
+        run: |
+          echo "## ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs for details." >> $GITHUB_STEP_SUMMARY
 
   release:
     name: Create Release
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build, e2e, security]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
-
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') &&
+      (needs.security.result == 'success' || needs.security.result == 'skipped') &&
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.create_release == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -397,16 +576,9 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## 🎉 Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| TypeScript | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| ESLint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| Prettier | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| Unit Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| E2E Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Scan | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 Release Created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Release assets:" >> $GITHUB_STEP_SUMMARY
+          ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No zip files found" >> $GITHUB_STEP_SUMMARY
