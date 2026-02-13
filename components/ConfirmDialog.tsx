@@ -50,7 +50,7 @@ export function ConfirmDialog({
       aria-labelledby="confirm-title"
     >
       <div className="confirm-dialog">
-        <h3 id="confirm-title" className="confirm-title">
+        <h3 id="confirm-title" className={`confirm-title ${variant === "danger" ? "danger" : ""}`}>
           {title}
         </h3>
         <p className="confirm-message">{message}</p>
