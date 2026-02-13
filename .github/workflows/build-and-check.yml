@@ -2,10 +2,16 @@ name: Build and Check Browser Extension
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, beta, release]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      create_release:
+        description: "Create a release"
+        required: false
+        default: "false"
+        type: boolean
 
 permissions:
   actions: read
@@ -18,10 +24,42 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: "20"
+  EXTENSION_SIZE_LIMIT_MB: 10
+
 jobs:
-  build-and-check:
+  lint:
+    name: Lint & Format Check
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: ESLint check
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -32,29 +70,46 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.2.0
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
-      - name: Get npm cache directory
-        id: npm-cache-dir
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Cache npm dependencies
-        uses: actions/cache@v5.0.3
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5.5.2
         with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
+          files: ./coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Cache Plasmo build
-        uses: actions/cache@v5.0.3
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v7.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
         with:
-          path: |
-            .plasmo
-            build
-          key: ${{ runner.os }}-plasmo-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-plasmo-
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -67,161 +122,192 @@ jobs:
           extra_args: --only-verified
 
       - name: Dependency audit
-        run: npm audit --production || true
+        run: npm audit --audit-level=moderate
         continue-on-error: true
 
-      - name: TypeScript check
-        run: npx tsc --noEmit
+      - name: Check for known vulnerabilities
+        run: npx better-npm-audit audit --level moderate || true
+        continue-on-error: true
 
-      - name: Lint check
+      - name: Security patterns check
         run: |
-          if [ -f "package.json" ] && grep -q "eslint" package.json; then
-            npm run lint
+          echo "🔒 Running security pattern checks..."
+          EXIT_CODE=0
+          
+          if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
+            echo "❌ Found eval() usage - potential security risk"
+            EXIT_CODE=1
           else
-            echo "ℹ️ ESLint not configured, skipping lint check"
+            echo "✅ No eval() usage found"
           fi
-
-      - name: Format check
-        run: |
-          if [ -f "package.json" ] && grep -q "prettier" package.json; then
-            npm run format:check
+          
+          if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
+            echo "⚠️ Found dangerouslySetInnerHTML usage - XSS risk"
           else
-            echo "ℹ️ Prettier not configured, skipping format check"
+            echo "✅ No dangerouslySetInnerHTML usage found"
           fi
-
-      - name: Run unit tests
-        run: |
-          if [ -f "package.json" ] && grep -q "vitest" package.json; then
-            npm run test:coverage
-          else
-            echo "ℹ️ Vitest not configured, skipping unit tests"
+          
+          if grep -r "chrome.runtime.sendMessage.*chrome.runtime.MessageSender" --include="*.ts" --include="*.tsx" . 2>/dev/null | grep -v node_modules; then
+            echo "⚠️ Check message sender validation"
           fi
+          
+          exit $EXIT_CODE
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v7.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  build:
+    name: Build Extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint, test]
 
-      - name: Upload coverage reports
-        if: always()
-        uses: codecov/codecov-action@v5.5.2
+    strategy:
+      matrix:
+        browser: [chrome]
+        include:
+          - browser: chrome
+            target: chrome-mv3
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
         with:
-          files: ./coverage/lcov.info
-          flags: unittests
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Cache Plasmo build
+        uses: actions/cache@v5.0.3
+        with:
+          path: |
+            .plasmo
+            build
+          key: ${{ runner.os }}-plasmo-${{ matrix.browser }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-plasmo-${{ matrix.browser }}-
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build extension
         run: npm run build
 
-      - name: Verify build success
-        run: |
-          if [ ! -d "build" ]; then
-            echo "✗ Build directory not found"
-            exit 1
-          fi
-          if [ ! -d "build/chrome-mv3-prod" ]; then
-            echo "✗ Production build directory not found"
-            exit 1
-          fi
-
-      - name: Get project version
-        id: get_version
+      - name: Get version info
+        id: version
         run: |
           VERSION=$(jq -r '.version' package.json)
-          PROJECT_NAME=$(jq -r '.name' package.json)
+          NAME=$(jq -r '.name' package.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
-          echo "build_dir=${PROJECT_NAME}-${VERSION}" >> $GITHUB_OUTPUT
-          echo "zip_file=${PROJECT_NAME}-${VERSION}.zip" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
 
-      - name: Package extension
-        run: npm run package
-
-      - name: Rename build artifacts
+      - name: Check extension size
         run: |
-          VERSION=${{ steps.get_version.outputs.version }}
-          PROJECT_NAME=${{ steps.get_version.outputs.project_name }}
-          BUILD_DIR=${{ steps.get_version.outputs.build_dir }}
-          ZIP_FILE=${{ steps.get_version.outputs.zip_file }}
-          
-          if [ -d "build/chrome-mv3-prod" ]; then
-            mv build/chrome-mv3-prod build/$BUILD_DIR
-            echo "✓ Renamed build directory to build/$BUILD_DIR"
-          fi
-          
-          if [ -f "build/chrome-mv3-prod.zip" ]; then
-            mv build/chrome-mv3-prod.zip build/$ZIP_FILE
-            echo "✓ Renamed zip file to build/$ZIP_FILE"
-          fi
-
-      - name: Verify zip file creation
-        run: |
-          ZIP_FILE=$(find build -name "*.zip" | head -1)
-          if [ -f "$ZIP_FILE" ]; then
-            echo "✓ Zip file created: $ZIP_FILE"
-            ls -la "$ZIP_FILE"
-            ZIP_SIZE=$(stat -c "%s" "$ZIP_FILE")
-            echo "✓ Zip file size: $ZIP_SIZE bytes"
-            if [ "$ZIP_SIZE" -lt 1000 ]; then
-              echo "⚠️ Zip file is very small, may be incomplete"
+          BUILD_DIR="build/${{ matrix.target }}-prod"
+          if [ -d "$BUILD_DIR" ]; then
+            SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
+            SIZE_MB=$((SIZE_KB / 1024))
+            echo "📊 Extension size: ${SIZE_MB}MB (${SIZE_KB}KB)"
+            
+            if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
+              echo "❌ Extension size (${SIZE_MB}MB) exceeds limit (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
+              exit 1
             fi
-          else
-            echo "✗ Zip file not found"
-            exit 1
+            echo "✅ Extension size within limit"
           fi
 
       - name: Verify build artifacts
         run: |
-          echo "📁 Build artifacts:"
-          ls -la build/
-          BUILD_DIR=$(find build -type d -name "*-*" | head -1)
-          if [ -d "$BUILD_DIR" ]; then
-            echo "📁 Production build:"
-            ls -la "$BUILD_DIR"
-            REQUIRED_FILES=("manifest.json" "popup.html")
-            for file in "${REQUIRED_FILES[@]}"; do
-              if [ -f "$BUILD_DIR/$file" ]; then
-                echo "✓ $file exists"
-              else
-                echo "✗ $file missing"
-                exit 1
-              fi
-            done
-            if [ -f "$BUILD_DIR/static/background/index.js" ]; then
-              echo "✓ background script exists at static/background/index.js"
-            else
-              echo "ℹ️ background script not found"
-            fi
-          else
-            echo "✗ Build directory not found"
+          BUILD_DIR="build/${{ matrix.target }}-prod"
+          
+          if [ ! -d "$BUILD_DIR" ]; then
+            echo "❌ Build directory not found: $BUILD_DIR"
             exit 1
+          fi
+          
+          echo "📁 Build contents:"
+          ls -la "$BUILD_DIR"
+          
+          REQUIRED_FILES=("manifest.json" "popup.html")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$BUILD_DIR/$file" ]; then
+              echo "✅ $file exists"
+            else
+              echo "❌ $file missing"
+              exit 1
+            fi
+          done
+          
+          if [ -f "$BUILD_DIR/manifest.json" ]; then
+            echo "📄 Manifest content:"
+            jq '.' "$BUILD_DIR/manifest.json"
+          fi
+
+      - name: Package extension
+        run: npm run package
+
+      - name: Rename artifacts
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          NAME=${{ steps.version.outputs.name }}
+          BROWSER=${{ matrix.browser }}
+          
+          if [ -d "build/${{ matrix.target }}-prod" ]; then
+            mv "build/${{ matrix.target }}-prod" "build/${NAME}-${VERSION}-${BROWSER}"
+          fi
+          
+          if [ -f "build/${{ matrix.target }}-prod.zip" ]; then
+            mv "build/${{ matrix.target }}-prod.zip" "build/${NAME}-${VERSION}-${BROWSER}.zip"
           fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6.0.0
         with:
-          name: extension-build-${{ steps.get_version.outputs.version }}
-          path: |
-            build/
+          name: extension-${{ matrix.browser }}-${{ steps.version.outputs.version }}
+          path: build/
           retention-days: 7
 
-      - name: Install Playwright browsers
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [build]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5.0.0
+        with:
+          pattern: extension-chrome-*
+          path: build/
+          merge-multiple: true
+
+      - name: Prepare extension for testing
         run: |
-          if [ -f "package.json" ] && grep -q "@playwright/test" package.json; then
-            npx playwright install --with-deps
-          else
-            echo "ℹ️ Playwright not configured, skipping E2E tests"
+          VERSION=$(jq -r '.version' package.json)
+          NAME=$(jq -r '.name' package.json)
+          
+          if [ -d "build/${NAME}-${VERSION}-chrome" ]; then
+            mv "build/${NAME}-${VERSION}-chrome" "build/chrome-mv3-prod"
           fi
+          
+          ls -la build/
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: |
-          if [ -f "package.json" ] && grep -q "@playwright/test" package.json; then
-            npm run test:e2e
-          else
-            echo "ℹ️ Playwright not configured, skipping E2E tests"
-          fi
+        run: npm run test:e2e
 
       - name: Upload Playwright report
         if: always()
@@ -231,124 +317,98 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Check manifest validity
-        run: |
-          if [ -f "package.json" ]; then
-            echo "✓ Checking manifest configuration in package.json"
-            cat package.json | grep -A 20 "manifest"
-          else
-            echo "✗ package.json not found"
-            exit 1
-          fi
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
 
-      - name: Check manifest.json
-        run: |
-          BUILD_DIR=$(find build -type d -name "*-*" | head -1)
-          if [ -f "$BUILD_DIR/manifest.json" ]; then
-            echo "✓ manifest.json exists"
-            cat $BUILD_DIR/manifest.json
-            if command -v jq &> /dev/null; then
-              jq '.' $BUILD_DIR/manifest.json
-              echo "✓ manifest.json is valid JSON"
-            else
-              echo "ℹ️ jq not available, skipping JSON validation"
-            fi
-          else
-            echo "✗ manifest.json not found"
-            exit 1
-          fi
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build, e2e, security]
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
-      - name: Security check
-        run: |
-          echo "🔒 Running security checks..."
-          if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" .; then
-            echo "⚠️  Found eval() usage, potential security risk"
-          else
-            echo "✓ No eval() usage found"
-          fi
-          if grep -r "innerHTML" --include="*.ts" --include="*.tsx" --include="*.js" .; then
-            echo "⚠️  Found innerHTML usage, potential XSS risk"
-          else
-            echo "✓ No innerHTML usage found"
-          fi
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
 
-      - name: Generate Release Notes
-        if: github.event_name == 'workflow_dispatch'
-        id: generate_notes
+      - name: Get version info
+        id: version
         run: |
-          echo "📋 Available tags:"
-          git tag -l | sort -V
-          
+          VERSION=$(jq -r '.version' package.json)
+          NAME=$(jq -r '.name' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5.0.0
+        with:
+          pattern: extension-*
+          path: build/
+          merge-multiple: true
+
+      - name: Generate changelog
+        id: changelog
+        run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          echo "🏷️ Previous tag: $PREVIOUS_TAG"
-          
-          CURRENT_VERSION="${{ steps.get_version.outputs.version }}"
-          echo "📌 Current version: v$CURRENT_VERSION"
+          CURRENT_VERSION="${{ steps.version.outputs.version }}"
           
           if [ -z "$PREVIOUS_TAG" ]; then
-            echo "ℹ️ No previous tag found, generating full changelog"
-            NOTES=$(npx git-cliff --strip header)
+            NOTES=$(npx git-cliff --strip header 2>/dev/null || echo "Initial release v${CURRENT_VERSION}")
           else
-            echo "ℹ️ Generating changelog from $PREVIOUS_TAG to HEAD"
-            NOTES=$(npx git-cliff "$PREVIOUS_TAG..HEAD" --strip header)
+            NOTES=$(npx git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "Release v${CURRENT_VERSION}")
           fi
           
-          echo "📝 Generated notes:"
-          echo "$NOTES"
-          
           if [ -z "$NOTES" ] || [ "$NOTES" = "## [Unreleased]" ]; then
-            echo "⚠️ No notes generated, using default"
-            NOTES=$(printf "## What's Changed\n\n- 版本更新至 %s\n- 详见提交历史" "$CURRENT_VERSION")
+            NOTES="## What's Changed\n\n- 版本更新至 ${CURRENT_VERSION}"
           fi
           
           echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo -e "$NOTES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "✓ Release notes generated"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release
-        if: github.event_name == 'workflow_dispatch'
+        if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2.5.0
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: Release v${{ steps.get_version.outputs.version }}
-          body: ${{ steps.generate_notes.outputs.notes }}
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.notes }}
           files: |
             build/*.zip
           draft: false
-          prerelease: false
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          generate_release_notes: false
 
       - name: Summary
         run: |
-          echo "## Build Summary"
-          echo "✅ All checks passed"
-          echo "✅ Build completed successfully"
-          echo "✅ TypeScript check passed"
-          echo "✅ Dependency audit completed"
-          echo "✅ ESLint check passed"
-          echo "✅ Prettier check passed"
-          echo "✅ Secrets scan completed"
-          
-          if [ -f "package.json" ] && grep -q "vitest" package.json; then
-            echo "✅ Unit tests passed"
-          else
-            echo "ℹ️ Vitest not configured, skipping unit tests"
-          fi
-          
-          if [ -f "package.json" ] && grep -q "@playwright/test" package.json; then
-            echo "✅ E2E tests passed"
-          else
-            echo "ℹ️ Playwright not configured, skipping E2E tests"
-          fi
-          
-          echo "✅ Extension packaged"
-          echo "✅ Build artifacts uploaded"
-          echo "✅ SonarCloud analysis completed"
-          
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "✅ Release created"
-            echo "✅ Ready for deployment"
-          else
-            echo "ℹ️ Release step skipped (manual trigger only)"
-          fi
+          echo "## 🎉 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| TypeScript | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| ESLint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Prettier | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
