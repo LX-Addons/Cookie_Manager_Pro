@@ -739,4 +739,195 @@ describe("IndexPopup", () => {
 
     expect(screen.getByText("无法获取域名")).toBeTruthy();
   });
+
+  it("should handle updateStats error", async () => {
+    (chrome.cookies.getAll as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.reject(new Error("Failed to get cookies"))
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("更新统计信息失败")).toBeTruthy();
+    });
+  });
+
+  it("should handle clearCookies error", async () => {
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.reject(new Error("Failed to clear"))
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const clearCurrentBtn = screen.getByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("清除确认")).toBeTruthy();
+    });
+
+    const confirmBtn = screen.getByText("确定");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("清除Cookie失败")).toBeTruthy();
+    });
+  });
+
+  it("should call cookies.onChanged listener", async () => {
+    let cookieListener: (() => void) | null = null;
+    (chrome.cookies.onChanged.addListener as ReturnType<typeof vi.fn>).mockImplementation(
+      (fn: () => void) => {
+        cookieListener = fn;
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    expect(cookieListener).not.toBeNull();
+
+    await act(async () => {
+      if (cookieListener) {
+        cookieListener();
+      }
+    });
+  });
+
+  it("should handle media query change event", async () => {
+    const listeners: Array<(e: MediaQueryListEvent) => void> = [];
+    const mockMatchMedia = vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn((event: string, handler: (e: MediaQueryListEvent) => void) => {
+        listeners.push(handler);
+      }),
+      removeEventListener: vi.fn(),
+    }));
+
+    Object.defineProperty(window, "matchMedia", {
+      value: mockMatchMedia,
+      writable: true,
+    });
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    expect(listeners.length).toBeGreaterThan(0);
+
+    await act(async () => {
+      listeners[0]({ matches: true } as MediaQueryListEvent);
+    });
+  });
+
+  it("should render with dark theme when system is dark", async () => {
+    const mockMatchMedia = vi.fn((query: string) => ({
+      matches: query === "(prefers-color-scheme: dark)",
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+
+    Object.defineProperty(window, "matchMedia", {
+      value: mockMatchMedia,
+      writable: true,
+    });
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const container = document.querySelector(".container");
+    expect(container?.className).toContain("theme-");
+  });
+
+  it("should handle clear with multiple domains", async () => {
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 10, clearedDomains: ["example.com", "test.com", "other.com"] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const clearAllBtn = screen.getByText("清除所有Cookie");
+    fireEvent.click(clearAllBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("清除确认")).toBeTruthy();
+    });
+
+    const confirmBtn = screen.getByText("确定");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/已清除/)).toBeTruthy();
+    });
+  });
+
+  it("should handle clear with zero count", async () => {
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 0, clearedDomains: [] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const clearCurrentBtn = screen.getByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("清除确认")).toBeTruthy();
+    });
+
+    const confirmBtn = screen.getByText("确定");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/已清除/)).toBeTruthy();
+    });
+  });
+
+  it("should remove cookies.onChanged listener on unmount", async () => {
+    const removeListenerMock = chrome.cookies.onChanged.removeListener as ReturnType<typeof vi.fn>;
+
+    const { unmount } = await act(async () => {
+      return render(<IndexPopup />);
+    });
+
+    await act(async () => {
+      unmount();
+    });
+
+    expect(removeListenerMock).toHaveBeenCalled();
+  });
+
+  it("should handle escape key to close confirm dialog", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const clearCurrentBtn = screen.getByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("清除确认")).toBeTruthy();
+    });
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByText("清除确认")).toBeNull();
+    });
+  });
 });
