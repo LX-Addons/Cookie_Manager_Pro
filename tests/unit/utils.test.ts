@@ -6,7 +6,7 @@ import {
   getCookieTypeName,
   buildOrigins,
   clearCookies,
-  clearBrowserData
+  clearBrowserData,
 } from "../../utils";
 import { CookieClearType } from "../../types";
 
