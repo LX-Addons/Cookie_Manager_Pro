@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CookieList } from "../../components/CookieList";
 
 const mockCookies = [
@@ -178,5 +178,117 @@ describe("CookieList", () => {
     );
 
     expect(screen.getByText(/Cookie 详情/)).toBeTruthy();
+  });
+
+  it("should toggle select all off when clicked twice", () => {
+    render(<CookieList cookies={mockCookies} currentDomain="example.com" />);
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ }) as HTMLInputElement;
+    fireEvent.click(selectAllCheckbox);
+    expect(selectAllCheckbox.checked).toBe(true);
+
+    fireEvent.click(selectAllCheckbox);
+    expect(selectAllCheckbox.checked).toBe(false);
+  });
+
+  it("should show delete selected button when items selected", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const deleteBtn = screen.getByText("删除选中");
+    expect(deleteBtn).toBeTruthy();
+  });
+
+  it("should collapse when header clicked twice", () => {
+    render(<CookieList cookies={mockCookies} currentDomain="example.com" />);
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+    expect(screen.getByText("全选")).toBeTruthy();
+
+    fireEvent.click(headerButton);
+    expect(screen.queryByText("全选")).toBeNull();
+  });
+
+  it("should render without currentDomain", () => {
+    render(<CookieList cookies={mockCookies} currentDomain="" />);
+
+    expect(screen.getByText(/Cookie 详情/)).toBeTruthy();
+  });
+
+  it("should handle cookies with expirationDate", () => {
+    const cookiesWithExpiry = [
+      {
+        name: "persistent",
+        value: "value",
+        domain: ".example.com",
+        path: "/",
+        secure: true,
+        httpOnly: false,
+        sameSite: "lax" as const,
+        expirationDate: Date.now() / 1000 + 3600,
+      },
+    ];
+
+    render(<CookieList cookies={cookiesWithExpiry} currentDomain="example.com" />);
+
+    expect(screen.getByText(/Cookie 详情/)).toBeTruthy();
+  });
+
+  it("should handle cookies without expirationDate", () => {
+    const sessionCookies = [
+      {
+        name: "session",
+        value: "value",
+        domain: ".example.com",
+        path: "/",
+        secure: false,
+        httpOnly: false,
+        sameSite: "lax" as const,
+      },
+    ];
+
+    render(<CookieList cookies={sessionCookies} currentDomain="example.com" />);
+
+    expect(screen.getByText(/Cookie 详情/)).toBeTruthy();
+  });
+
+  it("should call onUpdate after delete", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const deleteBtn = screen.getByText("删除选中");
+    fireEvent.click(deleteBtn);
+
+    await waitFor(() => {
+      expect(mockOnUpdate).toHaveBeenCalled();
+    });
   });
 });

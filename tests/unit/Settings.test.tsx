@@ -174,4 +174,97 @@ describe("Settings", () => {
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
   });
+
+  it("should call onMessage when clear type is changed", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const sessionRadio = screen.getByLabelText("仅清除会话Cookie");
+    fireEvent.click(sessionRadio);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should call onMessage when schedule interval is changed", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const hourlyRadio = screen.getByLabelText("每小时");
+    fireEvent.click(hourlyRadio);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should call onMessage when theme mode is changed", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const darkRadio = screen.getByLabelText("暗色");
+    fireEvent.click(darkRadio);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should call onMessage when light theme is selected", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const lightRadio = screen.getByLabelText("亮色");
+    fireEvent.click(lightRadio);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should render all log retention options", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    const options = select.querySelectorAll("option");
+    expect(options.length).toBeGreaterThan(0);
+  });
+
+  it("should handle multiple checkbox toggles", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+
+    fireEvent.click(checkboxes[0]);
+    expect(mockOnMessage).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(checkboxes[1]);
+    expect(mockOnMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it("should show custom theme color inputs", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const customRadio = screen.getByLabelText("自定义");
+    fireEvent.click(customRadio);
+
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    expect(colorInputs.length).toBeGreaterThan(0);
+  });
+
+  it("should handle log retention change to forever", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.FOREVER } });
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should handle daily schedule interval", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const dailyRadio = screen.getByLabelText("每天");
+    fireEvent.click(dailyRadio);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should handle weekly schedule interval", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const weeklyRadio = screen.getByLabelText("每周");
+    fireEvent.click(weeklyRadio);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
 });
