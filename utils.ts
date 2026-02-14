@@ -359,3 +359,18 @@ export const toggleSetValue = (set: Set<string>, value: string): Set<string> => 
   }
   return next;
 };
+
+export const validateDomain = (domain: string): { valid: boolean; message?: string } => {
+  const trimmed = domain.trim();
+  if (!trimmed) {
+    return { valid: false, message: "域名不能为空" };
+  }
+  if (
+    !/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/.test(
+      trimmed
+    )
+  ) {
+    return { valid: false, message: "域名格式不正确" };
+  }
+  return { valid: true };
+};

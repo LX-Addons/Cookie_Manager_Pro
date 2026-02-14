@@ -21,6 +21,7 @@ import {
   maskCookieValue,
   getCookieKey,
   toggleSetValue,
+  validateDomain,
 } from "../../utils";
 import { CookieClearType } from "../../types";
 
@@ -876,5 +877,33 @@ describe("toggleSetValue", () => {
     const result = toggleSetValue(original, "c");
     expect(original.has("c")).toBe(false);
     expect(result.has("c")).toBe(true);
+  });
+});
+
+describe("validateDomain", () => {
+  it("should validate empty string", () => {
+    const result = validateDomain("");
+    expect(result.valid).toBe(false);
+    expect(result.message).toBe("域名不能为空");
+  });
+
+  it("should validate whitespace only", () => {
+    const result = validateDomain("   ");
+    expect(result.valid).toBe(false);
+    expect(result.message).toBe("域名不能为空");
+  });
+
+  it("should validate valid domain", () => {
+    expect(validateDomain("example.com").valid).toBe(true);
+    expect(validateDomain("sub.example.com").valid).toBe(true);
+    expect(validateDomain("test123.com").valid).toBe(true);
+    expect(validateDomain("a.co").valid).toBe(true);
+  });
+
+  it("should validate invalid domain", () => {
+    expect(validateDomain("invalid_domain").valid).toBe(false);
+    expect(validateDomain("-example.com").valid).toBe(false);
+    expect(validateDomain("example.com-").valid).toBe(false);
+    expect(validateDomain("example..com").valid).toBe(false);
   });
 });
