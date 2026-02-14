@@ -485,4 +485,132 @@ describe("Settings", () => {
     fireEvent.click(checkboxes[9]);
     expect(mockOnMessage).toHaveBeenCalledTimes(3);
   });
+
+  it("should hide custom theme settings when switching away from custom theme", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const customRadio = screen.getByLabelText("自定义");
+    fireEvent.click(customRadio);
+    expect(screen.getByText("主色调")).toBeTruthy();
+
+    const darkRadio = screen.getByLabelText("暗色");
+    fireEvent.click(darkRadio);
+
+    expect(screen.queryByText("主色调")).toBeNull();
+  });
+
+  it("should hide custom theme settings when selecting light theme after custom", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const customRadio = screen.getByLabelText("自定义");
+    fireEvent.click(customRadio);
+    expect(screen.getByText("主色调")).toBeTruthy();
+
+    const lightRadio = screen.getByLabelText("亮色");
+    fireEvent.click(lightRadio);
+
+    expect(screen.queryByText("主色调")).toBeNull();
+  });
+
+  it("should hide custom theme settings when selecting auto theme after custom", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const customRadio = screen.getByLabelText("自定义");
+    fireEvent.click(customRadio);
+    expect(screen.getByText("主色调")).toBeTruthy();
+
+    const autoRadio = screen.getByLabelText("跟随浏览器");
+    fireEvent.click(autoRadio);
+
+    expect(screen.queryByText("主色调")).toBeNull();
+  });
+
+  it("should not show custom theme settings initially", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.queryByText("主色调")).toBeNull();
+    expect(screen.queryByText("成功色")).toBeNull();
+  });
+
+  it("should render log retention description", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("控制操作日志的保存时间，过长时间的日志会占用存储空间")).toBeTruthy();
+  });
+
+  it("should render theme mode description", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(
+      screen.getByText("选择您喜欢的界面主题，自定义主题可以让您完全掌控视觉效果")
+    ).toBeTruthy();
+  });
+
+  it("should handle log retention change to six hours", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.SIX_HOURS } });
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should handle log retention change to twelve hours", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.TWELVE_HOURS } });
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should handle log retention change to three days", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.THREE_DAYS } });
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should handle log retention change to ten days", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.TEN_DAYS } });
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should handle log retention change to thirty days", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.THIRTY_DAYS } });
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should handle clear type change to persistent", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const persistentRadio = screen.getByLabelText("仅清除持久Cookie");
+    fireEvent.click(persistentRadio);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
+  });
+
+  it("should render settings container with correct class", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const container = document.querySelector(".settings-container");
+    expect(container).toBeTruthy();
+  });
+
+  it("should render all sections", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const sections = document.querySelectorAll(".section");
+    expect(sections.length).toBe(8);
+  });
 });

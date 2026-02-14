@@ -476,4 +476,267 @@ describe("IndexPopup", () => {
       expect(statValues[0].textContent).toBe("2");
     });
   });
+
+  it("should render message component", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const addWhitelistBtn = screen.getByText("添加到白名单");
+    fireEvent.click(addWhitelistBtn);
+
+    await waitFor(() => {
+      const message = document.querySelector(".message");
+      expect(message).toBeTruthy();
+    });
+  });
+
+  it("should render confirm dialog with danger variant for clear all", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const clearAllBtn = screen.getByText("清除所有Cookie");
+    fireEvent.click(clearAllBtn);
+
+    await waitFor(() => {
+      const title = document.querySelector(".confirm-title.danger");
+      expect(title).toBeTruthy();
+    });
+  });
+
+  it("should render confirm dialog with warning variant for clear current", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const clearCurrentBtn = screen.getByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+
+    await waitFor(() => {
+      const title = document.querySelector(".confirm-title");
+      expect(title).toBeTruthy();
+      expect(title?.classList.contains("danger")).toBe(false);
+    });
+  });
+
+  it("should render section icons", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const sectionIcons = document.querySelectorAll(".section-icon");
+    expect(sectionIcons.length).toBeGreaterThan(0);
+  });
+
+  it("should render tab icons", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const tabIcons = document.querySelectorAll(".tab-icon");
+    expect(tabIcons.length).toBe(4);
+  });
+
+  it("should render button icons", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const btnIcons = document.querySelectorAll(".btn-icon");
+    expect(btnIcons.length).toBeGreaterThan(0);
+  });
+
+  it("should handle empty cookies list", async () => {
+    (chrome.cookies.getAll as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve([])
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      const statValues = document.querySelectorAll(".stat-value");
+      expect(statValues[0].textContent).toBe("0");
+    });
+  });
+
+  it("should register media query listener", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    expect(window.matchMedia).toBeDefined();
+  });
+
+  it("should handle cookies with tracking cookies", async () => {
+    const { isTrackingCookie } = await import("~utils");
+    (isTrackingCookie as ReturnType<typeof vi.fn>).mockImplementation(() => true);
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      const statValues = document.querySelectorAll(".stat-value");
+      expect(statValues.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("should handle cookies with third party cookies", async () => {
+    const { isThirdPartyCookie } = await import("~utils");
+    (isThirdPartyCookie as ReturnType<typeof vi.fn>).mockImplementation(() => true);
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      const statValues = document.querySelectorAll(".stat-value");
+      expect(statValues.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("should render all stat items", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      const statItems = document.querySelectorAll(".stat-item");
+      expect(statItems.length).toBe(6);
+    });
+  });
+
+  it("should render all sections", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      const sections = document.querySelectorAll(".section");
+      expect(sections.length).toBe(3);
+    });
+  });
+
+  it("should have correct tabpanel ids", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const managePanel = document.getElementById("manage-panel");
+    expect(managePanel).toBeTruthy();
+  });
+
+  it("should have correct button classes", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const successBtn = document.querySelector(".btn-success");
+    const secondaryBtn = document.querySelector(".btn-secondary");
+    const warningBtn = document.querySelector(".btn-warning");
+    const dangerBtn = document.querySelector(".btn-danger");
+
+    expect(successBtn).toBeTruthy();
+    expect(secondaryBtn).toBeTruthy();
+    expect(warningBtn).toBeTruthy();
+    expect(dangerBtn).toBeTruthy();
+  });
+
+  it("should handle multiple clears in sequence", async () => {
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const clearCurrentBtn = screen.getByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("清除确认")).toBeTruthy();
+    });
+
+    const confirmBtn = screen.getByText("确定");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(performCleanupWithFilter).toHaveBeenCalledTimes(1);
+    });
+
+    const clearAllBtn = screen.getByText("清除所有Cookie");
+    fireEvent.click(clearAllBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("清除确认")).toBeTruthy();
+    });
+
+    const confirmBtn2 = screen.getByText("确定");
+    fireEvent.click(confirmBtn2);
+
+    await waitFor(() => {
+      expect(performCleanupWithFilter).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("should show message with error class when error", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const message = document.querySelector(".message");
+    expect(message?.classList.contains("error")).toBe(false);
+    expect(message?.classList.contains("visible")).toBe(false);
+  });
+
+  it("should handle chrome.tabs.query returning empty array", async () => {
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve([]));
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    expect(screen.getByText("无法获取域名")).toBeTruthy();
+  });
+
+  it("should handle tab with chrome:// url", async () => {
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve([
+        {
+          id: 1,
+          url: "chrome://extensions",
+          active: true,
+          currentWindow: true,
+        },
+      ])
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const domainInfo = document.querySelector(".domain-info");
+    expect(domainInfo?.textContent).toBe("extensions");
+  });
+
+  it("should handle tab with about: url", async () => {
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve([
+        {
+          id: 1,
+          url: "about:blank",
+          active: true,
+          currentWindow: true,
+        },
+      ])
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    expect(screen.getByText("无法获取域名")).toBeTruthy();
+  });
 });
