@@ -295,3 +295,67 @@ export const groupCookiesByDomain = (
   }
   return grouped;
 };
+
+export const getActionText = (action: string): string => {
+  switch (action) {
+    case "clear":
+      return "清除";
+    case "edit":
+      return "编辑";
+    case "delete":
+      return "删除";
+    case "import":
+      return "导入";
+    case "export":
+      return "导出";
+    default:
+      return "操作";
+  }
+};
+
+export const getActionColor = (action: string): string => {
+  switch (action) {
+    case "clear":
+      return "#3b82f6";
+    case "edit":
+      return "#f59e0b";
+    case "delete":
+      return "#ef4444";
+    case "import":
+      return "#22c55e";
+    case "export":
+      return "#8b5cf6";
+    default:
+      return "#64748b";
+  }
+};
+
+export const formatLogTime = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+export const maskCookieValue = (value: string, mask: string): string => {
+  if (value.length <= 8) return mask;
+  return value.substring(0, 4) + mask.substring(4);
+};
+
+export const getCookieKey = (name: string, domain: string): string => {
+  return `${name}-${domain}`;
+};
+
+export const toggleSetValue = (set: Set<string>, value: string): Set<string> => {
+  const next = new Set(set);
+  if (next.has(value)) {
+    next.delete(value);
+  } else {
+    next.add(value);
+  }
+  return next;
+};

@@ -2,61 +2,16 @@ import { useStorage } from "@plasmohq/storage/hook";
 import { CLEAR_LOG_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, LOG_RETENTION_MAP } from "~store";
 import type { ClearLogEntry, Settings } from "~types";
 import { LogRetention } from "~types";
-import { getCookieTypeName } from "~utils";
+import { getCookieTypeName, getActionText, getActionColor, formatLogTime } from "~utils";
 import { useMemo } from "react";
 
 interface Props {
   onMessage: (msg: string) => void;
 }
 
-const getActionText = (action: string): string => {
-  switch (action) {
-    case "clear":
-      return "清除";
-    case "edit":
-      return "编辑";
-    case "delete":
-      return "删除";
-    case "import":
-      return "导入";
-    case "export":
-      return "导出";
-    default:
-      return "操作";
-  }
-};
-
-const getActionColor = (action: string): string => {
-  switch (action) {
-    case "clear":
-      return "#3b82f6";
-    case "edit":
-      return "#f59e0b";
-    case "delete":
-      return "#ef4444";
-    case "import":
-      return "#22c55e";
-    case "export":
-      return "#8b5cf6";
-    default:
-      return "#64748b";
-  }
-};
-
 export const ClearLog = ({ onMessage }: Props) => {
   const [logs, setLogs] = useStorage<ClearLogEntry[]>(CLEAR_LOG_KEY, []);
   const [settings] = useStorage<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS);
-
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString("zh-CN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const clearAllLogs = () => {
     if (confirm("确定要清除所有日志记录吗？")) {
@@ -137,7 +92,7 @@ export const ClearLog = ({ onMessage }: Props) => {
                   </span>
                   <span className="log-type">{getCookieTypeName(log.cookieType)}</span>
                   <span className="log-count">{log.count} 个</span>
-                  <span className="log-time">{formatTime(log.timestamp)}</span>
+                  <span className="log-time">{formatLogTime(log.timestamp)}</span>
                 </div>
                 {log.details && <div className="log-details-text">{log.details}</div>}
               </div>

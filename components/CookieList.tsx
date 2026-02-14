@@ -8,6 +8,9 @@ import {
   clearSingleCookie,
   editCookie,
   normalizeDomain,
+  maskCookieValue,
+  getCookieKey,
+  toggleSetValue,
 } from "~utils";
 import { CookieEditor } from "./CookieEditor";
 
@@ -17,11 +20,6 @@ interface Props {
   onUpdate?: () => void;
   onMessage?: (msg: string, isError?: boolean) => void;
 }
-
-const maskCookieValue = (value: string): string => {
-  if (value.length <= 8) return COOKIE_VALUE_MASK;
-  return value.substring(0, 4) + COOKIE_VALUE_MASK.substring(4);
-};
 
 export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }: Props) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -47,44 +45,16 @@ export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }:
     return grouped;
   }, [cookies]);
 
-  const cookieKey = (cookie: Cookie, _index: number): string => {
-    return `${cookie.name}-${cookie.domain}`;
-  };
-
   const toggleValueVisibility = (key: string) => {
-    setVisibleValues((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
+    setVisibleValues((prev) => toggleSetValue(prev, key));
   };
 
   const toggleCookieSelection = (key: string) => {
-    setSelectedCookies((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
+    setSelectedCookies((prev) => toggleSetValue(prev, key));
   };
 
   const toggleDomainExpansion = (domain: string) => {
-    setExpandedDomains((prev) => {
-      const next = new Set(prev);
-      if (next.has(domain)) {
-        next.delete(domain);
-      } else {
-        next.add(domain);
-      }
-      return next;
-    });
+    setExpandedDomains((prev) => toggleSetValue(prev, domain));
   };
 
   const toggleSelectAll = () => {
@@ -92,9 +62,8 @@ export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }:
       setSelectedCookies(new Set());
     } else {
       const allKeys = new Set<string>();
-      let _index = 0;
       for (const cookie of cookies) {
-        allKeys.add(cookieKey(cookie, _index++));
+        allKeys.add(getCookieKey(cookie.name, cookie.domain));
       }
       setSelectedCookies(allKeys);
     }
@@ -149,7 +118,7 @@ export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }:
     let deleted = 0;
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i];
-      const key = cookieKey(cookie, i);
+      const key = getCookieKey(cookie.name, cookie.domain);
       if (selectedCookies.has(key)) {
         try {
           const cleanedDomain = cookie.domain.replace(/^\./, "");
@@ -175,7 +144,7 @@ export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }:
     const domains = new Set<string>();
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i];
-      const key = cookieKey(cookie, i);
+      const key = getCookieKey(cookie.name, cookie.domain);
       if (selectedCookies.has(key)) {
         domains.add(normalizeDomain(cookie.domain));
       }
@@ -187,7 +156,7 @@ export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }:
     const domains = new Set<string>();
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i];
-      const key = cookieKey(cookie, i);
+      const key = getCookieKey(cookie.name, cookie.domain);
       if (selectedCookies.has(key)) {
         domains.add(normalizeDomain(cookie.domain));
       }
@@ -263,9 +232,11 @@ export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }:
                 {expandedDomains.has(domain) && (
                   <div className="domain-cookies">
                     {domainCookies.map((cookie, _index) => {
-                      const key = cookieKey(cookie, cookies.indexOf(cookie));
+                      const key = getCookieKey(cookie.name, cookie.domain);
                       const isVisible = visibleValues.has(key);
-                      const displayValue = isVisible ? cookie.value : maskCookieValue(cookie.value);
+                      const displayValue = isVisible
+                        ? cookie.value
+                        : maskCookieValue(cookie.value, COOKIE_VALUE_MASK);
                       const risk = assessCookieRisk(cookie, currentDomain);
                       const isSelected = selectedCookies.has(key);
 

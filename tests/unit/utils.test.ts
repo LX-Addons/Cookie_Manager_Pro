@@ -15,6 +15,12 @@ import {
   clearSingleCookie,
   editCookie,
   groupCookiesByDomain,
+  getActionText,
+  getActionColor,
+  formatLogTime,
+  maskCookieValue,
+  getCookieKey,
+  toggleSetValue,
 } from "../../utils";
 import { CookieClearType } from "../../types";
 
@@ -755,5 +761,120 @@ describe("groupCookiesByDomain", () => {
     const grouped = groupCookiesByDomain(cookies);
     expect(grouped.size).toBe(1);
     expect(grouped.get("example.com")?.length).toBe(2);
+  });
+});
+
+describe("getActionText", () => {
+  it("should return correct text for clear action", () => {
+    expect(getActionText("clear")).toBe("清除");
+  });
+
+  it("should return correct text for edit action", () => {
+    expect(getActionText("edit")).toBe("编辑");
+  });
+
+  it("should return correct text for delete action", () => {
+    expect(getActionText("delete")).toBe("删除");
+  });
+
+  it("should return correct text for import action", () => {
+    expect(getActionText("import")).toBe("导入");
+  });
+
+  it("should return correct text for export action", () => {
+    expect(getActionText("export")).toBe("导出");
+  });
+
+  it("should return default text for unknown action", () => {
+    expect(getActionText("unknown")).toBe("操作");
+    expect(getActionText("")).toBe("操作");
+  });
+});
+
+describe("getActionColor", () => {
+  it("should return correct color for clear action", () => {
+    expect(getActionColor("clear")).toBe("#3b82f6");
+  });
+
+  it("should return correct color for edit action", () => {
+    expect(getActionColor("edit")).toBe("#f59e0b");
+  });
+
+  it("should return correct color for delete action", () => {
+    expect(getActionColor("delete")).toBe("#ef4444");
+  });
+
+  it("should return correct color for import action", () => {
+    expect(getActionColor("import")).toBe("#22c55e");
+  });
+
+  it("should return correct color for export action", () => {
+    expect(getActionColor("export")).toBe("#8b5cf6");
+  });
+
+  it("should return default color for unknown action", () => {
+    expect(getActionColor("unknown")).toBe("#64748b");
+    expect(getActionColor("")).toBe("#64748b");
+  });
+});
+
+describe("formatLogTime", () => {
+  it("should format timestamp correctly", () => {
+    const testTimestamp = Date.now();
+    const result = formatLogTime(testTimestamp);
+    const expected = new Date(testTimestamp).toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    expect(result).toBe(expected);
+  });
+});
+
+describe("maskCookieValue", () => {
+  const testMask = "••••••••••••";
+
+  it("should return full mask for short values", () => {
+    expect(maskCookieValue("1234", testMask)).toBe(testMask);
+    expect(maskCookieValue("12345678", testMask)).toBe(testMask);
+  });
+
+  it("should return partial mask for longer values", () => {
+    const result = maskCookieValue("1234567890", testMask);
+    expect(result).toBe("1234" + testMask.substring(4));
+  });
+});
+
+describe("getCookieKey", () => {
+  it("should generate correct key from name and domain", () => {
+    expect(getCookieKey("session", "example.com")).toBe("session-example.com");
+    expect(getCookieKey("_ga", "google.com")).toBe("_ga-google.com");
+  });
+});
+
+describe("toggleSetValue", () => {
+  it("should add value when not present", () => {
+    const set = new Set(["a", "b"]);
+    const result = toggleSetValue(set, "c");
+    expect(result.has("a")).toBe(true);
+    expect(result.has("b")).toBe(true);
+    expect(result.has("c")).toBe(true);
+  });
+
+  it("should remove value when present", () => {
+    const set = new Set(["a", "b", "c"]);
+    const result = toggleSetValue(set, "b");
+    expect(result.has("a")).toBe(true);
+    expect(result.has("b")).toBe(false);
+    expect(result.has("c")).toBe(true);
+  });
+
+  it("should not modify original set", () => {
+    const original = new Set(["a", "b"]);
+    const result = toggleSetValue(original, "c");
+    expect(original.has("c")).toBe(false);
+    expect(result.has("c")).toBe(true);
   });
 });
