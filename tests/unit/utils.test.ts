@@ -7,6 +7,14 @@ import {
   buildOrigins,
   clearCookies,
   clearBrowserData,
+  isTrackingCookie,
+  isThirdPartyCookie,
+  assessCookieRisk,
+  getRiskLevelColor,
+  getRiskLevelText,
+  clearSingleCookie,
+  editCookie,
+  groupCookiesByDomain,
 } from "../../utils";
 import { CookieClearType } from "../../types";
 
@@ -359,5 +367,287 @@ describe("clearBrowserData", () => {
     expect(mockBrowsingDataRemove).toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
+  });
+});
+
+describe("isTrackingCookie", () => {
+  it("should detect tracking cookie by name", () => {
+    expect(isTrackingCookie({ name: "_ga", domain: "example.com" })).toBe(true);
+    expect(isTrackingCookie({ name: "utm_source", domain: "example.com" })).toBe(true);
+    expect(isTrackingCookie({ name: "fbp", domain: "example.com" })).toBe(true);
+  });
+
+  it("should detect tracking cookie by domain", () => {
+    expect(isTrackingCookie({ name: "test", domain: "google-analytics.com" })).toBe(true);
+    expect(isTrackingCookie({ name: "test", domain: "doubleclick.net" })).toBe(true);
+    expect(isTrackingCookie({ name: "test", domain: "facebook.net" })).toBe(true);
+  });
+
+  it("should return false for non-tracking cookies", () => {
+    expect(isTrackingCookie({ name: "session", domain: "example.com" })).toBe(false);
+    expect(isTrackingCookie({ name: "user_preference", domain: "example.com" })).toBe(false);
+  });
+
+  it("should be case-insensitive", () => {
+    expect(isTrackingCookie({ name: "_GA", domain: "EXAMPLE.COM" })).toBe(true);
+    expect(isTrackingCookie({ name: "TEST", domain: "GOOGLE-ANALYTICS.COM" })).toBe(true);
+  });
+});
+
+describe("isThirdPartyCookie", () => {
+  it("should return false when currentDomain is not provided", () => {
+    expect(isThirdPartyCookie("example.com")).toBe(false);
+  });
+
+  it("should return false for same domain", () => {
+    expect(isThirdPartyCookie("example.com", "example.com")).toBe(false);
+  });
+
+  it("should return false for subdomain", () => {
+    expect(isThirdPartyCookie("sub.example.com", "example.com")).toBe(false);
+    expect(isThirdPartyCookie("example.com", "sub.example.com")).toBe(false);
+  });
+
+  it("should return true for different domain", () => {
+    expect(isThirdPartyCookie("example.com", "test.com")).toBe(true);
+  });
+
+  it("should handle leading dots", () => {
+    expect(isThirdPartyCookie(".example.com", "test.com")).toBe(true);
+  });
+});
+
+describe("assessCookieRisk", () => {
+  it("should return low risk for safe cookie", () => {
+    const result = assessCookieRisk(
+      { name: "safe", domain: "example.com", httpOnly: true, secure: true },
+      "example.com"
+    );
+    expect(result.level).toBe("low");
+    expect(result.isTracking).toBe(false);
+    expect(result.isThirdParty).toBe(false);
+  });
+
+  it("should return high risk for tracking cookie", () => {
+    const result = assessCookieRisk(
+      { name: "_ga", domain: "example.com", httpOnly: true, secure: true },
+      "example.com"
+    );
+    expect(result.level).toBe("high");
+    expect(result.isTracking).toBe(true);
+  });
+
+  it("should return medium risk for third-party cookie", () => {
+    const result = assessCookieRisk(
+      { name: "test", domain: "other.com", httpOnly: true, secure: true },
+      "example.com"
+    );
+    expect(result.level).toBe("medium");
+    expect(result.isThirdParty).toBe(true);
+  });
+
+  it("should return medium risk for non-httpOnly cookie", () => {
+    const result = assessCookieRisk(
+      { name: "test", domain: "example.com", httpOnly: false, secure: true },
+      "example.com"
+    );
+    expect(result.level).toBe("medium");
+    expect(result.reason).toContain("非 HttpOnly");
+  });
+
+  it("should return medium risk for non-secure cookie with leading dot", () => {
+    const result = assessCookieRisk(
+      { name: "test", domain: ".example.com", httpOnly: true, secure: false },
+      "example.com"
+    );
+    expect(result.level).toBe("medium");
+    expect(result.reason).toContain("非 Secure");
+  });
+
+  it("should combine multiple risk factors", () => {
+    const result = assessCookieRisk(
+      { name: "_ga", domain: "tracker.com", httpOnly: false, secure: false },
+      "example.com"
+    );
+    expect(result.level).toBe("high");
+    expect(result.isTracking).toBe(true);
+    expect(result.isThirdParty).toBe(true);
+  });
+});
+
+describe("getRiskLevelColor", () => {
+  it("should return red for high risk", () => {
+    expect(getRiskLevelColor("high")).toBe("#ef4444");
+  });
+
+  it("should return orange for medium risk", () => {
+    expect(getRiskLevelColor("medium")).toBe("#f59e0b");
+  });
+
+  it("should return green for low risk", () => {
+    expect(getRiskLevelColor("low")).toBe("#22c55e");
+  });
+
+  it("should return green for unknown risk level", () => {
+    expect(getRiskLevelColor("unknown")).toBe("#22c55e");
+  });
+});
+
+describe("getRiskLevelText", () => {
+  it("should return correct text for high risk", () => {
+    expect(getRiskLevelText("high")).toBe("高风险");
+  });
+
+  it("should return correct text for medium risk", () => {
+    expect(getRiskLevelText("medium")).toBe("中风险");
+  });
+
+  it("should return correct text for low risk", () => {
+    expect(getRiskLevelText("low")).toBe("低风险");
+  });
+
+  it("should return low risk for unknown risk level", () => {
+    expect(getRiskLevelText("unknown")).toBe("低风险");
+  });
+});
+
+describe("clearSingleCookie", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should clear single cookie successfully", async () => {
+    const mockCookie = {
+      name: "test",
+      value: "value",
+      domain: ".example.com",
+      path: "/",
+      secure: true,
+      httpOnly: false,
+      sameSite: "lax" as const,
+      storeId: "0",
+    };
+    vi.spyOn(chrome.cookies, "remove").mockResolvedValue(undefined);
+
+    const result = await clearSingleCookie(mockCookie, "example.com");
+    expect(result).toBe(true);
+  });
+
+  it("should handle errors when clearing single cookie", async () => {
+    const mockCookie = {
+      name: "test",
+      value: "value",
+      domain: ".example.com",
+      path: "/",
+      secure: true,
+      httpOnly: false,
+      sameSite: "lax" as const,
+      storeId: "0",
+    };
+    vi.spyOn(chrome.cookies, "remove").mockRejectedValue(new Error("Failed"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await clearSingleCookie(mockCookie, "example.com");
+    expect(result).toBe(false);
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+});
+
+describe("editCookie", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should edit cookie successfully", async () => {
+    const originalCookie = {
+      name: "test",
+      value: "old",
+      domain: ".example.com",
+      path: "/",
+      secure: false,
+      httpOnly: false,
+      sameSite: "lax" as const,
+      storeId: "0",
+    };
+    const updates = { value: "new", secure: true };
+
+    vi.spyOn(chrome.cookies, "remove").mockResolvedValue(undefined);
+    vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+
+    const result = await editCookie(originalCookie, updates);
+    expect(result).toBe(true);
+  });
+
+  it("should edit cookie with expiration date", async () => {
+    const originalCookie = {
+      name: "test",
+      value: "old",
+      domain: ".example.com",
+      path: "/",
+      secure: false,
+      httpOnly: false,
+      sameSite: "lax" as const,
+      expirationDate: Date.now() / 1000 + 3600,
+      storeId: "0",
+    };
+    const updates = { expirationDate: Date.now() / 1000 + 7200 };
+
+    vi.spyOn(chrome.cookies, "remove").mockResolvedValue(undefined);
+    vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+
+    const result = await editCookie(originalCookie, updates);
+    expect(result).toBe(true);
+  });
+
+  it("should handle errors when editing cookie", async () => {
+    const originalCookie = {
+      name: "test",
+      value: "old",
+      domain: ".example.com",
+      path: "/",
+      secure: false,
+      httpOnly: false,
+      sameSite: "lax" as const,
+      storeId: "0",
+    };
+    vi.spyOn(chrome.cookies, "remove").mockRejectedValue(new Error("Failed"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await editCookie(originalCookie, {});
+    expect(result).toBe(false);
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+});
+
+describe("groupCookiesByDomain", () => {
+  it("should group cookies by domain", () => {
+    const cookies = [
+      { name: "test1", domain: ".example.com", path: "/", storeId: "0" } as chrome.cookies.Cookie,
+      { name: "test2", domain: "example.com", path: "/", storeId: "0" } as chrome.cookies.Cookie,
+      { name: "test3", domain: "test.com", path: "/", storeId: "0" } as chrome.cookies.Cookie,
+    ];
+
+    const grouped = groupCookiesByDomain(cookies);
+    expect(grouped.size).toBe(2);
+    expect(grouped.get("example.com")?.length).toBe(2);
+    expect(grouped.get("test.com")?.length).toBe(1);
+  });
+
+  it("should handle empty cookie list", () => {
+    const grouped = groupCookiesByDomain([]);
+    expect(grouped.size).toBe(0);
+  });
+
+  it("should normalize domain names", () => {
+    const cookies = [
+      { name: "test1", domain: ".EXAMPLE.COM", path: "/", storeId: "0" } as chrome.cookies.Cookie,
+      { name: "test2", domain: "Example.Com", path: "/", storeId: "0" } as chrome.cookies.Cookie,
+    ];
+
+    const grouped = groupCookiesByDomain(cookies);
+    expect(grouped.size).toBe(1);
+    expect(grouped.get("example.com")?.length).toBe(2);
   });
 });
