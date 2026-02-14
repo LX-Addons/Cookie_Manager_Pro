@@ -634,9 +634,42 @@ describe("editCookie", () => {
 describe("groupCookiesByDomain", () => {
   it("should group cookies by domain", () => {
     const cookies = [
-      { name: "test1", value: "v1", domain: ".example.com", path: "/", secure: false, httpOnly: false, sameSite: "lax", session: false, hostOnly: false, storeId: "0" } as chrome.cookies.Cookie,
-      { name: "test2", value: "v2", domain: "example.com", path: "/", secure: false, httpOnly: false, sameSite: "lax", session: false, hostOnly: false, storeId: "0" } as chrome.cookies.Cookie,
-      { name: "test3", value: "v3", domain: "test.com", path: "/", secure: false, httpOnly: false, sameSite: "lax", session: false, hostOnly: false, storeId: "0" } as chrome.cookies.Cookie,
+      {
+        name: "test1",
+        value: "v1",
+        domain: ".example.com",
+        path: "/",
+        secure: false,
+        httpOnly: false,
+        sameSite: "lax",
+        session: false,
+        hostOnly: false,
+        storeId: "0",
+      } as chrome.cookies.Cookie,
+      {
+        name: "test2",
+        value: "v2",
+        domain: "example.com",
+        path: "/",
+        secure: false,
+        httpOnly: false,
+        sameSite: "lax",
+        session: false,
+        hostOnly: false,
+        storeId: "0",
+      } as chrome.cookies.Cookie,
+      {
+        name: "test3",
+        value: "v3",
+        domain: "test.com",
+        path: "/",
+        secure: false,
+        httpOnly: false,
+        sameSite: "lax",
+        session: false,
+        hostOnly: false,
+        storeId: "0",
+      } as chrome.cookies.Cookie,
     ];
 
     const grouped = groupCookiesByDomain(cookies);
@@ -652,8 +685,30 @@ describe("groupCookiesByDomain", () => {
 
   it("should normalize domain names", () => {
     const cookies = [
-      { name: "test1", value: "v1", domain: ".EXAMPLE.COM", path: "/", secure: false, httpOnly: false, sameSite: "lax", session: false, hostOnly: false, storeId: "0" } as chrome.cookies.Cookie,
-      { name: "test2", value: "v2", domain: "Example.Com", path: "/", secure: false, httpOnly: false, sameSite: "lax", session: false, hostOnly: false, storeId: "0" } as chrome.cookies.Cookie,
+      {
+        name: "test1",
+        value: "v1",
+        domain: ".EXAMPLE.COM",
+        path: "/",
+        secure: false,
+        httpOnly: false,
+        sameSite: "lax",
+        session: false,
+        hostOnly: false,
+        storeId: "0",
+      } as chrome.cookies.Cookie,
+      {
+        name: "test2",
+        value: "v2",
+        domain: "Example.Com",
+        path: "/",
+        secure: false,
+        httpOnly: false,
+        sameSite: "lax",
+        session: false,
+        hostOnly: false,
+        storeId: "0",
+      } as chrome.cookies.Cookie,
     ];
 
     const grouped = groupCookiesByDomain(cookies);
