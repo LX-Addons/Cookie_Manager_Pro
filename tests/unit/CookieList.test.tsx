@@ -343,7 +343,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -372,7 +375,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -403,7 +409,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -439,7 +448,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -475,7 +487,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -500,7 +515,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -529,7 +547,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -560,7 +581,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -591,7 +615,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -629,7 +656,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -719,7 +749,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -744,7 +777,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -770,7 +806,10 @@ describe("CookieList", () => {
     fireEvent.click(selectAllCheckbox);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -829,7 +868,10 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
@@ -855,8 +897,8 @@ describe("CookieList", () => {
     expect(headerButton.getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("should handle cookies with undefined sameSite", async () => {
-    const cookiesWithUndefinedSameSite = [
+  it("should handle cookies with unspecified sameSite", async () => {
+    const cookiesWithUnspecifiedSameSite = [
       {
         name: "cookie1",
         value: "value1",
@@ -864,13 +906,13 @@ describe("CookieList", () => {
         path: "/",
         secure: true,
         httpOnly: false,
-        sameSite: undefined,
+        sameSite: "unspecified" as const,
       },
     ];
 
     render(
       <CookieList
-        cookies={cookiesWithUndefinedSameSite}
+        cookies={cookiesWithUnspecifiedSameSite}
         currentDomain="example.com"
         onUpdate={mockOnUpdate}
         onMessage={mockOnMessage}
@@ -881,12 +923,15 @@ describe("CookieList", () => {
     fireEvent.click(headerButton);
 
     const domainButtons = screen.getAllByRole("button");
-    const domainButton = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
     if (domainButton) {
       fireEvent.click(domainButton);
     }
 
-    expect(screen.getByText("未设置")).toBeTruthy();
+    expect(screen.getByText("unspecified")).toBeTruthy();
   });
 
   it("should handle cookies grouped by domain", async () => {
