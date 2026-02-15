@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { test as base, chromium, type BrowserContext } from "@playwright/test";
+import { test as base, chromium, type BrowserContext, type Page } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -30,3 +30,4 @@ export const test = base.extend<{
 });
 
 export const expect = test.expect;
+export type { Page };
