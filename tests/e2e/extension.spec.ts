@@ -1,51 +1,23 @@
-import { test, expect, Page, BrowserContext } from "@playwright/test";
+import { test, expect, Page } from "./extension-fixture";
 
-async function getExtensionId(context: BrowserContext): Promise<string> {
-  let serviceWorker = context.serviceWorkers()[0];
-
-  if (!serviceWorker) {
-    const page = await context.newPage();
-
-    await Promise.all([
-      context.waitForEvent("serviceworker", { timeout: 30000 }),
-      page.goto("https://example.com", { waitUntil: "domcontentloaded" }),
-    ]);
-
-    serviceWorker = context.serviceWorkers()[0];
-    await page.close();
-  }
-
-  if (!serviceWorker) {
-    throw new Error("Failed to get service worker");
-  }
-
-  const url = serviceWorker.url();
-  const id = url.split("/")[2];
-
-  if (!id || id.length === 0) {
-    throw new Error("Failed to get extension ID: invalid service worker URL");
-  }
-
-  return id;
-}
-
-async function openPopup(context: BrowserContext, extensionId: string): Promise<Page> {
+async function openPopup(
+  context: { newPage: () => Promise<Page> },
+  extensionId: string
+): Promise<Page> {
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
   return popup;
 }
 
 test.describe("Extension Loading", () => {
-  test("should load extension with valid service worker", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should load extension with valid service worker", async ({ extensionId }) => {
     expect(extensionId).toBeTruthy();
     expect(extensionId.length).toBeGreaterThan(0);
   });
 });
 
 test.describe("Popup Basic Functionality", () => {
-  test("should open popup and display title with tabs", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should open popup and display title with tabs", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     await expect(popup.locator("h1")).toContainText("Cookie Manager Pro");
@@ -58,8 +30,7 @@ test.describe("Popup Basic Functionality", () => {
     await popup.close();
   });
 
-  test("should switch tabs correctly", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should switch tabs correctly", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const manageTab = popup.getByRole("tab", { name: /管理/ });
@@ -77,8 +48,7 @@ test.describe("Popup Basic Functionality", () => {
 });
 
 test.describe("Cookie Operations", () => {
-  test("should display cookie statistics", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should display cookie statistics", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     await expect(popup.locator(".section").filter({ hasText: "Cookie统计" })).toBeVisible();
@@ -94,8 +64,7 @@ test.describe("Cookie Operations", () => {
     await popup.close();
   });
 
-  test("should display quick action buttons", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should display quick action buttons", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     await expect(popup.getByRole("button", { name: /添加到白名单/ })).toBeVisible();
@@ -106,8 +75,7 @@ test.describe("Cookie Operations", () => {
     await popup.close();
   });
 
-  test("should show and close confirm dialog", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should show and close confirm dialog", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const clearCurrentBtn = popup.getByRole("button", { name: /清除当前网站/ });
@@ -124,8 +92,7 @@ test.describe("Cookie Operations", () => {
     await popup.close();
   });
 
-  test("should expand and collapse cookie list", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should expand and collapse cookie list", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const header = popup.locator(".cookie-list-header");
@@ -141,8 +108,7 @@ test.describe("Cookie Operations", () => {
 });
 
 test.describe("Domain Management", () => {
-  test("should display domain management interface", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should display domain management interface", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const domainTab = popup.getByRole("tab", { name: /白名单|黑名单/ });
@@ -155,8 +121,7 @@ test.describe("Domain Management", () => {
     await popup.close();
   });
 
-  test("should show error for empty domain", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should show error for empty domain", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const domainTab = popup.getByRole("tab", { name: /白名单|黑名单/ });
@@ -170,8 +135,7 @@ test.describe("Domain Management", () => {
     await popup.close();
   });
 
-  test("should show error for invalid domain", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should show error for invalid domain", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const domainTab = popup.getByRole("tab", { name: /白名单|黑名单/ });
@@ -190,8 +154,7 @@ test.describe("Domain Management", () => {
 });
 
 test.describe("Settings", () => {
-  test("should display settings panel with all options", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should display settings panel with all options", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const settingsTab = popup.getByRole("tab", { name: /设置/ });
@@ -209,8 +172,7 @@ test.describe("Settings", () => {
     await popup.close();
   });
 
-  test("should display theme options", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should display theme options", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const settingsTab = popup.getByRole("tab", { name: /设置/ });
@@ -224,8 +186,7 @@ test.describe("Settings", () => {
     await popup.close();
   });
 
-  test("should show custom theme settings when selected", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should show custom theme settings when selected", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const settingsTab = popup.getByRole("tab", { name: /设置/ });
@@ -245,8 +206,7 @@ test.describe("Settings", () => {
 });
 
 test.describe("Clear Log", () => {
-  test("should display log panel with buttons", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should display log panel with buttons", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const logTab = popup.getByRole("tab", { name: /日志/ });
@@ -260,8 +220,7 @@ test.describe("Clear Log", () => {
 });
 
 test.describe("Accessibility", () => {
-  test("should have proper tab ARIA attributes", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should have proper tab ARIA attributes", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const tabs = popup.locator('[role="tab"]');
@@ -274,8 +233,7 @@ test.describe("Accessibility", () => {
     await popup.close();
   });
 
-  test("should have proper tabpanel structure", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should have proper tabpanel structure", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const managePanel = popup.locator("#manage-panel");
@@ -285,8 +243,7 @@ test.describe("Accessibility", () => {
     await popup.close();
   });
 
-  test("should have aria-expanded on cookie list header", async ({ context }) => {
-    const extensionId = await getExtensionId(context);
+  test("should have aria-expanded on cookie list header", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
     const cookieListHeader = popup.locator(".cookie-list-header");
