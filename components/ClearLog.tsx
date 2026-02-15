@@ -4,20 +4,25 @@ import type { ClearLogEntry, Settings } from "~types";
 import { LogRetention } from "~types";
 import { getCookieTypeName, getActionText, getActionColor, formatLogTime } from "~utils";
 import { useMemo } from "react";
+import { ConfirmDialogWrapper, type ShowConfirmFn } from "./ConfirmDialogWrapper";
 
 interface Props {
   onMessage: (msg: string) => void;
 }
 
-export const ClearLog = ({ onMessage }: Props) => {
+interface ClearLogContentProps extends Props {
+  showConfirm: ShowConfirmFn;
+}
+
+const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
   const [logs, setLogs] = useStorage<ClearLogEntry[]>(CLEAR_LOG_KEY, []);
   const [settings] = useStorage<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS);
 
   const clearAllLogs = () => {
-    if (confirm("确定要清除所有日志记录吗？")) {
+    showConfirm("清除日志", "确定要清除所有日志记录吗？", "danger", () => {
       setLogs([]);
       onMessage("已清除所有日志");
-    }
+    });
   };
 
   const clearOldLogs = () => {
@@ -101,5 +106,13 @@ export const ClearLog = ({ onMessage }: Props) => {
         </ul>
       )}
     </div>
+  );
+};
+
+export const ClearLog = ({ onMessage }: Props) => {
+  return (
+    <ConfirmDialogWrapper>
+      {(showConfirm) => <ClearLogContent onMessage={onMessage} showConfirm={showConfirm} />}
+    </ConfirmDialogWrapper>
   );
 };

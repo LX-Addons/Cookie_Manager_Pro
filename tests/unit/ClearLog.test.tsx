@@ -1,16 +1,64 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { useState, ReactNode } from "react";
 import { ClearLog } from "../../components/ClearLog";
+
+vi.mock("../../components/ConfirmDialogWrapper", () => ({
+  ConfirmDialogWrapper: ({
+    children,
+  }: {
+    children: (
+      showConfirm: (
+        title: string,
+        message: string,
+        variant: string,
+        onConfirm: () => void
+      ) => ReactNode
+    ) => ReactNode;
+  }) => {
+    const MockWrapper = () => {
+      const [isOpen, setIsOpen] = useState(false);
+      const [confirmCallback, setConfirmCallback] = useState<(() => void) | null>(null);
+
+      const showConfirm = (
+        _title: string,
+        _message: string,
+        _variant: string,
+        onConfirm: () => void
+      ) => {
+        setConfirmCallback(() => onConfirm);
+        setIsOpen(true);
+      };
+
+      return (
+        <>
+          {children(showConfirm)}
+          {isOpen && (
+            <div className="confirm-dialog">
+              <p>确定要清除所有日志记录吗？</p>
+              <button
+                onClick={() => {
+                  confirmCallback?.();
+                  setIsOpen(false);
+                }}
+              >
+                确定
+              </button>
+              <button onClick={() => setIsOpen(false)}>取消</button>
+            </div>
+          )}
+        </>
+      );
+    };
+    return <MockWrapper />;
+  },
+}));
 
 describe("ClearLog", () => {
   const mockOnMessage = vi.fn();
 
   beforeEach(() => {
     mockOnMessage.mockClear();
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true)
-    );
   });
 
   it("should render empty state when no logs", () => {
@@ -47,41 +95,34 @@ describe("ClearLog", () => {
   });
 
   it("should show confirm dialog when clear all logs is clicked", () => {
-    const mockConfirm = vi.fn(() => true);
-    vi.stubGlobal("confirm", mockConfirm);
-
     render(<ClearLog onMessage={mockOnMessage} />);
 
     const clearAllButton = screen.getByText("清除全部");
     fireEvent.click(clearAllButton);
 
-    expect(mockConfirm).toHaveBeenCalledWith("确定要清除所有日志记录吗？");
+    expect(screen.getByText("确定要清除所有日志记录吗？")).toBeInTheDocument();
   });
 
   it("should clear logs when confirm is accepted", () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true)
-    );
-
     render(<ClearLog onMessage={mockOnMessage} />);
 
     const clearAllButton = screen.getByText("清除全部");
     fireEvent.click(clearAllButton);
+
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
 
     expect(mockOnMessage).toHaveBeenCalledWith("已清除所有日志");
   });
 
-  it("should not clear logs when confirm is rejected", () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false)
-    );
-
+  it("should not clear logs when confirm is cancelled", () => {
     render(<ClearLog onMessage={mockOnMessage} />);
 
     const clearAllButton = screen.getByText("清除全部");
     fireEvent.click(clearAllButton);
+
+    const cancelButton = screen.getByText("取消");
+    fireEvent.click(cancelButton);
 
     expect(mockOnMessage).not.toHaveBeenCalled();
   });

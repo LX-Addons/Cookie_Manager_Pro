@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { useState, ReactNode } from "react";
 import { CookieList } from "../../components/CookieList";
 
 const mockCookies = [
@@ -54,6 +55,7 @@ vi.mock("../../utils", () => ({
     }
     return next;
   }),
+  isSensitiveCookie: vi.fn(() => false),
 }));
 
 vi.mock("../../components/CookieEditor", () => ({
@@ -83,6 +85,56 @@ vi.mock("../../components/CookieEditor", () => ({
         </button>
       </div>
     );
+  },
+}));
+
+vi.mock("../../components/ConfirmDialogWrapper", () => ({
+  ConfirmDialogWrapper: ({
+    children,
+  }: {
+    children: (
+      showConfirm: (
+        title: string,
+        message: string,
+        variant: string,
+        onConfirm: () => void
+      ) => ReactNode
+    ) => ReactNode;
+  }) => {
+    const MockWrapper = () => {
+      const [isOpen, setIsOpen] = useState(false);
+      const [confirmCallback, setConfirmCallback] = useState<(() => void) | null>(null);
+
+      const showConfirm = (
+        _title: string,
+        _message: string,
+        _variant: string,
+        onConfirm: () => void
+      ) => {
+        setConfirmCallback(() => onConfirm);
+        setIsOpen(true);
+      };
+
+      return (
+        <>
+          {children(showConfirm)}
+          {isOpen && (
+            <div className="confirm-dialog">
+              <button
+                onClick={() => {
+                  confirmCallback?.();
+                  setIsOpen(false);
+                }}
+              >
+                确定
+              </button>
+              <button onClick={() => setIsOpen(false)}>取消</button>
+            </div>
+          )}
+        </>
+      );
+    };
+    return <MockWrapper />;
   },
 }));
 
@@ -322,6 +374,9 @@ describe("CookieList", () => {
     const deleteBtn = screen.getByText("删除选中");
     fireEvent.click(deleteBtn);
 
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
+
     await waitFor(() => {
       expect(mockOnUpdate).toHaveBeenCalled();
     });
@@ -355,6 +410,9 @@ describe("CookieList", () => {
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
     }
+
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(mockOnMessage).toHaveBeenCalled();
@@ -560,6 +618,9 @@ describe("CookieList", () => {
       fireEvent.click(deleteButtons[0]);
     }
 
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
+
     await waitFor(() => {
       expect(mockOnMessage).toHaveBeenCalledWith("删除 Cookie 失败", true);
     });
@@ -593,6 +654,9 @@ describe("CookieList", () => {
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
     }
+
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(mockOnMessage).toHaveBeenCalledWith("删除 Cookie 失败", true);
@@ -704,6 +768,9 @@ describe("CookieList", () => {
     const deleteBtn = screen.getByText("删除选中");
     fireEvent.click(deleteBtn);
 
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
+
     await waitFor(() => {
       expect(mockOnMessage).toHaveBeenCalled();
     });
@@ -729,6 +796,9 @@ describe("CookieList", () => {
 
     const deleteBtn = screen.getByText("删除选中");
     fireEvent.click(deleteBtn);
+
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(mockOnUpdate).not.toHaveBeenCalled();
