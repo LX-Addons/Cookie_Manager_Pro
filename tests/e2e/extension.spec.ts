@@ -1,30 +1,25 @@
 import { test, expect, Page, BrowserContext } from "@playwright/test";
 
-async function triggerServiceWorker(context: BrowserContext): Promise<void> {
-  if (context.serviceWorkers().length > 0) {
-    return;
-  }
-
-  const page = await context.newPage();
-  await page.goto("https://example.com");
-  await page.waitForTimeout(1000);
-  await page.close();
-}
-
 async function getExtensionId(context: BrowserContext): Promise<string> {
-  await triggerServiceWorker(context);
+  let serviceWorker = context.serviceWorkers()[0];
 
-  const existingWorker = context.serviceWorkers()[0];
-  if (existingWorker) {
-    const url = existingWorker.url();
-    const id = url.split("/")[2];
-    if (id && id.length > 0) {
-      return id;
-    }
+  if (!serviceWorker) {
+    const page = await context.newPage();
+
+    await Promise.all([
+      context.waitForEvent("serviceworker", { timeout: 30000 }),
+      page.goto("https://example.com", { waitUntil: "domcontentloaded" }),
+    ]);
+
+    serviceWorker = context.serviceWorkers()[0];
+    await page.close();
   }
 
-  const background = await context.waitForEvent("serviceworker", { timeout: 15000 });
-  const url = background.url();
+  if (!serviceWorker) {
+    throw new Error("Failed to get service worker");
+  }
+
+  const url = serviceWorker.url();
   const id = url.split("/")[2];
 
   if (!id || id.length === 0) {

@@ -23,18 +23,14 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    headless: false,
+    launchOptions: {
+      args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
+    },
   },
   projects: [
     {
       name: "chromium",
-      use: {
-        launchOptions: {
-          args: [
-            `--disable-extensions-except=${extensionPath}`,
-            `--load-extension=${extensionPath}`,
-          ],
-        },
-      },
     },
   ],
   outputDir: "test-results",
