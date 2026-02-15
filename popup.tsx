@@ -368,13 +368,13 @@ function IndexPopup() {
   useEffect(() => {
     if (settings.themeMode === ThemeMode.CUSTOM && settings.customTheme) {
       const root = document.documentElement;
-      const { primary, success, warning, danger, background, text } = settings.customTheme;
+      const { primary, success, warning, danger, bgPrimary, textPrimary } = settings.customTheme;
       if (primary) root.style.setProperty("--primary-500", primary);
       if (success) root.style.setProperty("--success-500", success);
       if (warning) root.style.setProperty("--warning-500", warning);
       if (danger) root.style.setProperty("--danger-500", danger);
-      if (background) root.style.setProperty("--bg-primary", background);
-      if (text) root.style.setProperty("--text-primary", text);
+      if (bgPrimary) root.style.setProperty("--bg-primary", bgPrimary);
+      if (textPrimary) root.style.setProperty("--text-primary", textPrimary);
     }
   }, [settings.themeMode, settings.customTheme]);
 
