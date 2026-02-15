@@ -196,10 +196,10 @@ test.describe("Settings", () => {
     await customRadio.click();
 
     await expect(popup.locator(".custom-theme-settings")).toBeVisible();
-    await expect(popup.getByLabel("主色调")).toBeVisible();
-    await expect(popup.getByLabel("成功色")).toBeVisible();
-    await expect(popup.getByLabel("警告色")).toBeVisible();
-    await expect(popup.getByLabel("危险色")).toBeVisible();
+    await expect(popup.locator(".custom-theme-settings").getByText("主色调")).toBeVisible();
+    await expect(popup.locator(".custom-theme-settings").getByText("成功色")).toBeVisible();
+    await expect(popup.locator(".custom-theme-settings").getByText("警告色")).toBeVisible();
+    await expect(popup.locator(".custom-theme-settings").getByText("危险色")).toBeVisible();
 
     await popup.close();
   });
@@ -212,7 +212,7 @@ test.describe("Clear Log", () => {
     const logTab = popup.getByRole("tab", { name: /日志/ });
     await logTab.click();
 
-    await expect(popup.getByText("清除日志")).toBeVisible();
+    await expect(popup.getByRole("heading", { name: "清除日志" })).toBeVisible();
     await expect(popup.getByRole("button", { name: /清除全部/ })).toBeVisible();
 
     await popup.close();
