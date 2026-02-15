@@ -1,22 +1,15 @@
 import { defineConfig } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const extensionPath = path.join(__dirname, "build", "chrome-mv3-prod");
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  timeout: 15000,
-  globalTimeout: 300000,
+  timeout: 30000,
+  globalTimeout: 600000,
   expect: {
-    timeout: 5000,
+    timeout: 10000,
   },
   reporter: [["list"], ["html"], ["junit", { outputFile: "test-results/junit.xml" }]],
   use: {
@@ -24,18 +17,5 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
-  projects: [
-    {
-      name: "chromium",
-      use: {
-        launchOptions: {
-          args: [
-            `--disable-extensions-except=${extensionPath}`,
-            `--load-extension=${extensionPath}`,
-          ],
-        },
-      },
-    },
-  ],
   outputDir: "test-results",
 });

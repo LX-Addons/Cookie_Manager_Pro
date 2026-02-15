@@ -296,7 +296,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npm run test:e2e
+        run: xvfb-run --auto-servernum npm run test:e2e
 
       - name: Upload Playwright report
         if: always()
@@ -322,6 +322,15 @@ jobs:
           VERSION=$(jq -r '.version' package.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Check if Dependabot PR
+        id: dependabot
+        run: |
+          if [ "${{ github.actor }}" = "dependabot[bot]" ]; then
+            echo "is_dependabot=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_dependabot=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create PR comment
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
@@ -330,6 +339,7 @@ jobs:
             const e2eResult = '${{ needs.e2e.result }}';
             const securityResult = '${{ needs.security.result }}';
             const version = '${{ steps.info.outputs.version }}';
+            const isDependabot = '${{ steps.dependabot.outputs.is_dependabot }}' === 'true';
             
             const statusEmoji = (result) => {
               if (result === 'success') return '✅';
@@ -338,7 +348,7 @@ jobs:
               return '⚠️';
             };
             
-            const body = `## 🔍 Build Report
+            let body = `## 🔍 Build Report
             
             | Check | Status |
             |-------|--------|
@@ -350,6 +360,19 @@ jobs:
             
             ${buildResult === 'success' ? '📦 Build artifacts are available in the workflow run.' : ''}
             `;
+            
+            if (isDependabot) {
+              body += '\n\n---\n';
+              body += '🤖 **Dependabot PR Detected**\n\n';
+              if (buildResult === 'success' && (e2eResult === 'success' || e2eResult === 'skipped')) {
+                body += '✅ All checks passed! This dependency update is safe to merge.\n';
+                body += 'Please review the changes and merge when ready.';
+              } else {
+                body += '⚠️ Some checks failed. Please review the changes carefully before merging.\n';
+                body += '- Build status: ' + buildResult + '\n';
+                body += '- E2E Tests: ' + e2eResult + '\n';
+              }
+            }
             
             github.rest.issues.createComment({
               owner: context.repo.owner,

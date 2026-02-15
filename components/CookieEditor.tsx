@@ -58,8 +58,11 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
         <h3 className="confirm-title">{cookie ? "编辑 Cookie" : "新建 Cookie"}</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">名称</label>
+            <label className="form-label" htmlFor="cookie-name">
+              名称
+            </label>
             <input
+              id="cookie-name"
               type="text"
               className="form-input"
               value={formData.name}
@@ -68,8 +71,11 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
             />
           </div>
           <div className="form-group">
-            <label className="form-label">值</label>
+            <label className="form-label" htmlFor="cookie-value">
+              值
+            </label>
             <textarea
+              id="cookie-value"
               className="form-textarea"
               value={formData.value}
               onChange={(e) => setFormData({ ...formData, value: e.target.value })}
@@ -77,8 +83,11 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
             />
           </div>
           <div className="form-group">
-            <label className="form-label">域名</label>
+            <label className="form-label" htmlFor="cookie-domain">
+              域名
+            </label>
             <input
+              id="cookie-domain"
               type="text"
               className="form-input"
               value={formData.domain}
@@ -87,8 +96,11 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
             />
           </div>
           <div className="form-group">
-            <label className="form-label">路径</label>
+            <label className="form-label" htmlFor="cookie-path">
+              路径
+            </label>
             <input
+              id="cookie-path"
               type="text"
               className="form-input"
               value={formData.path}
@@ -97,8 +109,11 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
             />
           </div>
           <div className="form-group">
-            <label className="form-label">过期时间（Unix 时间戳，可选）</label>
+            <label className="form-label" htmlFor="cookie-expiration">
+              过期时间（Unix 时间戳，可选）
+            </label>
             <input
+              id="cookie-expiration"
               type="number"
               className="form-input"
               value={formData.expirationDate || ""}
@@ -112,8 +127,11 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
             />
           </div>
           <div className="form-group">
-            <label className="form-label">SameSite</label>
+            <label className="form-label" htmlFor="cookie-samesite">
+              SameSite
+            </label>
             <select
+              id="cookie-samesite"
               className="select-input"
               value={formData.sameSite}
               onChange={(e) => setFormData({ ...formData, sameSite: e.target.value as SameSite })}

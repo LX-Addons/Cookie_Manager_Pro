@@ -1,22 +1,5 @@
-# Dependabot Configuration
-# 
-# 注意：GitHub Actions 使用 commit hash 固定版本以提高安全性
-# 当 Actions 需要更新时，请同时更新 .github/workflows/*.yml 文件中的 commit hash
-# 
-# 当前固定的 Actions 版本（commit hash）：
-# - actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd (v6.0.2)
-# - actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 (v6.2.0)
-# - codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de (v5.5.2)
-# - SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 (v7.0.0)
-# - actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 (v5.0.3)
-# - actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f (v6.0.0)
-# - actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 (v5.0.0)
-# - actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea (v7.0.1)
-# - softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b (v2.5.0)
-# - actions/dependency-review-action@3c4e3dcb1aa7874d2c16be7d79418e9b7efd6261 (v4.8.2)
-# - peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 (v8.1.0)
-
 version: 2
+
 updates:
   - package-ecosystem: "npm"
     directory: "/"
@@ -26,6 +9,7 @@ updates:
       time: "06:00"
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
+    rebase-strategy: "auto"
     commit-message:
       prefix: "deps"
       include: "scope"
@@ -34,6 +18,11 @@ updates:
       - "automated"
     reviewers:
       - "LJL-zy"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     groups:
       production-dependencies:
         dependency-type: "production"
@@ -63,6 +52,7 @@ updates:
       time: "06:00"
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 5
+    rebase-strategy: "auto"
     commit-message:
       prefix: "ci"
       include: "scope"
@@ -71,6 +61,8 @@ updates:
       - "dependencies"
     reviewers:
       - "LJL-zy"
+    cooldown:
+      default-days: 7
     groups:
       actions-dependencies:
         patterns:
