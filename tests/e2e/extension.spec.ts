@@ -1,11 +1,23 @@
 import { test, expect, Page, BrowserContext } from "@playwright/test";
 
 async function getExtensionId(context: BrowserContext): Promise<string> {
-  const background =
-    context.serviceWorkers()[0] ||
-    (await context.waitForEvent("serviceworker", { timeout: 30000 }));
+  const existingWorker = context.serviceWorkers()[0];
+  if (existingWorker) {
+    const url = existingWorker.url();
+    const id = url.split("/")[2];
+    if (id && id.length > 0) {
+      return id;
+    }
+  }
+
+  const background = await context.waitForEvent("serviceworker", { timeout: 5000 });
   const url = background.url();
   const id = url.split("/")[2];
+
+  if (!id || id.length === 0) {
+    throw new Error("Failed to get extension ID: invalid service worker URL");
+  }
+
   return id;
 }
 
