@@ -2522,4 +2522,219 @@ describe("IndexPopup additional coverage", () => {
       expect(message?.textContent).toContain("Error message");
     });
   });
+
+  it("should handle buildDomainString with no cleared domains and current domain", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useState } = await import("react");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 0, clearedDomains: [] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("清除所有Cookie")).toBeTruthy();
+    });
+
+    const clearAllBtn = screen.getByText("清除所有Cookie");
+    fireEvent.click(clearAllBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("确定")).toBeTruthy();
+    });
+
+    const confirmBtn = screen.getByText("确定");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(performCleanupWithFilter).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle quickClearCurrent function", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useState } = await import("react");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 5, clearedDomains: ["example.com"] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("清除当前网站")).toBeTruthy();
+    });
+
+    const clearCurrentBtn = screen.getByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("确定")).toBeTruthy();
+    });
+
+    const confirmBtn = screen.getByText("确定");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(performCleanupWithFilter).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle onClearBlacklist function", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useState } = await import("react");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState({
+            mode: "blacklist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState(["example.com"]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 3, clearedDomains: ["example.com"] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("黑名单")).toBeTruthy();
+    });
+
+    const blacklistTab = screen.getByText("黑名单");
+    fireEvent.click(blacklistTab);
+  });
+
+  it("should handle onClearBlacklist with no count", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useState } = await import("react");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState({
+            mode: "blacklist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState(["example.com"]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 0, clearedDomains: [] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("黑名单")).toBeTruthy();
+    });
+  });
 });
