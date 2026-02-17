@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { useState, ReactNode } from "react";
 import { CookieList } from "../../components/CookieList";
+import { isSensitiveCookie } from "../../utils";
 
 const mockCookies = [
   {
@@ -1245,6 +1246,132 @@ describe("CookieList", () => {
 
     await waitFor(() => {
       expect(mockOnAddToBlacklist).toHaveBeenCalled();
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+  });
+
+  it("should show error message when add to whitelist with no selection", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    let addToWhitelistBtn = screen.getByText("加入白名单");
+    expect(addToWhitelistBtn).toBeTruthy();
+
+    fireEvent.click(selectAllCheckbox);
+
+    expect(screen.queryByText("加入白名单")).toBeNull();
+  });
+
+  it("should show error message when add to blacklist with no selection", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    let addToBlacklistBtn = screen.getByText("加入黑名单");
+    expect(addToBlacklistBtn).toBeTruthy();
+
+    fireEvent.click(selectAllCheckbox);
+
+    expect(screen.queryByText("加入黑名单")).toBeNull();
+  });
+
+  it("should toggle individual cookie selection using toggleCookieSelection", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
+    if (domainButton) {
+      fireEvent.click(domainButton);
+    }
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const cookieCheckboxes = checkboxes.filter((cb) => !cb.hasAttribute("name"));
+
+    expect(cookieCheckboxes.length).toBeGreaterThan(0);
+
+    const firstCheckbox = cookieCheckboxes[0] as HTMLInputElement;
+    expect(firstCheckbox.checked).toBe(false);
+    fireEvent.click(firstCheckbox);
+    expect(firstCheckbox.checked).toBe(true);
+    fireEvent.click(firstCheckbox);
+    expect(firstCheckbox.checked).toBe(false);
+  });
+
+  it("should handle sensitive cookie deletion confirmation", async () => {
+    vi.mocked(isSensitiveCookie).mockReturnValueOnce(true);
+
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
+    if (domainButton) {
+      fireEvent.click(domainButton);
+    }
+
+    const deleteButtons = screen.getAllByRole("button", { name: "删除" });
+    if (deleteButtons.length > 0) {
+      fireEvent.click(deleteButtons[0]);
+    }
+
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
       expect(mockOnMessage).toHaveBeenCalled();
     });
   });
