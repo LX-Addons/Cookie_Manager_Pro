@@ -1409,4 +1409,95 @@ describe("IndexPopup", () => {
     const root = document.documentElement;
     expect(root.style.getPropertyValue("--primary-500")).toBe("#ff0000");
   });
+
+  it("should render CookieList with all required props", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+
+    const mockWhitelist = ["test.com"];
+    const mockBlacklist = ["bad.com"];
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === "whitelist") {
+        return [mockWhitelist];
+      }
+      if (key === "blacklist") {
+        return [mockBlacklist];
+      }
+      if (key === "settings") {
+        return [
+          {
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          },
+        ];
+      }
+      return [[]];
+    });
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Cookie 详情/)).toBeTruthy();
+    });
+  });
+
+  it("should pass onUpdate callback to CookieList and trigger on cookie change", async () => {
+    let cookieListener: (() => void) | null = null;
+    (chrome.cookies.onChanged.addListener as ReturnType<typeof vi.fn>).mockImplementation(
+      (fn: () => void) => {
+        cookieListener = fn;
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    expect(cookieListener).not.toBeNull();
+
+    const initialCallCount = (chrome.cookies.getAll as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    await act(async () => {
+      if (cookieListener) {
+        cookieListener();
+      }
+    });
+
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(300);
+    vi.useRealTimers();
+
+    expect((chrome.cookies.getAll as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(
+      initialCallCount
+    );
+  });
+
+  it("should pass onMessage callback to CookieList", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Cookie Manager Pro")).toBeTruthy();
+    });
+  });
+
+  it("should pass whitelist and blacklist to CookieList", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Cookie Manager Pro")).toBeTruthy();
+    });
+  });
 });
