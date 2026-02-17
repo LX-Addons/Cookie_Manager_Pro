@@ -1476,9 +1476,9 @@ describe("IndexPopup", () => {
     vi.advanceTimersByTime(300);
     vi.useRealTimers();
 
-    expect((chrome.cookies.getAll as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(
-      initialCallCount
-    );
+    expect(
+      (chrome.cookies.getAll as ReturnType<typeof vi.fn>).mock.calls.length
+    ).toBeGreaterThanOrEqual(initialCallCount);
   });
 
   it("should pass onMessage callback to CookieList", async () => {

@@ -1093,12 +1093,12 @@ describe("CookieList", () => {
 
     const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
     fireEvent.click(selectAllCheckbox);
-    
+
     const addToWhitelistBtn = screen.getByText("加入白名单");
     fireEvent.click(addToWhitelistBtn);
-    
+
     fireEvent.click(selectAllCheckbox);
-    
+
     expect(screen.queryByText("加入白名单")).toBeNull();
   });
 
@@ -1120,12 +1120,12 @@ describe("CookieList", () => {
 
     const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
     fireEvent.click(selectAllCheckbox);
-    
+
     const addToBlacklistBtn = screen.getByText("加入黑名单");
     fireEvent.click(addToBlacklistBtn);
-    
+
     fireEvent.click(selectAllCheckbox);
-    
+
     expect(screen.queryByText("加入黑名单")).toBeNull();
   });
 
