@@ -2074,10 +2074,11 @@ describe("IndexPopup additional coverage", () => {
 
     await waitFor(() => {
       expect(cookieListProps).not.toBeNull();
+      expect(cookieListProps?.onAddToWhitelist).toBeDefined();
     });
 
     await act(async () => {
-      cookieListProps?.onAddToWhitelist?.(["new.com", "existing.com"]);
+      cookieListProps!.onAddToWhitelist!(["new.com", "existing.com"]);
     });
 
     expect(setWhitelistMock).toHaveBeenCalled();
@@ -2126,10 +2127,11 @@ describe("IndexPopup additional coverage", () => {
 
     await waitFor(() => {
       expect(cookieListProps).not.toBeNull();
+      expect(cookieListProps?.onAddToBlacklist).toBeDefined();
     });
 
     await act(async () => {
-      cookieListProps?.onAddToBlacklist?.(["new.com", "existing.com"]);
+      cookieListProps!.onAddToBlacklist!(["new.com", "existing.com"]);
     });
 
     expect(setBlacklistMock).toHaveBeenCalled();
@@ -2178,10 +2180,11 @@ describe("IndexPopup additional coverage", () => {
 
     await waitFor(() => {
       expect(cookieListProps).not.toBeNull();
+      expect(cookieListProps?.onAddToWhitelist).toBeDefined();
     });
 
     await act(async () => {
-      cookieListProps?.onAddToWhitelist?.(["existing.com"]);
+      cookieListProps!.onAddToWhitelist!(["existing.com"]);
     });
 
     expect(setWhitelistMock).not.toHaveBeenCalled();
@@ -2230,10 +2233,11 @@ describe("IndexPopup additional coverage", () => {
 
     await waitFor(() => {
       expect(cookieListProps).not.toBeNull();
+      expect(cookieListProps?.onAddToBlacklist).toBeDefined();
     });
 
     await act(async () => {
-      cookieListProps?.onAddToBlacklist?.(["existing.com"]);
+      cookieListProps!.onAddToBlacklist!(["existing.com"]);
     });
 
     expect(setBlacklistMock).not.toHaveBeenCalled();
@@ -2342,10 +2346,11 @@ describe("IndexPopup additional coverage", () => {
 
     await waitFor(() => {
       expect(cookieListProps).not.toBeNull();
+      expect(cookieListProps?.onMessage).toBeDefined();
     });
 
     await act(async () => {
-      cookieListProps?.onMessage("Test message", false);
+      cookieListProps!.onMessage!("Test message", false);
     });
 
     await waitFor(() => {
@@ -2361,10 +2366,11 @@ describe("IndexPopup additional coverage", () => {
 
     await waitFor(() => {
       expect(cookieListProps).not.toBeNull();
+      expect(cookieListProps?.onMessage).toBeDefined();
     });
 
     await act(async () => {
-      cookieListProps?.onMessage("Error message", true);
+      cookieListProps!.onMessage!("Error message", true);
     });
 
     await waitFor(() => {
