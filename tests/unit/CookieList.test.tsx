@@ -1375,4 +1375,78 @@ describe("CookieList", () => {
       expect(mockOnMessage).toHaveBeenCalled();
     });
   });
+
+  it("should handle sensitive cookie batch deletion confirmation", async () => {
+    vi.mocked(isSensitiveCookie).mockReturnValue(true);
+
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const deleteBtn = screen.getByText("删除选中");
+    fireEvent.click(deleteBtn);
+
+    const confirmButton = screen.getByText("确定");
+    expect(confirmButton).toBeTruthy();
+  });
+
+  it("should handle toggle domain expansion multiple times", async () => {
+    render(<CookieList cookies={mockCookies} currentDomain="example.com" />);
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
+    if (domainButton) {
+      fireEvent.click(domainButton);
+      fireEvent.click(domainButton);
+      fireEvent.click(domainButton);
+    }
+
+    expect(screen.getByText(/Cookie 详情/)).toBeTruthy();
+  });
+
+  it("should handle toggle value visibility multiple times", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
+    if (domainButton) {
+      fireEvent.click(domainButton);
+    }
+
+    const toggleButtons = screen.getAllByRole("button", { name: /显示|隐藏/ });
+    if (toggleButtons.length > 0) {
+      fireEvent.click(toggleButtons[0]);
+      fireEvent.click(toggleButtons[0]);
+    }
+  });
 });
