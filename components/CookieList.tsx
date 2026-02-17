@@ -31,7 +31,7 @@ interface CookieListContentProps extends Props {
   showConfirm: ShowConfirmFn;
 }
 
-const CookieListContent = memo(
+export const CookieListContent = memo(
   ({
     cookies,
     currentDomain,
