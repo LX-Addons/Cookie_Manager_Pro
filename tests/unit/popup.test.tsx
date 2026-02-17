@@ -10,6 +10,14 @@ vi.mock("~utils/cleanup", () => ({
   performCleanup: vi.fn(() => Promise.resolve({ count: 2, clearedDomains: ["test.com"] })),
 }));
 
+let cookieListProps: any = null;
+vi.mock("~components/CookieList", () => ({
+  CookieList: vi.fn((props: any) => {
+    cookieListProps = props;
+    return <div data-testid="cookie-list">Cookie 详情</div>;
+  }),
+}));
+
 vi.mock("~utils", () => ({
   isDomainMatch: vi.fn((domain: string, currentDomain: string) => domain.includes(currentDomain)),
   isInList: vi.fn(() => false),
@@ -2003,6 +2011,515 @@ describe("IndexPopup cleanupExpiredCookies", () => {
 
     await waitFor(() => {
       expect(screen.getByText("清理过期 Cookie 失败")).toBeTruthy();
+    });
+  });
+});
+
+describe("IndexPopup additional coverage", () => {
+  beforeEach(() => {
+    cookieListProps = null;
+  });
+
+  it("should call onAddToWhitelist callback with new domains", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    const mockWhitelist = ["existing.com"];
+    let whitelistState = mockWhitelist;
+    const setWhitelistMock = vi.fn((newValue: any) => {
+      whitelistState = typeof newValue === "function" ? newValue(whitelistState) : newValue;
+    });
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "whitelist") {
+          return [whitelistState, setWhitelistMock];
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(cookieListProps).not.toBeNull();
+    });
+
+    await act(async () => {
+      cookieListProps?.onAddToWhitelist(["new.com", "existing.com"]);
+    });
+
+    expect(setWhitelistMock).toHaveBeenCalled();
+  });
+
+  it("should call onAddToBlacklist callback with new domains", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    const mockBlacklist = ["existing.com"];
+    let blacklistState = mockBlacklist;
+    const setBlacklistMock = vi.fn((newValue: any) => {
+      blacklistState = typeof newValue === "function" ? newValue(blacklistState) : newValue;
+    });
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "blacklist") {
+          return [blacklistState, setBlacklistMock];
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(cookieListProps).not.toBeNull();
+    });
+
+    await act(async () => {
+      cookieListProps?.onAddToBlacklist(["new.com", "existing.com"]);
+    });
+
+    expect(setBlacklistMock).toHaveBeenCalled();
+  });
+
+  it("should handle onAddToWhitelist with no new domains", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    const mockWhitelist = ["existing.com"];
+    let whitelistState = mockWhitelist;
+    const setWhitelistMock = vi.fn((newValue: any) => {
+      whitelistState = typeof newValue === "function" ? newValue(whitelistState) : newValue;
+    });
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "whitelist") {
+          return [whitelistState, setWhitelistMock];
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(cookieListProps).not.toBeNull();
+    });
+
+    await act(async () => {
+      cookieListProps?.onAddToWhitelist(["existing.com"]);
+    });
+
+    expect(setWhitelistMock).not.toHaveBeenCalled();
+  });
+
+  it("should handle onAddToBlacklist with no new domains", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    const mockBlacklist = ["existing.com"];
+    let blacklistState = mockBlacklist;
+    const setBlacklistMock = vi.fn((newValue: any) => {
+      blacklistState = typeof newValue === "function" ? newValue(blacklistState) : newValue;
+    });
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "blacklist") {
+          return [blacklistState, setBlacklistMock];
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(cookieListProps).not.toBeNull();
+    });
+
+    await act(async () => {
+      cookieListProps?.onAddToBlacklist(["existing.com"]);
+    });
+
+    expect(setBlacklistMock).not.toHaveBeenCalled();
+  });
+
+  it("should handle quickAddToWhitelist when domain already in whitelist", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "whitelist") {
+          return useState(["example.com"]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const addWhitelistBtn = screen.getByText("添加到白名单");
+    fireEvent.click(addWhitelistBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/已在白名单中/)).toBeTruthy();
+    });
+  });
+
+  it("should handle quickAddToBlacklist when domain already in blacklist", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "blacklist") {
+          return useState(["example.com"]);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "settings") {
+          return useState({
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          });
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const addBlacklistBtn = screen.getByText("添加到黑名单");
+    fireEvent.click(addBlacklistBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/已在黑名单中/)).toBeTruthy();
+    });
+  });
+
+  it("should handle cleanupStartup function", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { performCleanup } = await import("~utils/cleanup");
+    const { useState } = await import("react");
+
+    const mockSettings = {
+      mode: "whitelist",
+      themeMode: "light",
+      clearType: "all",
+      clearCache: true,
+      clearLocalStorage: false,
+      clearIndexedDB: false,
+      cleanupOnStartup: true,
+      cleanupExpiredCookies: false,
+      logRetention: "7d",
+    };
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    (performCleanup as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 3, clearedDomains: ["example.com"] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(performCleanup).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle cleanupStartup with no count", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { performCleanup } = await import("~utils/cleanup");
+    const { useState } = await import("react");
+
+    const mockSettings = {
+      mode: "whitelist",
+      themeMode: "light",
+      clearType: "all",
+      clearCache: true,
+      clearLocalStorage: false,
+      clearIndexedDB: false,
+      cleanupOnStartup: true,
+      cleanupExpiredCookies: false,
+      logRetention: "7d",
+    };
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    (performCleanup as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 0, clearedDomains: [] })
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(performCleanup).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle cleanupStartup with invalid URL", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve([
+        {
+          id: 1,
+          url: "invalid-url",
+          active: true,
+          currentWindow: true,
+        },
+      ])
+    );
+
+    const mockSettings = {
+      mode: "whitelist",
+      themeMode: "light",
+      clearType: "all",
+      clearCache: true,
+      clearLocalStorage: false,
+      clearIndexedDB: false,
+      cleanupOnStartup: true,
+      cleanupExpiredCookies: false,
+      logRetention: "7d",
+    };
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
+      }
+    );
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    expect(screen.getByText("无法获取域名")).toBeTruthy();
+  });
+
+  it("should handle custom theme with partial customTheme values", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useState } = await import("react");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === "settings") {
+        return [
+          {
+            mode: "whitelist",
+            themeMode: "custom",
+            customTheme: {
+              primary: "#ff0000",
+            },
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          },
+        ];
+      }
+      return [[]];
+    });
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    const root = document.documentElement;
+    expect(root.style.getPropertyValue("--primary-500")).toBe("#ff0000");
+  });
+
+  it("should call CookieList onMessage callback", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(cookieListProps).not.toBeNull();
+    });
+
+    await act(async () => {
+      cookieListProps?.onMessage("Test message", false);
+    });
+
+    await waitFor(() => {
+      const message = document.querySelector(".message");
+      expect(message?.textContent).toContain("Test message");
+    });
+  });
+
+  it("should call CookieList onMessage callback with error", async () => {
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(cookieListProps).not.toBeNull();
+    });
+
+    await act(async () => {
+      cookieListProps?.onMessage("Error message", true);
+    });
+
+    await waitFor(() => {
+      const message = document.querySelector(".message.error");
+      expect(message).toBeTruthy();
+      expect(message?.textContent).toContain("Error message");
     });
   });
 });
