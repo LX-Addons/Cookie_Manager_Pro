@@ -1501,3 +1501,42 @@ describe("IndexPopup", () => {
     });
   });
 });
+
+describe("IndexPopup onAddToWhitelist and onAddToBlacklist callbacks", () => {
+  it("should pass onAddToWhitelist and onAddToBlacklist to CookieList", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+      if (key === "whitelist") {
+        return [["test.com"]];
+      }
+      if (key === "blacklist") {
+        return [["bad.com"]];
+      }
+      if (key === "settings") {
+        return [
+          {
+            mode: "whitelist",
+            themeMode: "light",
+            clearType: "all",
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: false,
+            logRetention: "7d",
+          },
+        ];
+      }
+      return [[]];
+    });
+
+    await act(async () => {
+      render(<IndexPopup />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Cookie 详情/)).toBeTruthy();
+    });
+  });
+});
