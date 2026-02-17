@@ -38,8 +38,8 @@ const CookieListContent = memo(
     onUpdate,
     onMessage,
     showConfirm,
-    _whitelist,
-    _blacklist,
+    whitelist: _whitelist,
+    blacklist: _blacklist,
     onAddToWhitelist,
     onAddToBlacklist,
   }: CookieListContentProps) => {
