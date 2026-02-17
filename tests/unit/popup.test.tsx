@@ -1526,21 +1526,23 @@ describe("IndexPopup onClearBlacklist", () => {
       logRetention: "7d",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({ count: 5, clearedDomains: ["example.com"] })
@@ -1576,21 +1578,23 @@ describe("IndexPopup onClearBlacklist", () => {
       logRetention: "7d",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({ count: 5, clearedDomains: ["example.com"] })
@@ -1635,21 +1639,23 @@ describe("IndexPopup onClearBlacklist", () => {
       logRetention: "7d",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({ count: 0, clearedDomains: [] })
@@ -1706,21 +1712,23 @@ describe("IndexPopup addLog", () => {
       logRetention: "forever",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     await act(async () => {
       render(<IndexPopup />);
@@ -1747,21 +1755,23 @@ describe("IndexPopup addLog", () => {
       logRetention: "7d",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     await act(async () => {
       render(<IndexPopup />);
@@ -1788,18 +1798,20 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { useState } = await import("react");
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "whitelist") {
-        return useState(["example.com"]);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "whitelist") {
+          return useState(["example.com"]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     await act(async () => {
       render(<IndexPopup />);
@@ -1824,18 +1836,20 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { useState } = await import("react");
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "blacklist") {
-        return useState(["example.com"]);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "blacklist") {
+          return useState(["example.com"]);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     await act(async () => {
       render(<IndexPopup />);
@@ -1865,23 +1879,27 @@ describe("IndexPopup cleanupExpiredCookies", () => {
       logRetention: "7d",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
-    (cleanupExpiredCookiesUtil as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve(5));
+    (cleanupExpiredCookiesUtil as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve(5)
+    );
 
     await act(async () => {
       render(<IndexPopup />);
@@ -1909,23 +1927,27 @@ describe("IndexPopup cleanupExpiredCookies", () => {
       logRetention: "7d",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
-    (cleanupExpiredCookiesUtil as ReturnType<typeof vi.fn>).mockImplementation(() => Promise.resolve(0));
+    (cleanupExpiredCookiesUtil as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve(0)
+    );
 
     await act(async () => {
       render(<IndexPopup />);
@@ -1953,21 +1975,23 @@ describe("IndexPopup cleanupExpiredCookies", () => {
       logRetention: "7d",
     };
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return useState(mockSettings);
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return useState(mockSettings);
+        }
+        if (key === "whitelist") {
+          return useState([]);
+        }
+        if (key === "blacklist") {
+          return useState([]);
+        }
+        if (key === "clearLog") {
+          return useState([]);
+        }
+        return useState(defaultValue);
       }
-      if (key === "whitelist") {
-        return useState([]);
-      }
-      if (key === "blacklist") {
-        return useState([]);
-      }
-      if (key === "clearLog") {
-        return useState([]);
-      }
-      return useState(defaultValue);
-    });
+    );
 
     (cleanupExpiredCookiesUtil as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.reject(new Error("Failed"))

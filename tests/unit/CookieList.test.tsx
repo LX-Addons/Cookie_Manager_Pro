@@ -1172,8 +1172,7 @@ describe("CookieList", () => {
     }
 
     const testDomainButton = domainButtons.find(
-      (btn) =>
-        btn.textContent === "test.com" || /^🌐\s*test\.com\s*\(/.test(btn.textContent || "")
+      (btn) => btn.textContent === "test.com" || /^🌐\s*test\.com\s*\(/.test(btn.textContent || "")
     );
     if (testDomainButton) {
       fireEvent.click(testDomainButton);
