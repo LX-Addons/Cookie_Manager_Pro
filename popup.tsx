@@ -524,6 +524,20 @@ function IndexPopup() {
               currentDomain={currentDomain}
               onUpdate={updateStats}
               onMessage={(text, isError = false) => showMessage(text, isError)}
+              whitelist={whitelist}
+              blacklist={blacklist}
+              onAddToWhitelist={(domains) => {
+                const newDomains = domains.filter((d) => !whitelist.includes(d));
+                if (newDomains.length > 0) {
+                  setWhitelist([...whitelist, ...newDomains]);
+                }
+              }}
+              onAddToBlacklist={(domains) => {
+                const newDomains = domains.filter((d) => !blacklist.includes(d));
+                if (newDomains.length > 0) {
+                  setBlacklist([...blacklist, ...newDomains]);
+                }
+              }}
             />
           </div>
         )}

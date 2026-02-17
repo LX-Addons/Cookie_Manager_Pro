@@ -21,6 +21,10 @@ interface Props {
   currentDomain?: string;
   onUpdate?: () => void;
   onMessage?: (msg: string, isError?: boolean) => void;
+  whitelist?: string[];
+  blacklist?: string[];
+  onAddToWhitelist?: (domains: string[]) => void;
+  onAddToBlacklist?: (domains: string[]) => void;
 }
 
 interface CookieListContentProps extends Props {
@@ -28,7 +32,17 @@ interface CookieListContentProps extends Props {
 }
 
 const CookieListContent = memo(
-  ({ cookies, currentDomain, onUpdate, onMessage, showConfirm }: CookieListContentProps) => {
+  ({
+    cookies,
+    currentDomain,
+    onUpdate,
+    onMessage,
+    showConfirm,
+    whitelist,
+    blacklist,
+    onAddToWhitelist,
+    onAddToBlacklist,
+  }: CookieListContentProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [visibleValues, setVisibleValues] = useState<Set<string>>(new Set());
     const [selectedCookies, setSelectedCookies] = useState<Set<string>>(new Set());
@@ -185,12 +199,24 @@ const CookieListContent = memo(
 
     const handleAddToWhitelist = () => {
       const domains = getSelectedDomains();
-      onMessage?.(`准备添加 ${domains.size} 个域名到白名单`);
+      const domainArray = Array.from(domains);
+      if (domainArray.length > 0) {
+        onAddToWhitelist?.(domainArray);
+        onMessage?.(`已添加 ${domainArray.length} 个域名到白名单`);
+      } else {
+        onMessage?.("请先选择要添加的域名", true);
+      }
     };
 
     const handleAddToBlacklist = () => {
       const domains = getSelectedDomains();
-      onMessage?.(`准备添加 ${domains.size} 个域名到黑名单`);
+      const domainArray = Array.from(domains);
+      if (domainArray.length > 0) {
+        onAddToBlacklist?.(domainArray);
+        onMessage?.(`已添加 ${domainArray.length} 个域名到黑名单`);
+      } else {
+        onMessage?.("请先选择要添加的域名", true);
+      }
     };
 
     if (cookies.length === 0) {
@@ -393,20 +419,35 @@ const CookieListContent = memo(
 
 CookieListContent.displayName = "CookieListContent";
 
-export const CookieList = memo(({ cookies, currentDomain, onUpdate, onMessage }: Props) => {
-  return (
-    <ConfirmDialogWrapper>
-      {(showConfirm) => (
-        <CookieListContent
-          cookies={cookies}
-          currentDomain={currentDomain}
-          onUpdate={onUpdate}
-          onMessage={onMessage}
-          showConfirm={showConfirm}
-        />
-      )}
-    </ConfirmDialogWrapper>
-  );
-});
+export const CookieList = memo(
+  ({
+    cookies,
+    currentDomain,
+    onUpdate,
+    onMessage,
+    whitelist,
+    blacklist,
+    onAddToWhitelist,
+    onAddToBlacklist,
+  }: Props) => {
+    return (
+      <ConfirmDialogWrapper>
+        {(showConfirm) => (
+          <CookieListContent
+            cookies={cookies}
+            currentDomain={currentDomain}
+            onUpdate={onUpdate}
+            onMessage={onMessage}
+            whitelist={whitelist}
+            blacklist={blacklist}
+            onAddToWhitelist={onAddToWhitelist}
+            onAddToBlacklist={onAddToBlacklist}
+            showConfirm={showConfirm}
+          />
+        )}
+      </ConfirmDialogWrapper>
+    );
+  }
+);
 
 CookieList.displayName = "CookieList";

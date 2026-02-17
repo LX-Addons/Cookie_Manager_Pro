@@ -556,7 +556,7 @@ header h1 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-2);
 }
 
@@ -1706,10 +1706,6 @@ header h1 {
   color: var(--text-tertiary);
   padding-left: var(--space-2);
   border-left: 2px solid var(--border-light);
-}
-
-.stats {
-  grid-template-columns: repeat(3, 1fr);
 }
 
 @media (max-width: 380px) {

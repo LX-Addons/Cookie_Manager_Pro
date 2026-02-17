@@ -143,10 +143,14 @@ vi.mock("../../components/ConfirmDialogWrapper", () => ({
 describe("CookieList", () => {
   const mockOnUpdate = vi.fn();
   const mockOnMessage = vi.fn();
+  const mockOnAddToWhitelist = vi.fn();
+  const mockOnAddToBlacklist = vi.fn();
 
   beforeEach(() => {
     mockOnUpdate.mockClear();
     mockOnMessage.mockClear();
+    mockOnAddToWhitelist.mockClear();
+    mockOnAddToBlacklist.mockClear();
   });
 
   it("should render empty state when no cookies", () => {
@@ -209,7 +213,15 @@ describe("CookieList", () => {
 
   it("should call onMessage when add to whitelist is clicked", () => {
     render(
-      <CookieList cookies={mockCookies} currentDomain="example.com" onMessage={mockOnMessage} />
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
     );
 
     const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
@@ -222,11 +234,20 @@ describe("CookieList", () => {
     fireEvent.click(addToWhitelistBtn);
 
     expect(mockOnMessage).toHaveBeenCalled();
+    expect(mockOnAddToWhitelist).toHaveBeenCalled();
   });
 
   it("should call onMessage when add to blacklist is clicked", () => {
     render(
-      <CookieList cookies={mockCookies} currentDomain="example.com" onMessage={mockOnMessage} />
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
     );
 
     const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
@@ -239,6 +260,7 @@ describe("CookieList", () => {
     fireEvent.click(addToBlacklistBtn);
 
     expect(mockOnMessage).toHaveBeenCalled();
+    expect(mockOnAddToBlacklist).toHaveBeenCalled();
   });
 
   it("should expand domain group when clicked", () => {
