@@ -441,8 +441,9 @@ jobs:
             
             if (isDependabot) {
               body += `---\n### 🤖 Dependabot 自动化\n`;
-              if (lintResult === 'success' && testResult === 'success' && securityResult === 'success' && buildResult === 'success') {
-                body += `✅ 所有关键检查已通过。此 PR 已标记为自动批准。\n`;
+              const e2eSuccess = e2eResult === 'success' || e2eResult === 'skipped';
+              if (lintResult === 'success' && testResult === 'success' && securityResult === 'success' && buildResult === 'success' && e2eSuccess) {
+                body += `✅ 所有关键检查已通过。已添加 \`auto-approve\` 标签。\n`;
               } else {
                 body += `⚠️ 部分检查未通过。需要人工审核。\n`;
               }
@@ -561,7 +562,7 @@ jobs:
           ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
 
   dependabot-approve:
-    name: Dependabot 自动批准
+    name: Dependabot 自动标记
     runs-on: ubuntu-latest
     needs: [lint, test, security, build, e2e]
     if: |
@@ -574,15 +575,16 @@ jobs:
       (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
     permissions:
       pull-requests: write
+      issues: write
     steps:
-      - name: 批准 Dependabot PR
+      - name: 添加自动批准标签
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           script: |
-            github.rest.pulls.createReview({
+            await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number,
-              event: 'APPROVE',
-              body: '🤖 Dependabot PR 已通过所有检查，自动批准。'
+              issue_number: context.issue.number,
+              labels: ['auto-approve']
             })
+            core.info('✅ 已添加 auto-approve 标签，PR 可通过自动合并规则合并')
