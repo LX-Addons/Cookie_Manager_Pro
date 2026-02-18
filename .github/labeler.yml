@@ -1,22 +1,23 @@
-# PR 自动标记配置
-# 根据修改的文件路径自动为 PR 添加相应标签
-
 typescript:
-  - '**/*.ts'
-  - '**/*.tsx'
+  - any:
+      - '**/*.ts'
+      - '**/*.tsx'
 
 testing:
-  - 'tests/**/*'
-  - '**/*.test.ts'
-  - '**/*.test.tsx'
-  - '**/*.spec.ts'
-  - '**/*.spec.tsx'
+  - any:
+      - 'tests/**/*'
+      - '**/*.test.ts'
+      - '**/*.test.tsx'
+      - '**/*.spec.ts'
+      - '**/*.spec.tsx'
 
 github-actions:
-  - '.github/workflows/**/*'
-  - '.github/actions/**/*'
+  - any:
+      - '.github/workflows/**/*'
+      - '.github/actions/**/*'
 
 documentation:
-  - '**/*.md'
-  - 'docs/**/*'
-  - 'LICENSE'
+  - any:
+      - '**/*.md'
+      - 'docs/**/*'
+      - 'LICENSE'
