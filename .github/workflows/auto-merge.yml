@@ -1,4 +1,4 @@
-name: Dependabot Auto-Merge
+name: Dependabot 自动合并
 
 on:
   pull_request:
@@ -13,18 +13,32 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
-      - name: Dependabot metadata
+      - name: 获取 Dependabot 元数据
         id: metadata
         uses: dependabot/fetch-metadata@db30037c5b126710396623db11c67e95933ea6cc # v2.3.0
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Enable auto-merge for Dependabot PRs
+      - name: 启用 Dependabot PR 自动合并
         if: |
           steps.metadata.outputs.update-type != 'version-update:semver-major' &&
           (steps.metadata.outputs.dependency-type == 'direct:development' || 
            steps.metadata.outputs.dependency-type == 'direct:production')
-        run: gh pr merge --auto --squash "$PR_URL"
+        run: |
+          echo "=========================================="
+          echo "  Dependabot 自动合并流程启动"
+          echo "=========================================="
+          echo ""
+          echo "[信息] PR 地址: $PR_URL"
+          echo "[信息] 更新类型: ${{ steps.metadata.outputs.update-type }}"
+          echo "[信息] 依赖类型: ${{ steps.metadata.outputs.dependency-type }}"
+          echo "[信息] 依赖名称: ${{ steps.metadata.outputs.dependency-names }}"
+          echo ""
+          echo "[操作] 正在为 Dependabot PR 启用自动合并..."
+          gh pr merge --auto --squash "$PR_URL"
+          echo ""
+          echo "[成功] 自动合并已启用，等待 CI 检查通过后自动合并"
+          echo "=========================================="
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

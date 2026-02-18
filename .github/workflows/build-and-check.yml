@@ -1,4 +1,4 @@
-name: Build and Check Browser Extension
+name: 构建与检查浏览器扩展
 
 on:
   push:
@@ -8,12 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: "Create a release"
+        description: "创建发布版本"
         required: false
         default: false
         type: boolean
       skip_tests:
-        description: "Skip E2E tests (faster build)"
+        description: "跳过 E2E 测试（加快构建速度）"
         required: false
         default: false
         type: boolean
@@ -21,7 +21,6 @@ on:
 permissions:
   actions: read
   contents: write
-  packages: write
   pull-requests: write
   security-events: write
 
@@ -35,72 +34,80 @@ env:
 
 jobs:
   lint:
-    name: Lint & Format Check
+    name: 代码检查与格式验证
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout repository
+      - name: 检出仓库
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
-      - name: Setup Node.js
+      - name: 配置 Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache node_modules
+      - name: 缓存 node_modules 和 npm 缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         id: npm-cache
         with:
-          path: node_modules
+          path: |
+            node_modules
+            ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: 安装依赖
         if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --prefer-offline
 
-      - name: TypeScript check
+      - name: TypeScript 类型检查
         run: npx tsc --noEmit
 
-      - name: ESLint check
+      - name: ESLint 代码检查
         run: npm run lint
 
-      - name: Prettier check
+      - name: Prettier 格式检查
         run: npm run format:check
 
   test:
-    name: Unit Tests
+    name: 单元测试 (Node.js ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      matrix:
+        node-version: [18, 20]
     steps:
-      - name: Checkout repository
+      - name: 检出仓库
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: 配置 Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ matrix.node-version }}
 
-      - name: Cache node_modules
+      - name: 缓存 node_modules 和 npm 缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         id: npm-cache
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
+            ${{ runner.os }}-node${{ matrix.node-version }}-
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: 安装依赖
         if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --prefer-offline
 
-      - name: Run unit tests with coverage
+      - name: 运行单元测试并生成覆盖率报告
         run: npm run test:coverage
 
-      - name: Upload coverage to Codecov
+      - name: 上传覆盖率到 Codecov
         if: always()
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de  # v5.5.2
         with:
@@ -109,7 +116,7 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: SonarCloud Scan
+      - name: SonarCloud 代码扫描
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9  # v7.0.0
         continue-on-error: true
         env:
@@ -117,44 +124,46 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   security:
-    name: Security Scan
+    name: 安全扫描
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout repository
+      - name: 检出仓库
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: 配置 Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache node_modules
+      - name: 缓存 node_modules 和 npm 缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         id: npm-cache
         with:
-          path: node_modules
+          path: |
+            node_modules
+            ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: 安装依赖
         if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --prefer-offline
 
-      - name: Check for secrets leakage
-        uses: trufflesecurity/trufflehog@main
+      - name: 检查密钥泄露
+        uses: trufflesecurity/trufflehog@6961f2bace57ab32b23b3ba40f8f420f6bc7e004  # v3.93.3
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           extra_args: --only-verified
 
-      - name: Dependency audit
+      - name: 依赖安全审计
         run: |
-          echo "### 🛡️ Dependency Security Audit" >> $GITHUB_STEP_SUMMARY
-          echo "<details><summary>Click to view full audit report</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY 2>&1 || true
@@ -162,30 +171,30 @@ jobs:
           echo "</details>" >> $GITHUB_STEP_SUMMARY
         continue-on-error: true
 
-      - name: Security patterns check
+      - name: 安全模式检查
         run: |
-          echo "### 🔍 Security Pattern Checks" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 安全模式检查" >> $GITHUB_STEP_SUMMARY
           EXIT_CODE=0
           
-          echo "#### Eval Usage Check" >> $GITHUB_STEP_SUMMARY
+          echo "#### eval 使用检查" >> $GITHUB_STEP_SUMMARY
           if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
-            echo "❌ Found eval() usage - potential security risk" >> $GITHUB_STEP_SUMMARY
+            echo "❌ 发现 eval() 使用 - 潜在安全风险" >> $GITHUB_STEP_SUMMARY
             EXIT_CODE=1
           else
-            echo "✅ No eval() usage found" >> $GITHUB_STEP_SUMMARY
+            echo "✅ 未发现 eval() 使用" >> $GITHUB_STEP_SUMMARY
           fi
           
-          echo "#### dangerouslySetInnerHTML Check" >> $GITHUB_STEP_SUMMARY
+          echo "#### dangerouslySetInnerHTML 检查" >> $GITHUB_STEP_SUMMARY
           if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
-            echo "⚠️ Found dangerouslySetInnerHTML usage - XSS risk" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ 发现 dangerouslySetInnerHTML 使用 - XSS 风险" >> $GITHUB_STEP_SUMMARY
           else
-            echo "✅ No dangerouslySetInnerHTML usage found" >> $GITHUB_STEP_SUMMARY
+            echo "✅ 未发现 dangerouslySetInnerHTML 使用" >> $GITHUB_STEP_SUMMARY
           fi
           
           exit $EXIT_CODE
 
   build:
-    name: Build Extension
+    name: 构建扩展
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [lint, test]
@@ -194,28 +203,30 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       name: ${{ steps.version.outputs.name }}
     steps:
-      - name: Checkout repository
+      - name: 检出仓库
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
-      - name: Setup Node.js
+      - name: 配置 Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache node_modules
+      - name: 缓存 node_modules 和 npm 缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         id: npm-cache
         with:
-          path: node_modules
+          path: |
+            node_modules
+            ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: 安装依赖
         if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --prefer-offline
 
-      - name: Cache Plasmo cache
+      - name: 缓存 Plasmo 构建缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: .plasmo
@@ -223,10 +234,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-plasmo-
 
-      - name: Build extension
+      - name: 构建扩展
         run: npm run build
 
-      - name: Get version info
+      - name: 获取版本信息
         id: version
         run: |
           VERSION=$(jq -r '.version' package.json)
@@ -234,52 +245,52 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "name=$NAME" >> $GITHUB_OUTPUT
 
-      - name: Check extension size
+      - name: 检查扩展体积
         run: |
           BUILD_DIR="build/chrome-mv3-prod"
           if [ -d "$BUILD_DIR" ]; then
             SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
             SIZE_MB=$((SIZE_KB / 1024))
-            echo "📊 Extension size: ${SIZE_MB}MB (${SIZE_KB}KB)"
+            echo "📊 扩展体积: ${SIZE_MB}MB (${SIZE_KB}KB)"
             
             if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
-              echo "❌ Extension size (${SIZE_MB}MB) exceeds limit (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
+              echo "❌ 扩展体积 (${SIZE_MB}MB) 超出限制 (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
               exit 1
             fi
-            echo "✅ Extension size within limit"
+            echo "✅ 扩展体积符合限制"
           fi
 
-      - name: Verify build artifacts
+      - name: 验证构建产物
         run: |
           BUILD_DIR="build/chrome-mv3-prod"
           
           if [ ! -d "$BUILD_DIR" ]; then
-            echo "❌ Build directory not found: $BUILD_DIR"
+            echo "❌ 构建目录不存在: $BUILD_DIR"
             exit 1
           fi
           
-          echo "📁 Build contents:"
+          echo "📁 构建内容:"
           ls -la "$BUILD_DIR"
           
           REQUIRED_FILES=("manifest.json" "popup.html")
           for file in "${REQUIRED_FILES[@]}"; do
             if [ -f "$BUILD_DIR/$file" ]; then
-              echo "✅ $file exists"
+              echo "✅ $file 存在"
             else
-              echo "❌ $file missing"
+              echo "❌ $file 缺失"
               exit 1
             fi
           done
           
           if [ -f "$BUILD_DIR/manifest.json" ]; then
-            echo "📄 Manifest content:"
+            echo "📄 Manifest 内容:"
             jq '.' "$BUILD_DIR/manifest.json"
           fi
 
-      - name: Package extension
+      - name: 打包扩展
         run: npm run package
 
-      - name: Rename artifacts
+      - name: 重命名构建产物
         run: |
           VERSION=${{ steps.version.outputs.version }}
           NAME=${{ steps.version.outputs.name }}
@@ -292,7 +303,7 @@ jobs:
             mv "build/chrome-mv3-prod.zip" "build/${NAME}-${VERSION}-chrome.zip"
           fi
 
-      - name: Upload build artifacts
+      - name: 上传构建产物
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: extension-${{ steps.version.outputs.version }}
@@ -300,41 +311,43 @@ jobs:
           retention-days: 7
 
   e2e:
-    name: E2E Tests
+    name: E2E 测试
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [build]
     if: always() && needs.build.result == 'success' && github.event.inputs.skip_tests != 'true'
     steps:
-      - name: Checkout repository
+      - name: 检出仓库
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
-      - name: Setup Node.js
+      - name: 配置 Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache node_modules
+      - name: 缓存 node_modules 和 npm 缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         id: npm-cache
         with:
-          path: node_modules
+          path: |
+            node_modules
+            ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: 安装依赖
         if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --prefer-offline
 
-      - name: Download build artifacts
+      - name: 下载构建产物
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0  # v5.0.0
         with:
           pattern: extension-*
           path: build/
           merge-multiple: true
 
-      - name: Prepare extension for testing
+      - name: 准备测试扩展
         run: |
           VERSION=$(jq -r '.version' package.json)
           NAME=$(jq -r '.name' package.json)
@@ -345,13 +358,13 @@ jobs:
           
           ls -la build/
 
-      - name: Install Playwright browsers
+      - name: 安装 Playwright 浏览器
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
+      - name: 运行 E2E 测试
         run: xvfb-run --auto-servernum npm run test:e2e
 
-      - name: Upload Playwright report
+      - name: 上传 Playwright 报告
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
@@ -360,22 +373,22 @@ jobs:
           retention-days: 30
 
   pr-comment:
-    name: PR Comment
+    name: PR 评论
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [lint, test, security, build, e2e]
     if: always() && github.event_name == 'pull_request'
     steps:
-      - name: Checkout repository
+      - name: 检出仓库
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
-      - name: Get version info
+      - name: 获取版本信息
         id: info
         run: |
           VERSION=$(jq -r '.version' package.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check if Dependabot PR
+      - name: 检查是否为 Dependabot PR
         id: dependabot
         run: |
           if [ "${{ github.actor }}" = "dependabot[bot]" ]; then
@@ -384,7 +397,7 @@ jobs:
             echo "is_dependabot=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create PR comment
+      - name: 创建 PR 评论
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           script: |
@@ -408,30 +421,30 @@ jobs:
               return `![${label}](https://img.shields.io/badge/${label}-${result}-${color}?style=flat-square)`;
             };
 
-            let body = `## 🛠️ Extension Build Dashboard\n\n`;
-            body += `${getBadge('Lint', lintResult)} ${getBadge('Tests', testResult)} ${getBadge('Security', securityResult)} ${getBadge('Build', buildResult)} ${getBadge('E2E', e2eResult)}\n\n`;
+            let body = `## 🛠️ 扩展构建仪表盘\n\n`;
+            body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityResult)} ${getBadge('构建', buildResult)} ${getBadge('E2E测试', e2eResult)}\n\n`;
             
-            body += `### 📊 Check Details\n\n`;
-            body += `| Check | Status | Description |\n`;
+            body += `### 📊 检查详情\n\n`;
+            body += `| 检查项 | 状态 | 说明 |\n`;
             body += `| :--- | :---: | :--- |\n`;
-            body += `| **Lint & Format** | ${statusEmoji(lintResult)} | Code style and static analysis |\n`;
-            body += `| **Unit Tests** | ${statusEmoji(testResult)} | Functional correctness and coverage |\n`;
-            body += `| **Security Scan** | ${statusEmoji(securityResult)} | Secret leakage and dependency audit |\n`;
-            body += `| **Extension Build** | ${statusEmoji(buildResult)} | Plasmo production build and size check |\n`;
-            body += `| **E2E Tests** | ${statusEmoji(e2eResult)} | Browser automation tests (Playwright) |\n\n`;
+            body += `| **代码检查与格式** | ${statusEmoji(lintResult)} | 代码风格与静态分析 |\n`;
+            body += `| **单元测试** | ${statusEmoji(testResult)} | 功能正确性与覆盖率 |\n`;
+            body += `| **安全扫描** | ${statusEmoji(securityResult)} | 密钥泄露与依赖审计 |\n`;
+            body += `| **扩展构建** | ${statusEmoji(buildResult)} | Plasmo 生产构建与体积检查 |\n`;
+            body += `| **E2E 测试** | ${statusEmoji(e2eResult)} | 浏览器自动化测试 (Playwright) |\n\n`;
             
-            body += `**Version:** \`${version}\` | **Environment:** \`Production\`\n\n`;
+            body += `**版本:** \`${version}\` | **环境:** \`生产环境\`\n\n`;
             
             if (buildResult === 'success') {
-              body += `> 📦 **Artifacts:** Build artifacts are available in the [Workflow Run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}).\n\n`;
+              body += `> 📦 **构建产物:** 构建产物可在 [工作流运行](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}) 中下载。\n\n`;
             }
             
             if (isDependabot) {
-              body += `---\n### 🤖 Dependabot Automation\n`;
+              body += `---\n### 🤖 Dependabot 自动化\n`;
               if (lintResult === 'success' && testResult === 'success' && securityResult === 'success' && buildResult === 'success') {
-                body += `✅ All critical checks passed. This PR is marked for auto-approval.\n`;
+                body += `✅ 所有关键检查已通过。此 PR 已标记为自动批准。\n`;
               } else {
-                body += `⚠️ Some checks failed. Manual review required.\n`;
+                body += `⚠️ 部分检查未通过。需要人工审核。\n`;
               }
             }
             
@@ -443,28 +456,28 @@ jobs:
             });
 
   notify-failure:
-    name: Notify Failure
+    name: 失败通知
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [lint, test, security, build, e2e]
     if: failure() && github.event_name != 'pull_request'
     steps:
-      - name: Create failure summary
+      - name: 创建失败摘要
         run: |
-          echo "## ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo "## ❌ 构建失败" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| 任务 | 状态 |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| E2E | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 代码检查 | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 单元测试 | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 安全扫描 | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 构建 | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E 测试 | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please check the logs for details." >> $GITHUB_STEP_SUMMARY
+          echo "请查看日志了解详情。" >> $GITHUB_STEP_SUMMARY
 
   release:
-    name: Create Release
+    name: 创建发布版本
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [build, e2e, security]
@@ -476,12 +489,12 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.create_release == 'true'
     steps:
-      - name: Checkout repository
+      - name: 检出仓库
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
 
-      - name: Get version info
+      - name: 获取版本信息
         id: version
         run: |
           VERSION=$(jq -r '.version' package.json)
@@ -489,34 +502,34 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "name=$NAME" >> $GITHUB_OUTPUT
 
-      - name: Download build artifacts
+      - name: 下载构建产物
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0  # v5.0.0
         with:
           pattern: extension-*
           path: build/
           merge-multiple: true
 
-      - name: Generate changelog
+      - name: 生成更新日志
         id: changelog
         run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           CURRENT_VERSION="${{ steps.version.outputs.version }}"
           
           if [ -z "$PREVIOUS_TAG" ]; then
-            NOTES=$(npx git-cliff --strip header 2>/dev/null || echo "Initial release v${CURRENT_VERSION}")
+            NOTES=$(npx git-cliff --strip header 2>/dev/null || echo "初始发布 v${CURRENT_VERSION}")
           else
-            NOTES=$(npx git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "Release v${CURRENT_VERSION}")
+            NOTES=$(npx git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "发布 v${CURRENT_VERSION}")
           fi
           
           if [ -z "$NOTES" ] || [ "$NOTES" = "## [Unreleased]" ]; then
-            NOTES="## What's Changed\n\n- 版本更新至 ${CURRENT_VERSION}"
+            NOTES="## 更新内容\n\n- 版本更新至 ${CURRENT_VERSION}"
           fi
           
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo -e "$NOTES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Check if tag exists
+      - name: 检查标签是否存在
         id: check_tag
         run: |
           if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
@@ -525,12 +538,12 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Release
+      - name: 创建发布版本
         if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b  # v2.5.0
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
+          name: 发布 v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.notes }}
           files: |
             build/*.zip
@@ -538,17 +551,17 @@ jobs:
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           generate_release_notes: false
 
-      - name: Summary
+      - name: 发布摘要
         run: |
-          echo "## 🎉 Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 发布已创建" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**版本:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📦 Release assets:" >> $GITHUB_STEP_SUMMARY
-          ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No zip files found" >> $GITHUB_STEP_SUMMARY
+          echo "📦 发布资源:" >> $GITHUB_STEP_SUMMARY
+          ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
 
   dependabot-approve:
-    name: Dependabot Auto-Approve
+    name: Dependabot 自动批准
     runs-on: ubuntu-latest
     needs: [lint, test, security, build, e2e]
     if: |
@@ -561,7 +574,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - name: Approve Dependabot PR
+      - name: 批准 Dependabot PR
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           script: |
@@ -570,5 +583,5 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
               event: 'APPROVE',
-              body: '🤖 Dependabot PR auto-approved after all checks passed.'
+              body: '🤖 Dependabot PR 已通过所有检查，自动批准。'
             })
