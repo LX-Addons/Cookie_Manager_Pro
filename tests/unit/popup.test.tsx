@@ -2075,7 +2075,7 @@ describe("IndexPopup additional coverage", () => {
     });
 
     await act(async () => {
-      cookieListProps!.onAddToWhitelist!(["new.com", "existing.com"]);
+      cookieListProps?.onAddToWhitelist?.(["new.com", "existing.com"]);
     });
   });
 
@@ -2123,7 +2123,7 @@ describe("IndexPopup additional coverage", () => {
     });
 
     await act(async () => {
-      cookieListProps!.onAddToBlacklist!(["new.com", "existing.com"]);
+      cookieListProps?.onAddToBlacklist?.(["new.com", "existing.com"]);
     });
   });
 
@@ -2171,7 +2171,7 @@ describe("IndexPopup additional coverage", () => {
     });
 
     await act(async () => {
-      cookieListProps!.onAddToWhitelist!(["existing.com"]);
+      cookieListProps?.onAddToWhitelist?.(["existing.com"]);
     });
   });
 
@@ -2219,7 +2219,7 @@ describe("IndexPopup additional coverage", () => {
     });
 
     await act(async () => {
-      cookieListProps!.onAddToBlacklist!(["existing.com"]);
+      cookieListProps?.onAddToBlacklist?.(["existing.com"]);
     });
   });
 
@@ -2330,7 +2330,7 @@ describe("IndexPopup additional coverage", () => {
     });
 
     await act(async () => {
-      cookieListProps!.onMessage!("Test message", false);
+      cookieListProps?.onMessage?.("Test message", false);
     });
 
     await waitFor(() => {
@@ -2350,7 +2350,7 @@ describe("IndexPopup additional coverage", () => {
     });
 
     await act(async () => {
-      cookieListProps!.onMessage!("Error message", true);
+      cookieListProps?.onMessage?.("Error message", true);
     });
 
     await waitFor(() => {

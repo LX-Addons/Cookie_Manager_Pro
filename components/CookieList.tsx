@@ -198,22 +198,36 @@ export const CookieListContent = memo(
     };
 
     const handleAddToWhitelist = () => {
+      if (!onAddToWhitelist) {
+        onMessage?.("此功能当前不可用", true);
+        return;
+      }
       const domains = getSelectedDomains();
       const domainArray = Array.from(domains);
-      if (domainArray.length > 0) {
-        onAddToWhitelist?.(domainArray);
-        onMessage?.(`已添加 ${domainArray.length} 个域名到白名单`);
+      const newDomains = domainArray.filter(domain => !_whitelist?.includes(domain));
+      if (newDomains.length > 0) {
+        onAddToWhitelist(newDomains);
+        onMessage?.(`已添加 ${newDomains.length} 个域名到白名单`);
+      } else if (domainArray.length > 0) {
+        onMessage?.("所选域名已在白名单中", true);
       } else {
         onMessage?.("请先选择要添加的域名", true);
       }
     };
 
     const handleAddToBlacklist = () => {
+      if (!onAddToBlacklist) {
+        onMessage?.("此功能当前不可用", true);
+        return;
+      }
       const domains = getSelectedDomains();
       const domainArray = Array.from(domains);
-      if (domainArray.length > 0) {
-        onAddToBlacklist?.(domainArray);
-        onMessage?.(`已添加 ${domainArray.length} 个域名到黑名单`);
+      const newDomains = domainArray.filter(domain => !_blacklist?.includes(domain));
+      if (newDomains.length > 0) {
+        onAddToBlacklist(newDomains);
+        onMessage?.(`已添加 ${newDomains.length} 个域名到黑名单`);
+      } else if (domainArray.length > 0) {
+        onMessage?.("所选域名已在黑名单中", true);
       } else {
         onMessage?.("请先选择要添加的域名", true);
       }
