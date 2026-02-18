@@ -46,9 +46,18 @@ jobs:
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: Cache node_modules
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: TypeScript check
@@ -74,9 +83,18 @@ jobs:
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: Cache node_modules
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Run unit tests with coverage
@@ -117,9 +135,18 @@ jobs:
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: Cache node_modules
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Check for secrets leakage
@@ -179,16 +206,25 @@ jobs:
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: Cache node_modules
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Cache Plasmo cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: .plasmo
-          key: ${{ runner.os }}-plasmo-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-plasmo-${{ hashFiles('**/package-lock.json', 'src/**/*') }}
           restore-keys: |
             ${{ runner.os }}-plasmo-
 
@@ -282,9 +318,18 @@ jobs:
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: Cache node_modules
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Download build artifacts
@@ -323,7 +368,7 @@ jobs:
     name: PR Comment
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [build, e2e, security]
+    needs: [lint, test, security, build, e2e]
     if: always() && github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
@@ -348,9 +393,11 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           script: |
+            const lintResult = '${{ needs.lint.result }}';
+            const testResult = '${{ needs.test.result }}';
+            const securityResult = '${{ needs.security.result }}';
             const buildResult = '${{ needs.build.result }}';
             const e2eResult = '${{ needs.e2e.result }}';
-            const securityResult = '${{ needs.security.result }}';
             const version = '${{ steps.info.outputs.version }}';
             const isDependabot = '${{ steps.dependabot.outputs.is_dependabot }}' === 'true';
             
@@ -361,32 +408,35 @@ jobs:
               return '⚠️';
             };
             
-            let body = `## 🔍 Build Report
+            const getBadge = (label, result) => {
+              const color = result === 'success' ? 'brightgreen' : (result === 'failure' ? 'red' : 'yellow');
+              return `![${label}](https://img.shields.io/badge/${label}-${result}-${color}?style=flat-square)`;
+            };
+
+            let body = `## 🛠️ Extension Build Dashboard\n\n`;
+            body += `${getBadge('Lint', lintResult)} ${getBadge('Tests', testResult)} ${getBadge('Security', securityResult)} ${getBadge('Build', buildResult)} ${getBadge('E2E', e2eResult)}\n\n`;
             
-            | Check | Status |
-            |-------|--------|
-            | Build | ${statusEmoji(buildResult)} ${buildResult} |
-            | E2E Tests | ${statusEmoji(e2eResult)} ${e2eResult} |
-            | Security | ${statusEmoji(securityResult)} ${securityResult} |
+            body += `### 📊 Check Details\n\n`;
+            body += `| Check | Status | Description |\n`;
+            body += `| :--- | :---: | :--- |\n`;
+            body += `| **Lint & Format** | ${statusEmoji(lintResult)} | Code style and static analysis |\n`;
+            body += `| **Unit Tests** | ${statusEmoji(testResult)} | Functional correctness and coverage |\n`;
+            body += `| **Security Scan** | ${statusEmoji(securityResult)} | Secret leakage and dependency audit |\n`;
+            body += `| **Extension Build** | ${statusEmoji(buildResult)} | Plasmo production build and size check |\n`;
+            body += `| **E2E Tests** | ${statusEmoji(e2eResult)} | Browser automation tests (Playwright) |\n\n`;
             
-            **Version:** \`${version}\`
+            body += `**Version:** \`${version}\` | **Environment:** \`Production\`\n\n`;
             
-            ${buildResult === 'success' ? '📦 Build artifacts are available in the workflow run.' : ''}
-            
-            ### 🛡️ Security Status
-            ${securityResult === 'success' ? '✅ Security checks passed. No critical issues found.' : '⚠️ Security checks found potential issues. Please review the [Security Summary](' + context.payload.pull_request.html_url + '/checks) for details.'}
-            `;
+            if (buildResult === 'success') {
+              body += `> 📦 **Artifacts:** Build artifacts are available in the [Workflow Run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}).\n\n`;
+            }
             
             if (isDependabot) {
-              body += '\n\n---\n';
-              body += '🤖 **Dependabot PR Detected**\n\n';
-              if (buildResult === 'success' && (e2eResult === 'success' || e2eResult === 'skipped')) {
-                body += '✅ All checks passed! This dependency update is safe to merge.\n';
-                body += 'Please review the changes and merge when ready.';
+              body += `---\n### 🤖 Dependabot Automation\n`;
+              if (lintResult === 'success' && testResult === 'success' && securityResult === 'success' && buildResult === 'success') {
+                body += `✅ All critical checks passed. This PR is marked for auto-approval.\n`;
               } else {
-                body += '⚠️ Some checks failed. Please review the changes carefully before merging.\n';
-                body += '- Build status: ' + buildResult + '\n';
-                body += '- E2E Tests: ' + e2eResult + '\n';
+                body += `⚠️ Some checks failed. Manual review required.\n`;
               }
             }
             
@@ -436,68 +486,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version info
-        id: version
-        run: |
-          VERSION=$(jq -r '.version' package.json)
-          NAME=$(jq -r '.name' package.json)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "name=$NAME" >> $GITHUB_OUTPUT
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0  # v5.0.0
+  dependabot-approve:
+    name: Dependabot Auto-Approve
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, build, e2e]
+    if: |
+      github.event_name == 'pull_request' &&
+      github.actor == 'dependabot[bot]' &&
+      needs.lint.result == 'success' &&
+      needs.test.result == 'success' &&
+      needs.security.result == 'success' &&
+      needs.build.result == 'success'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Approve Dependabot PR
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
-          pattern: extension-*
-          path: build/
-          merge-multiple: true
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          CURRENT_VERSION="${{ steps.version.outputs.version }}"
-          
-          if [ -z "$PREVIOUS_TAG" ]; then
-            NOTES=$(npx git-cliff --strip header 2>/dev/null || echo "Initial release v${CURRENT_VERSION}")
-          else
-            NOTES=$(npx git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "Release v${CURRENT_VERSION}")
-          fi
-          
-          if [ -z "$NOTES" ] || [ "$NOTES" = "## [Unreleased]" ]; then
-            NOTES="## What's Changed\n\n- 版本更新至 ${CURRENT_VERSION}"
-          fi
-          
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create Release
-        if: steps.check_tag.outputs.exists == 'false'
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b  # v2.5.0
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
-          body: ${{ steps.changelog.outputs.notes }}
-          files: |
-            build/*.zip
-          draft: false
-          prerelease: ${{ github.ref != 'refs/heads/main' }}
-          generate_release_notes: false
-
-      - name: Summary
-        run: |
-          echo "## 🎉 Release Created" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📦 Release assets:" >> $GITHUB_STEP_SUMMARY
-          ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No zip files found" >> $GITHUB_STEP_SUMMARY
+          script: |
+            github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: '🤖 Dependabot PR auto-approved after all checks passed.'
+            })

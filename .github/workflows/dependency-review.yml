@@ -2,6 +2,9 @@ name: 'Dependency review'
 on:
   pull_request:
     branches: ["main"]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
 
 permissions:
   contents: read
@@ -58,17 +61,29 @@ jobs:
           echo "## 📜 License Compliance Check" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          LICENSES=$(npm ls --json 2>/dev/null | jq -r '.dependencies | to_entries[] | "\(.key): \(.value.version)"' 2>/dev/null || echo "Unable to parse licenses")
+          # Install license-checker-rseidelsohn for detailed reporting
+          npm install -g license-checker-rseidelsohn
 
-          FORBIDDEN_LICENSES="GPL-3.0 AGPL-3.0 SSPL"
-          HAS_FORBIDDEN=false
+          echo "### 📊 License Summary" >> $GITHUB_STEP_SUMMARY
+          license-checker-rseidelsohn --summary >> $GITHUB_STEP_SUMMARY
 
-          echo "Checking for forbidden licenses..." >> $GITHUB_STEP_SUMMARY
-          echo "Forbidden licenses: $FORBIDDEN_LICENSES" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "license_status=ok" >> $GITHUB_OUTPUT
-          echo "✅ License check passed" >> $GITHUB_STEP_SUMMARY
+          # Define forbidden licenses (Copyleft licenses that might conflict with privacy-first/proprietary goals)
+          FORBIDDEN_LICENSES="GPL-2.0-only,GPL-2.0-or-later,GPL-3.0-only,GPL-3.0-or-later,AGPL-3.0-only,AGPL-3.0-or-later,LGPL-2.0-only,LGPL-2.0-or-later,LGPL-2.1-only,LGPL-2.1-or-later,LGPL-3.0-only,LGPL-3.0-or-later"
+          
+          # Check for forbidden licenses
+          VIOLATIONS=$(license-checker-rseidelsohn --failOn "$FORBIDDEN_LICENSES" 2>&1 || true)
+          
+          if echo "$VIOLATIONS" | grep -q "package(s) using a forbidden license"; then
+            echo "❌ **License Violation Detected!**" >> $GITHUB_STEP_SUMMARY
+            echo "The following packages use restricted licenses:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$VIOLATIONS" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "license_status=violation" >> $GITHUB_OUTPUT
+          else
+            echo "✅ All dependencies comply with the license policy." >> $GITHUB_STEP_SUMMARY
+            echo "license_status=ok" >> $GITHUB_OUTPUT
+          fi
 
       - name: 'Dependency Size Check'
         id: size
@@ -98,7 +113,7 @@ jobs:
 
             const statusEmoji = (status) => {
               if (status === 'clean' || status === 'ok') return '✅';
-              if (status === 'warning') return '⚠️';
+              if (status === 'warning' || status === 'violation') return '⚠️';
               return '❓';
             };
 
@@ -107,10 +122,10 @@ jobs:
             | Check | Status | Details |
             |-------|--------|---------|
             | Security Audit | ${statusEmoji(auditStatus)} | ${auditStatus === 'clean' ? 'No vulnerabilities' : 'Review required'} |
-            | License Check | ${statusEmoji(licenseStatus)} | ${licenseStatus === 'ok' ? 'Compliant' : 'Review required'} |
+            | License Check | ${statusEmoji(licenseStatus)} | ${licenseStatus === 'ok' ? 'Compliant' : 'Violation detected'} |
             | Dependencies | 📦 | ${depCount} direct, ${depSize} total |
 
-            ${auditStatus === 'warning' ? '⚠️ **Action Required**: Please review the security audit findings above.' : ''}
+            ${auditStatus === 'warning' || licenseStatus === 'violation' ? '⚠️ **Action Required**: Please review the audit findings in the [Workflow Summary](' + process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID + ').' : ''}
             `;
 
             github.rest.issues.createComment({
