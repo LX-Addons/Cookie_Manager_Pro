@@ -471,7 +471,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: [build, e2e, security]
     if: |
       always() &&
@@ -485,6 +485,72 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
+
+      - name: Get version info
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          NAME=$(jq -r '.name' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0  # v5.0.0
+        with:
+          pattern: extension-*
+          path: build/
+          merge-multiple: true
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          CURRENT_VERSION="${{ steps.version.outputs.version }}"
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            NOTES=$(npx git-cliff --strip header 2>/dev/null || echo "Initial release v${CURRENT_VERSION}")
+          else
+            NOTES=$(npx git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "Release v${CURRENT_VERSION}")
+          fi
+          
+          if [ -z "$NOTES" ] || [ "$NOTES" = "## [Unreleased]" ]; then
+            NOTES="## What's Changed\n\n- 版本更新至 ${CURRENT_VERSION}"
+          fi
+          
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b  # v2.5.0
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.notes }}
+          files: |
+            build/*.zip
+          draft: false
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          generate_release_notes: false
+
+      - name: Summary
+        run: |
+          echo "## 🎉 Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Release assets:" >> $GITHUB_STEP_SUMMARY
+          ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No zip files found" >> $GITHUB_STEP_SUMMARY
 
   dependabot-approve:
     name: Dependabot Auto-Approve

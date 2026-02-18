@@ -92,6 +92,40 @@ test.describe("Cookie Operations", () => {
     await popup.close();
   });
 
+  test("should actually clear cookies from a real page", async ({ context, extensionId }) => {
+    const page = await context.newPage();
+    await page.goto("https://example.com");
+    
+    // Set a test cookie
+    await context.addCookies([
+      { name: "test_cookie", value: "123", domain: "example.com", path: "/" }
+    ]);
+    
+    // Verify cookie is set
+    let cookies = await context.cookies("https://example.com");
+    expect(cookies.find(c => c.name === "test_cookie")).toBeDefined();
+
+    const popup = await openPopup(context, extensionId);
+    
+    // Click clear current site button
+    const clearCurrentBtn = popup.getByRole("button", { name: /清除当前网站/ });
+    await clearCurrentBtn.click();
+    
+    // Confirm in dialog
+    const confirmBtn = popup.getByRole("button", { name: "确认" });
+    await confirmBtn.click();
+    
+    // Wait for cleanup to complete (background process)
+    await popup.waitForTimeout(2000);
+    
+    // Verify cookie is cleared
+    cookies = await context.cookies("https://example.com");
+    expect(cookies.find(c => c.name === "test_cookie")).toBeUndefined();
+
+    await popup.close();
+    await page.close();
+  });
+
   test("should show cookie list or empty state", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
