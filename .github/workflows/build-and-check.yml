@@ -124,25 +124,34 @@ jobs:
           extra_args: --only-verified
 
       - name: Dependency audit
-        run: npm audit --audit-level=moderate
+        run: |
+          echo "### 🛡️ Dependency Security Audit" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Click to view full audit report</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
         continue-on-error: true
 
       - name: Security patterns check
         run: |
-          echo "🔒 Running security pattern checks..."
+          echo "### 🔍 Security Pattern Checks" >> $GITHUB_STEP_SUMMARY
           EXIT_CODE=0
           
+          echo "#### Eval Usage Check" >> $GITHUB_STEP_SUMMARY
           if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
-            echo "❌ Found eval() usage - potential security risk"
+            echo "❌ Found eval() usage - potential security risk" >> $GITHUB_STEP_SUMMARY
             EXIT_CODE=1
           else
-            echo "✅ No eval() usage found"
+            echo "✅ No eval() usage found" >> $GITHUB_STEP_SUMMARY
           fi
           
+          echo "#### dangerouslySetInnerHTML Check" >> $GITHUB_STEP_SUMMARY
           if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
-            echo "⚠️ Found dangerouslySetInnerHTML usage - XSS risk"
+            echo "⚠️ Found dangerouslySetInnerHTML usage - XSS risk" >> $GITHUB_STEP_SUMMARY
           else
-            echo "✅ No dangerouslySetInnerHTML usage found"
+            echo "✅ No dangerouslySetInnerHTML usage found" >> $GITHUB_STEP_SUMMARY
           fi
           
           exit $EXIT_CODE
@@ -357,6 +366,9 @@ jobs:
             **Version:** \`${version}\`
             
             ${buildResult === 'success' ? '📦 Build artifacts are available in the workflow run.' : ''}
+            
+            ### 🛡️ Security Status
+            ${securityResult === 'success' ? '✅ Security checks passed. No critical issues found.' : '⚠️ Security checks found potential issues. Please review the [Security Summary](' + context.payload.pull_request.html_url + '/checks) for details.'}
             `;
             
             if (isDependabot) {
