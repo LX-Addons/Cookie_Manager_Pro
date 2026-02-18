@@ -362,7 +362,7 @@ export const getActionColor = (action: string): string => {
 
 export const formatLogTime = (timestamp: number, t?: (key: string) => string): string => {
   const date = new Date(timestamp);
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString("zh-CN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

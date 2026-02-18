@@ -84,6 +84,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>{t("settings.logRetention")}</h3>
         <p className="setting-description">{t("settings.logRetentionDesc")}</p>
         <select
+          data-testid="log-retention-select"
           className="select-input"
           value={settings.logRetention}
           onChange={(e) => updateSetting("logRetention", e.target.value as LogRetention)}
@@ -104,6 +105,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>语言设置</h3>
         <p className="setting-description">选择您喜欢的界面语言</p>
         <select
+          data-testid="locale-select"
           className="select-input"
           value={settings.locale}
           onChange={(e) => setLocale(e.target.value as Locale)}

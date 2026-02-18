@@ -24,6 +24,7 @@ export default defineConfig({
       "~constants": path.resolve(__dirname, "constants.ts"),
       "~components": path.resolve(__dirname, "components"),
       "~hooks": path.resolve(__dirname, "hooks"),
+      "~i18n": path.resolve(__dirname, "i18n/index.ts"),
     },
   },
 });

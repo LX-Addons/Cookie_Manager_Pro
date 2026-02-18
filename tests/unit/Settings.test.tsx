@@ -97,14 +97,14 @@ describe("Settings", () => {
   it("should render log retention select", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     expect(select).toBeTruthy();
   });
 
   it("should call onMessage when log retention changes", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.ONE_DAY } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -212,7 +212,7 @@ describe("Settings", () => {
   it("should render all log retention options", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     const options = select.querySelectorAll("option");
     expect(options.length).toBeGreaterThan(0);
   });
@@ -242,7 +242,7 @@ describe("Settings", () => {
   it("should handle log retention change to forever", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.FOREVER } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -421,7 +421,7 @@ describe("Settings", () => {
   it("should handle log retention change to one hour", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.ONE_HOUR } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -430,7 +430,7 @@ describe("Settings", () => {
   it("should handle log retention change to seven days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.SEVEN_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -541,7 +541,7 @@ describe("Settings", () => {
   it("should handle log retention change to six hours", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.SIX_HOURS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -550,7 +550,7 @@ describe("Settings", () => {
   it("should handle log retention change to twelve hours", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.TWELVE_HOURS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -559,7 +559,7 @@ describe("Settings", () => {
   it("should handle log retention change to three days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.THREE_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -568,7 +568,7 @@ describe("Settings", () => {
   it("should handle log retention change to ten days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.TEN_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -577,7 +577,7 @@ describe("Settings", () => {
   it("should handle log retention change to thirty days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.THIRTY_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -603,6 +603,6 @@ describe("Settings", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const sections = document.querySelectorAll(".section");
-    expect(sections.length).toBe(8);
+    expect(sections.length).toBe(9);
   });
 });
