@@ -40,6 +40,7 @@ updates:
           - "@typescript-eslint/*"
           - "@testing-library/*"
           - "@types/*"
+          - "prettier*"
       testing-framework:
         patterns:
           - "vitest*"

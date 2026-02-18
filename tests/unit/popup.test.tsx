@@ -1476,6 +1476,8 @@ describe("IndexPopup", () => {
   });
 
   it("should pass onUpdate callback to CookieList and trigger on cookie change", async () => {
+    vi.useFakeTimers();
+
     let cookieListener: (() => void) | null = null;
     (chrome.cookies.onChanged.addListener as ReturnType<typeof vi.fn>).mockImplementation(
       (fn: () => void) => {
@@ -1495,10 +1497,9 @@ describe("IndexPopup", () => {
       if (cookieListener) {
         cookieListener();
       }
+      vi.advanceTimersByTime(300);
     });
 
-    vi.useFakeTimers();
-    vi.advanceTimersByTime(300);
     vi.useRealTimers();
 
     expect(

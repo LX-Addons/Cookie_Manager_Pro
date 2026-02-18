@@ -12,6 +12,7 @@ import {
   getCookieKey,
   toggleSetValue,
   isSensitiveCookie,
+  isInList,
 } from "~utils";
 import { CookieEditor } from "./CookieEditor";
 import { ConfirmDialogWrapper, type ShowConfirmFn } from "./ConfirmDialogWrapper";
@@ -204,7 +205,9 @@ export const CookieListContent = memo(
       }
       const domains = getSelectedDomains();
       const domainArray = Array.from(domains);
-      const newDomains = domainArray.filter((domain) => !_whitelist?.includes(domain));
+      const newDomains = domainArray.filter(
+        (domain) => !_whitelist || !isInList(domain, _whitelist)
+      );
       if (newDomains.length > 0) {
         onAddToWhitelist(newDomains);
         onMessage?.(`已添加 ${newDomains.length} 个域名到白名单`);
@@ -222,7 +225,9 @@ export const CookieListContent = memo(
       }
       const domains = getSelectedDomains();
       const domainArray = Array.from(domains);
-      const newDomains = domainArray.filter((domain) => !_blacklist?.includes(domain));
+      const newDomains = domainArray.filter(
+        (domain) => !_blacklist || !isInList(domain, _blacklist)
+      );
       if (newDomains.length > 0) {
         onAddToBlacklist(newDomains);
         onMessage?.(`已添加 ${newDomains.length} 个域名到黑名单`);
