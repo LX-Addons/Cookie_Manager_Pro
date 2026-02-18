@@ -289,22 +289,6 @@ export const clearBrowserData = async (domains: Set<string>, options: ClearBrows
   }
 };
 
-export const groupCookiesByDomain = (
-  cookies: chrome.cookies.Cookie[]
-): Map<string, chrome.cookies.Cookie[]> => {
-  const grouped = new Map<string, chrome.cookies.Cookie[]>();
-  for (const cookie of cookies) {
-    const domain = normalizeDomain(cookie.domain);
-    let domainCookies = grouped.get(domain);
-    if (!domainCookies) {
-      domainCookies = [];
-      grouped.set(domain, domainCookies);
-    }
-    domainCookies.push(cookie);
-  }
-  return grouped;
-};
-
 export const getActionText = (action: string): string => {
   switch (action) {
     case "clear":

@@ -70,7 +70,7 @@ function IndexPopup() {
   const [whitelist, setWhitelist] = useStorage<DomainList>(WHITELIST_KEY, []);
   const [blacklist, setBlacklist] = useStorage<DomainList>(BLACKLIST_KEY, []);
   const [settings] = useStorage<SettingsType>(SETTINGS_KEY, DEFAULT_SETTINGS);
-  const [_logs, setLogs] = useStorage<ClearLogEntry[]>(CLEAR_LOG_KEY, []);
+  const [, setLogs] = useStorage<ClearLogEntry[]>(CLEAR_LOG_KEY, []);
 
   const theme = useMemo(() => {
     const themeMode = settings.themeMode;
