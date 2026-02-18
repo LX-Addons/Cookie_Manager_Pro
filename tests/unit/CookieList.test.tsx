@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import { useState, ReactNode } from "react";
-import { CookieList } from "../../components/CookieList";
-import { isSensitiveCookie } from "../../utils";
+import { CookieList, CookieListContent } from "../../components/CookieList";
+import { isSensitiveCookie, toggleSetValue as actualToggleSetValue } from "../../utils";
 
 const mockCookies = [
   {
@@ -39,26 +40,21 @@ const mockCookies = [
 const mockClearSingleCookie = vi.fn(() => Promise.resolve(true));
 const mockEditCookie = vi.fn(() => Promise.resolve(true));
 
-vi.mock("../../utils", () => ({
-  assessCookieRisk: vi.fn(() => ({ level: "low", reason: "安全" })),
-  getRiskLevelColor: vi.fn(() => "#22c55e"),
-  getRiskLevelText: vi.fn(() => "低风险"),
-  clearSingleCookie: () => mockClearSingleCookie(),
-  editCookie: () => mockEditCookie(),
-  normalizeDomain: vi.fn((domain: string) => domain.replace(/^\./, "").toLowerCase()),
-  maskCookieValue: vi.fn((_value: string) => "••••••••"),
-  getCookieKey: vi.fn((name: string, domain: string) => `${name}-${domain}`),
-  toggleSetValue: vi.fn((set: Set<string>, value: string) => {
-    const next = new Set(set);
-    if (next.has(value)) {
-      next.delete(value);
-    } else {
-      next.add(value);
-    }
-    return next;
-  }),
-  isSensitiveCookie: vi.fn(() => false),
-}));
+vi.mock("../../utils", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../utils")>();
+  return {
+    ...original,
+    assessCookieRisk: vi.fn(() => ({ level: "low", reason: "安全" })),
+    getRiskLevelColor: vi.fn(() => "#22c55e"),
+    getRiskLevelText: vi.fn(() => "低风险"),
+    clearSingleCookie: () => mockClearSingleCookie(),
+    editCookie: () => mockEditCookie(),
+    normalizeDomain: vi.fn((domain: string) => domain.replace(/^\./, "").toLowerCase()),
+    maskCookieValue: vi.fn((_value: string) => "••••••••"),
+    getCookieKey: vi.fn((name: string, domain: string) => `${name}-${domain}`),
+    isSensitiveCookie: vi.fn(() => false),
+  };
+});
 
 vi.mock("../../components/CookieEditor", () => ({
   CookieEditor: ({
@@ -1469,5 +1465,99 @@ describe("CookieList", () => {
 
     const sensitiveBadge = document.querySelector(".sensitive-badge");
     expect(sensitiveBadge).toBeTruthy();
+  });
+});
+
+describe("CookieListContent", () => {
+  const mockOnUpdate = vi.fn();
+  const mockOnMessage = vi.fn();
+  const mockOnAddToWhitelist = vi.fn();
+  const mockOnAddToBlacklist = vi.fn();
+  const mockShowConfirm = vi.fn();
+
+  beforeEach(() => {
+    mockOnUpdate.mockClear();
+    mockOnMessage.mockClear();
+    mockOnAddToWhitelist.mockClear();
+    mockOnAddToBlacklist.mockClear();
+    mockShowConfirm.mockClear();
+  });
+
+  it("should show error message when add to whitelist with no selection in CookieListContent", async () => {
+    const user = userEvent.setup();
+    render(
+      <CookieListContent
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        showConfirm={mockShowConfirm}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    await user.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    await user.click(selectAllCheckbox);
+    await user.click(selectAllCheckbox);
+
+    expect(screen.queryByText("加入白名单")).toBeNull();
+  });
+
+  it("should show error message when add to blacklist with no selection in CookieListContent", async () => {
+    const user = userEvent.setup();
+    render(
+      <CookieListContent
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        showConfirm={mockShowConfirm}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    await user.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    await user.click(selectAllCheckbox);
+    await user.click(selectAllCheckbox);
+
+    expect(screen.queryByText("加入黑名单")).toBeNull();
+  });
+
+  it("should call toggleCookieSelection when individual cookie checkbox is clicked", async () => {
+    const user = userEvent.setup();
+    render(
+      <CookieListContent
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        showConfirm={mockShowConfirm}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    await user.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
+    if (domainButton) {
+      await user.click(domainButton);
+    }
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const cookieCheckboxes = checkboxes.filter((cb) => !cb.hasAttribute("name"));
+
+    if (cookieCheckboxes.length > 0) {
+      const firstCheckbox = cookieCheckboxes[0] as HTMLInputElement;
+      expect(firstCheckbox.checked).toBe(false);
+      await user.click(firstCheckbox);
+      expect(firstCheckbox.checked).toBe(true);
+      await user.click(firstCheckbox);
+      expect(firstCheckbox.checked).toBe(false);
+    }
   });
 });
