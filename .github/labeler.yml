@@ -1,27 +1,27 @@
 typescript:
-- changed-files:
-  - any-glob-to-any-file:
-    - '**/*.ts'
-    - '**/*.tsx'
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.ts'
+          - '**/*.tsx'
 
 testing:
-- changed-files:
-  - any-glob-to-any-file:
-    - 'tests/**/*'
-    - '**/*.test.ts'
-    - '**/*.test.tsx'
-    - '**/*.spec.ts'
-    - '**/*.spec.tsx'
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/**/*'
+          - '**/*.test.ts'
+          - '**/*.test.tsx'
+          - '**/*.spec.ts'
+          - '**/*.spec.tsx'
 
 github-actions:
-- changed-files:
-  - any-glob-to-any-file:
-    - '.github/workflows/**/*'
-    - '.github/actions/**/*'
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**/*'
+          - '.github/actions/**/*'
 
 documentation:
-- changed-files:
-  - any-glob-to-any-file:
-    - '**/*.md'
-    - 'docs/**/*'
-    - 'LICENSE'
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+          - 'LICENSE'
