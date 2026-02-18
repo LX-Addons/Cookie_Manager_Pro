@@ -5,6 +5,7 @@ import { LogRetention } from "~types";
 import { getCookieTypeName, getActionText, getActionColor, formatLogTime } from "~utils";
 import { useMemo } from "react";
 import { ConfirmDialogWrapper, type ShowConfirmFn } from "./ConfirmDialogWrapper";
+import { useTranslation } from "~hooks/useTranslation";
 
 interface Props {
   onMessage: (msg: string) => void;
@@ -17,17 +18,18 @@ interface ClearLogContentProps extends Props {
 const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
   const [logs, setLogs] = useStorage<ClearLogEntry[]>(CLEAR_LOG_KEY, []);
   const [settings] = useStorage<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS);
+  const { t } = useTranslation();
 
   const clearAllLogs = () => {
-    showConfirm("清除日志", "确定要清除所有日志记录吗？", "danger", () => {
+    showConfirm(t("clearLog.clearLogs"), t("clearLog.confirmClearLogs"), "danger", () => {
       setLogs([]);
-      onMessage("已清除所有日志");
+      onMessage(t("clearLog.logsCleared"));
     });
   };
 
   const clearOldLogs = () => {
     if (settings.logRetention === LogRetention.FOREVER) {
-      onMessage("日志保留设置为永久，无需清理");
+      onMessage(t("clearLog.logRetentionForever"));
       return;
     }
 
@@ -37,9 +39,9 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
       const currentPrev = prev ?? [];
       const filteredLogs = currentPrev.filter((log) => now - log.timestamp <= retentionMs);
       if (filteredLogs.length < currentPrev.length) {
-        onMessage(`已清除 ${currentPrev.length - filteredLogs.length} 条过期日志`);
+        onMessage(t("clearLog.expiredLogsCleared", { count: currentPrev.length - filteredLogs.length }));
       } else {
-        onMessage("没有需要清理的过期日志");
+        onMessage(t("clearLog.noExpiredLogs"));
       }
       return filteredLogs;
     });
@@ -54,7 +56,7 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
     link.download = `cookie-manager-logs-${Date.now()}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    onMessage("日志已导出");
+    onMessage(t("clearLog.logsExported"));
   };
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp - a.timestamp), [logs]);
@@ -63,24 +65,24 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
     <div className="log-container">
       <div className="section">
         <div className="log-header">
-          <h3>清除日志</h3>
+          <h3>{t("clearLog.clearLogs")}</h3>
           <div className="log-actions">
             <button onClick={clearOldLogs} className="btn btn-secondary btn-sm">
-              清除过期
+              {t("clearLog.clearExpired")}
             </button>
             <button onClick={exportLogs} className="btn btn-primary btn-sm">
-              导出日志
+              {t("clearLog.exportLogs")}
             </button>
             <button onClick={clearAllLogs} className="btn btn-danger btn-sm">
-              清除全部
+              {t("clearLog.clearAllLogs")}
             </button>
           </div>
+          </div>
         </div>
-      </div>
 
       {sortedLogs.length === 0 ? (
         <div className="empty-log">
-          <p>暂无清除日志记录</p>
+          <p>{t("clearLog.noLogs")}</p>
         </div>
       ) : (
         <ul className="log-list">
@@ -93,11 +95,11 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
                     className="log-type"
                     style={{ backgroundColor: getActionColor(log.action) }}
                   >
-                    {getActionText(log.action)}
+                    {getActionText(log.action, t)}
                   </span>
-                  <span className="log-type">{getCookieTypeName(log.cookieType)}</span>
-                  <span className="log-count">{log.count} 个</span>
-                  <span className="log-time">{formatLogTime(log.timestamp)}</span>
+                  <span className="log-type">{getCookieTypeName(log.cookieType, t)}</span>
+                  <span className="log-count">{t("common.count", { count: log.count })}</span>
+                  <span className="log-time">{formatLogTime(log.timestamp, t)}</span>
                 </div>
                 {log.details && <div className="log-details-text">{log.details}</div>}
               </div>

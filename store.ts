@@ -1,6 +1,6 @@
 import { Storage } from "@plasmohq/storage";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "~types";
-import type { Settings, CustomTheme } from "~types";
+import type { Settings, CustomTheme, Locale } from "~types";
 
 export const storage = new Storage();
 
@@ -52,4 +52,5 @@ export const DEFAULT_SETTINGS: Settings = {
   customTheme: DEFAULT_CUSTOM_THEME,
   scheduleInterval: ScheduleInterval.DISABLED,
   showCookieRisk: true,
+  locale: "zh-CN",
 };

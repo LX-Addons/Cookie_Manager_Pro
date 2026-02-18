@@ -71,6 +71,8 @@ export interface CustomTheme {
   textSecondary: string;
 }
 
+export type Locale = "zh-CN" | "en-US";
+
 export interface Settings {
   clearType: CookieClearType;
   logRetention: LogRetention;
@@ -87,6 +89,7 @@ export interface Settings {
   scheduleInterval: ScheduleInterval;
   lastScheduledCleanup?: number;
   showCookieRisk: boolean;
+  locale: Locale;
 }
 
 export interface ClearLogEntry {
