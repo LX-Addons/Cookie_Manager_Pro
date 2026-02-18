@@ -56,6 +56,11 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (settings === undefined) {
     await storage.set(SETTINGS_KEY, DEFAULT_SETTINGS);
   }
+
+  await chrome.alarms.create("scheduled-cleanup", {
+    periodInMinutes: ALARM_INTERVAL_MINUTES,
+  });
+  await checkScheduledCleanup();
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -78,6 +83,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  await chrome.alarms.create("scheduled-cleanup", {
+    periodInMinutes: ALARM_INTERVAL_MINUTES,
+  });
+
   const settings = await storage.get<Settings>(SETTINGS_KEY);
   if (!settings?.enableAutoCleanup || !settings?.cleanupOnStartup) return;
 
@@ -123,17 +132,4 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === "scheduled-cleanup") {
     await checkScheduledCleanup();
   }
-});
-
-chrome.runtime.onStartup.addListener(async () => {
-  await chrome.alarms.create("scheduled-cleanup", {
-    periodInMinutes: ALARM_INTERVAL_MINUTES,
-  });
-});
-
-chrome.runtime.onInstalled.addListener(async () => {
-  await chrome.alarms.create("scheduled-cleanup", {
-    periodInMinutes: ALARM_INTERVAL_MINUTES,
-  });
-  await checkScheduledCleanup();
 });

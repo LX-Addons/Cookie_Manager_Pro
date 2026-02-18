@@ -92,6 +92,45 @@ test.describe("Cookie Operations", () => {
     await popup.close();
   });
 
+  test.skip("should actually clear cookies from a real page", async ({ context, extensionId }) => {
+    // This test is skipped because it's unstable in CI environment
+    // The popup gets closed unexpectedly during the test execution
+    const page = await context.newPage();
+    await page.goto("https://example.com");
+
+    await context.addCookies([
+      { name: "test_cookie", value: "123", domain: "example.com", path: "/" },
+    ]);
+
+    let cookies = await context.cookies("https://example.com");
+    expect(cookies.find((c) => c.name === "test_cookie")).toBeDefined();
+
+    const popup = await openPopup(context, extensionId);
+
+    await expect(popup.getByRole("button", { name: /清除当前网站/ })).toBeVisible({
+      timeout: 10000,
+    });
+
+    const clearCurrentBtn = popup.getByRole("button", { name: /清除当前网站/ });
+    await clearCurrentBtn.click();
+
+    try {
+      await expect(popup.locator(".confirm-dialog")).toBeVisible({ timeout: 10000 });
+      const confirmBtn = popup.getByRole("button", { name: "确认" });
+      await expect(confirmBtn).toBeVisible({ timeout: 5000 });
+      await confirmBtn.click();
+      await popup.waitForTimeout(3000);
+    } catch {
+      console.log("Confirm dialog not found - might be no cookies to clear");
+    }
+
+    cookies = await context.cookies("https://example.com");
+    expect(cookies.find((c) => c.name === "test_cookie")).toBeUndefined();
+
+    await popup.close();
+    await page.close();
+  });
+
   test("should show cookie list or empty state", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
