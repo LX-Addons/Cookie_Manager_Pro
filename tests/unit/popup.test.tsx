@@ -88,7 +88,8 @@ vi.mock("~hooks/useTranslation", () => ({
         "settings.whitelistMode": "白名单模式：仅白名单内网站不执行清理",
         "settings.blacklistMode": "黑名单模式：仅黑名单内网站执行清理",
         "settings.cookieClearType": "Cookie清除类型",
-        "settings.cookieClearTypeDesc": "选择要清除的 Cookie 类型，会话 Cookie 在关闭浏览器后会自动失效",
+        "settings.cookieClearTypeDesc":
+          "选择要清除的 Cookie 类型，会话 Cookie 在关闭浏览器后会自动失效",
         "settings.clearSessionOnly": "仅清除会话Cookie",
         "settings.clearPersistentOnly": "仅清除持久Cookie",
         "settings.clearAll": "清除所有Cookie",
@@ -172,13 +173,15 @@ vi.mock("~hooks/useTranslation", () => ({
         "cookieList.deleteCookieFailed": "删除 Cookie 失败",
         "cookieList.deleteSensitiveCookie": "删除敏感 Cookie",
         "cookieList.deleteConfirm": "删除确认",
-        "cookieList.deleteSensitiveMessage": "即将删除敏感 Cookie \"{name}\"，这可能导致您在该网站的登录状态失效。确定要继续吗？",
-        "cookieList.deleteMessage": "确定要删除 Cookie \"{name}\" 吗？",
+        "cookieList.deleteSensitiveMessage":
+          '即将删除敏感 Cookie "{name}"，这可能导致您在该网站的登录状态失效。确定要继续吗？',
+        "cookieList.deleteMessage": '确定要删除 Cookie "{name}" 吗？',
         "cookieList.cookieUpdated": "Cookie 已更新",
         "cookieList.updateCookieFailed": "更新 Cookie 失败",
         "cookieList.deleteSelectedSensitive": "批量删除敏感 Cookie",
         "cookieList.deleteSelectedConfirm": "批量删除确认",
-        "cookieList.deleteSelectedSensitiveMessage": "选中的 Cookie 中包含 {sensitiveCount} 个敏感 Cookie，删除后可能影响登录状态。确定要删除选中的 {selectedCount} 个 Cookie 吗？",
+        "cookieList.deleteSelectedSensitiveMessage":
+          "选中的 Cookie 中包含 {sensitiveCount} 个敏感 Cookie，删除后可能影响登录状态。确定要删除选中的 {selectedCount} 个 Cookie 吗？",
         "cookieList.deleteSelectedMessage": "确定要删除选中的 {selectedCount} 个 Cookie 吗？",
         "cookieList.deletedSelected": "已删除 {count} 个 Cookie",
         "cookieList.functionUnavailable": "此功能当前不可用",
