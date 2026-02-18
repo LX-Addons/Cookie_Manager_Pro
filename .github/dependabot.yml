@@ -34,6 +34,29 @@ updates:
         update-types:
           - "minor"
           - "patch"
+        exclude-patterns:
+          - "vitest*"
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "@testing-library/*"
+          - "@types/*"
+      testing-framework:
+        patterns:
+          - "vitest*"
+          - "@vitest/*"
+          - "happy-dom"
+          - "jsdom"
+      linting-tools:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "prettier*"
+      testing-library:
+        patterns:
+          - "@testing-library/*"
+      type-definitions:
+        patterns:
+          - "@types/*"
     ignore:
       - dependency-name: "plasmo"
         update-types: ["version-update:semver-major"]
