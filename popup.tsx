@@ -204,7 +204,10 @@ function IndexPopup() {
         return Array.from(clearedDomains)[0];
       }
       if (clearedDomains.size > 1) {
-        return t("common.domains", { domain: Array.from(clearedDomains)[0], count: clearedDomains.size });
+        return t("common.domains", {
+          domain: Array.from(clearedDomains)[0],
+          count: clearedDomains.size,
+        });
       }
       return successMsg.includes(t("common.allWebsites")) ? t("common.allWebsites") : currentDomain;
     },
@@ -322,13 +325,18 @@ function IndexPopup() {
   }, [confirmState, closeConfirm]);
 
   const quickClearCurrent = useCallback(() => {
-    showConfirm(t("popup.confirmClear"), t("popup.confirmClearCurrent", { domain: currentDomain }), "warning", () => {
-      clearCookies(
-        (d) => isDomainMatch(d, currentDomain),
-        t("popup.clearCurrent"),
-        settings.clearType
-      );
-    });
+    showConfirm(
+      t("popup.confirmClear"),
+      t("popup.confirmClearCurrent", { domain: currentDomain }),
+      "warning",
+      () => {
+        clearCookies(
+          (d) => isDomainMatch(d, currentDomain),
+          t("popup.clearCurrent"),
+          settings.clearType
+        );
+      }
+    );
   }, [currentDomain, clearCookies, settings.clearType, showConfirm, t]);
 
   const quickClearAll = useCallback(() => {
@@ -566,7 +574,10 @@ function IndexPopup() {
                 );
 
                 if (result.count > 0) {
-                  const domainStr = buildDomainString(new Set(result.clearedDomains), t("tabs.blacklist"));
+                  const domainStr = buildDomainString(
+                    new Set(result.clearedDomains),
+                    t("tabs.blacklist")
+                  );
                   addLog(domainStr, CookieClearType.ALL, result.count);
                   showMessage(t("popup.clearedBlacklist", { count: result.count }));
                   updateStats();

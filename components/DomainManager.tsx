@@ -36,7 +36,7 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
       setInputValue("");
       onMessage(t("domainManager.addedToList"));
     },
-    [list, type, onMessage, setList, t]
+    [list, onMessage, setList, t]
   );
 
   const removeDomain = useCallback(
@@ -49,11 +49,13 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
 
   return (
     <div className="section">
-      <h3>{type === "whitelist" ? t("domainManager.whitelistDomains") : t("domainManager.blacklistDomains")}</h3>
-      <p className="help-text">
+      <h3>
         {type === "whitelist"
-          ? t("domainManager.whitelistHelp")
-          : t("domainManager.blacklistHelp")}
+          ? t("domainManager.whitelistDomains")
+          : t("domainManager.blacklistDomains")}
+      </h3>
+      <p className="help-text">
+        {type === "whitelist" ? t("domainManager.whitelistHelp") : t("domainManager.blacklistHelp")}
       </p>
       <div className="input-group">
         <input

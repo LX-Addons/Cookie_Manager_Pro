@@ -33,9 +33,7 @@ export const Settings = ({ onMessage }: Props) => {
     <div className="settings-container">
       <div className="section">
         <h3>{t("settings.workMode")}</h3>
-        <p className="setting-description">
-          {t("settings.workModeDesc")}
-        </p>
+        <p className="setting-description">{t("settings.workModeDesc")}</p>
         <RadioGroup
           name="mode"
           value={settings.mode}
@@ -49,9 +47,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="section">
         <h3>{t("settings.cookieClearType")}</h3>
-        <p className="setting-description">
-          {t("settings.cookieClearTypeDesc")}
-        </p>
+        <p className="setting-description">{t("settings.cookieClearTypeDesc")}</p>
         <RadioGroup
           name="clearType"
           value={settings.clearType}
@@ -117,9 +113,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="section">
         <h3>{t("settings.themeMode")}</h3>
-        <p className="setting-description">
-          {t("settings.themeModeDesc")}
-        </p>
+        <p className="setting-description">{t("settings.themeModeDesc")}</p>
         <RadioGroup
           name="themeMode"
           value={settings.themeMode}
@@ -250,9 +244,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="section">
         <h3>{t("settings.advancedCleanup")}</h3>
-        <p className="setting-description">
-          {t("settings.advancedCleanupDesc")}
-        </p>
+        <p className="setting-description">{t("settings.advancedCleanupDesc")}</p>
         <CheckboxGroup
           options={[
             {

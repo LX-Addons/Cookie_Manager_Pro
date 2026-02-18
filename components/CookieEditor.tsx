@@ -57,7 +57,9 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
         role="dialog"
         aria-modal="true"
       >
-        <h3 className="confirm-title">{cookie ? t("cookieEditor.editCookie") : t("cookieEditor.createCookie")}</h3>
+        <h3 className="confirm-title">
+          {cookie ? t("cookieEditor.editCookie") : t("cookieEditor.createCookie")}
+        </h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label" htmlFor="cookie-name">

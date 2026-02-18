@@ -121,7 +121,7 @@ export const assessCookieRisk = (
 
   return {
     level: riskLevel,
-    reason: reasons.length > 0 ? reasons.join("、") : (t ? t("cookieList.lowRisk") : "低风险"),
+    reason: reasons.length > 0 ? reasons.join("、") : t ? t("cookieList.lowRisk") : "低风险",
     isTracking,
     isThirdParty,
   };
@@ -360,7 +360,7 @@ export const getActionColor = (action: string): string => {
   }
 };
 
-export const formatLogTime = (timestamp: number, t?: (key: string) => string): string => {
+export const formatLogTime = (timestamp: number, _t?: (key: string) => string): string => {
   const date = new Date(timestamp);
   return date.toLocaleString("zh-CN", {
     year: "numeric",
@@ -390,7 +390,10 @@ export const toggleSetValue = (set: Set<string>, value: string): Set<string> => 
   return next;
 };
 
-export const validateDomain = (domain: string, t?: (key: string) => string): { valid: boolean; message?: string } => {
+export const validateDomain = (
+  domain: string,
+  t?: (key: string) => string
+): { valid: boolean; message?: string } => {
   const trimmed = domain.trim();
   if (!trimmed) {
     return { valid: false, message: t ? t("domainManager.domainEmpty") : "域名不能为空" };

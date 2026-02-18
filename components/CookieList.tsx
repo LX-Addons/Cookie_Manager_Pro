@@ -115,7 +115,9 @@ export const CookieListContent = memo(
 
     const handleDeleteCookie = (cookie: Cookie) => {
       const sensitive = isSensitiveCookie(cookie);
-      const title = sensitive ? t("cookieList.deleteSensitiveCookie") : t("cookieList.deleteConfirm");
+      const title = sensitive
+        ? t("cookieList.deleteSensitiveCookie")
+        : t("cookieList.deleteConfirm");
       const message = sensitive
         ? t("cookieList.deleteSensitiveMessage", { name: cookie.name })
         : t("cookieList.deleteMessage", { name: cookie.name });
@@ -179,10 +181,16 @@ export const CookieListContent = memo(
         .filter((c) => selectedCookies.has(getCookieKey(c.name, c.domain)))
         .filter((c) => isSensitiveCookie(c)).length;
 
-      const title = sensitiveCount > 0 ? t("cookieList.deleteSelectedSensitive") : t("cookieList.deleteSelectedConfirm");
+      const title =
+        sensitiveCount > 0
+          ? t("cookieList.deleteSelectedSensitive")
+          : t("cookieList.deleteSelectedConfirm");
       const message =
         sensitiveCount > 0
-          ? t("cookieList.deleteSelectedSensitiveMessage", { sensitiveCount, count: selectedCookies.size })
+          ? t("cookieList.deleteSelectedSensitiveMessage", {
+              sensitiveCount,
+              count: selectedCookies.size,
+            })
           : t("cookieList.deleteSelectedMessage", { count: selectedCookies.size });
       const variant = sensitiveCount > 0 ? "danger" : "warning";
 
@@ -257,7 +265,8 @@ export const CookieListContent = memo(
           aria-expanded={isExpanded}
         >
           <h3>
-            <span aria-hidden="true">🍪</span> {t("cookieList.cookieDetails", { count: cookies.length })}
+            <span aria-hidden="true">🍪</span>{" "}
+            {t("cookieList.cookieDetails", { count: cookies.length })}
           </h3>
           <span className={`expand-icon ${isExpanded ? "expanded" : ""}`} aria-hidden="true">
             ▼
@@ -268,7 +277,9 @@ export const CookieListContent = memo(
           <>
             {selectedCookies.size > 0 && (
               <div className="batch-actions">
-                <span className="batch-count">{t("cookieList.selected", { count: selectedCookies.size })}</span>
+                <span className="batch-count">
+                  {t("cookieList.selected", { count: selectedCookies.size })}
+                </span>
                 <div className="batch-buttons">
                   <button onClick={handleDeleteSelected} className="btn btn-danger btn-sm">
                     {t("cookieList.deleteSelected")}
@@ -383,7 +394,9 @@ export const CookieListContent = memo(
                                     type="button"
                                     className="value-toggle-btn"
                                     onClick={() => toggleValueVisibility(key)}
-                                    aria-label={isVisible ? t("cookieList.hide") : t("cookieList.show")}
+                                    aria-label={
+                                      isVisible ? t("cookieList.hide") : t("cookieList.show")
+                                    }
                                   >
                                     {isVisible ? "👁️" : "👁️‍🗨️"}
                                   </button>
@@ -395,7 +408,9 @@ export const CookieListContent = memo(
                               </div>
                               <div className="cookie-detail-row">
                                 <span className="detail-label">{t("cookieList.secure")}:</span>
-                                <span className="detail-value">{cookie.secure ? t("common.yes") : t("common.no")}</span>
+                                <span className="detail-value">
+                                  {cookie.secure ? t("common.yes") : t("common.no")}
+                                </span>
                               </div>
                               <div className="cookie-detail-row">
                                 <span className="detail-label">{t("cookieList.httpOnly")}:</span>
@@ -405,11 +420,15 @@ export const CookieListContent = memo(
                               </div>
                               <div className="cookie-detail-row">
                                 <span className="detail-label">{t("cookieList.sameSite")}:</span>
-                                <span className="detail-value">{cookie.sameSite || t("cookieList.notSet")}</span>
+                                <span className="detail-value">
+                                  {cookie.sameSite || t("cookieList.notSet")}
+                                </span>
                               </div>
                               {cookie.expirationDate && (
                                 <div className="cookie-detail-row">
-                                  <span className="detail-label">{t("cookieList.expirationTime")}:</span>
+                                  <span className="detail-label">
+                                    {t("cookieList.expirationTime")}:
+                                  </span>
                                   <span className="detail-value">
                                     {new Date(cookie.expirationDate * 1000).toLocaleString()}
                                   </span>

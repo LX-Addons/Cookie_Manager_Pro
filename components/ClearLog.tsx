@@ -39,7 +39,9 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
       const currentPrev = prev ?? [];
       const filteredLogs = currentPrev.filter((log) => now - log.timestamp <= retentionMs);
       if (filteredLogs.length < currentPrev.length) {
-        onMessage(t("clearLog.expiredLogsCleared", { count: currentPrev.length - filteredLogs.length }));
+        onMessage(
+          t("clearLog.expiredLogsCleared", { count: currentPrev.length - filteredLogs.length })
+        );
       } else {
         onMessage(t("clearLog.noExpiredLogs"));
       }
@@ -77,8 +79,8 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
               {t("clearLog.clearAllLogs")}
             </button>
           </div>
-          </div>
         </div>
+      </div>
 
       {sortedLogs.length === 0 ? (
         <div className="empty-log">

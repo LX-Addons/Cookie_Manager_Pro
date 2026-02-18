@@ -1,6 +1,6 @@
 import { Storage } from "@plasmohq/storage";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "~types";
-import type { Settings, CustomTheme, Locale } from "~types";
+import type { Settings, CustomTheme } from "~types";
 
 export const storage = new Storage();
 
