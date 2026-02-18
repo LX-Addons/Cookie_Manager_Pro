@@ -1,15 +1,22 @@
+# PR 自动标记配置
+# 根据修改的文件路径自动为 PR 添加相应标签
+
 typescript:
-- changed-files:
-  - any-glob-to-any-file: ['**/*.ts', '**/*.tsx']
+  - '**/*.ts'
+  - '**/*.tsx'
 
 testing:
-- changed-files:
-  - any-glob-to-any-file: ['tests/**/*', '**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx']
+  - 'tests/**/*'
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
 
 github-actions:
-- changed-files:
-  - any-glob-to-any-file: ['.github/workflows/**/*', '.github/actions/**/*']
+  - '.github/workflows/**/*'
+  - '.github/actions/**/*'
 
 documentation:
-- changed-files:
-  - any-glob-to-any-file: ['**/*.md', 'docs/**/*', 'LICENSE']
+  - '**/*.md'
+  - 'docs/**/*'
+  - 'LICENSE'
