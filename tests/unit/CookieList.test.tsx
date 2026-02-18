@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import { useState, ReactNode } from "react";
 import { CookieList, CookieListContent } from "../../components/CookieList";
-import { isSensitiveCookie, toggleSetValue as actualToggleSetValue } from "../../utils";
+import { isSensitiveCookie } from "../../utils";
 
 const mockCookies = [
   {
