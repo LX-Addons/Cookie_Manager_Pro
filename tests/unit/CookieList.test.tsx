@@ -1449,4 +1449,25 @@ describe("CookieList", () => {
       fireEvent.click(toggleButtons[0]);
     }
   });
+
+  it("should render sensitive badge on sensitive cookies", async () => {
+    vi.mocked(isSensitiveCookie).mockReturnValue(true);
+
+    render(<CookieList cookies={mockCookies} currentDomain="example.com" />);
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const domainButton = domainButtons.find(
+      (btn) =>
+        btn.textContent === "example.com" || /^🌐\s*example\.com\s*\(/.test(btn.textContent || "")
+    );
+    if (domainButton) {
+      fireEvent.click(domainButton);
+    }
+
+    const sensitiveBadge = document.querySelector(".sensitive-badge");
+    expect(sensitiveBadge).toBeTruthy();
+  });
 });
