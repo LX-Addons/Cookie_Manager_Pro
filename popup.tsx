@@ -433,6 +433,7 @@ function IndexPopup() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              data-testid={`tab-${tab.id}`}
               className={`tab-btn ${activeTab === tab.id ? "active" : ""}`}
               onClick={() => setActiveTab(tab.id)}
               role="tab"
