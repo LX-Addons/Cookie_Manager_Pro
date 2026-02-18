@@ -570,7 +570,8 @@ jobs:
       needs.lint.result == 'success' &&
       needs.test.result == 'success' &&
       needs.security.result == 'success' &&
-      needs.build.result == 'success'
+      needs.build.result == 'success' &&
+      (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
     permissions:
       pull-requests: write
     steps:

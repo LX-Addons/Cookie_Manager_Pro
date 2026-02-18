@@ -1466,6 +1466,112 @@ describe("CookieList", () => {
     const sensitiveBadge = document.querySelector(".sensitive-badge");
     expect(sensitiveBadge).toBeTruthy();
   });
+
+  it("should show error when onAddToWhitelist is undefined", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToWhitelistBtn = screen.getByText("加入白名单");
+    fireEvent.click(addToWhitelistBtn);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalledWith("此功能当前不可用", true);
+    });
+  });
+
+  it("should show error when onAddToBlacklist is undefined", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToBlacklistBtn = screen.getByText("加入黑名单");
+    fireEvent.click(addToBlacklistBtn);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalledWith("此功能当前不可用", true);
+    });
+  });
+
+  it("should show message when all domains already in whitelist", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={["example.com", "test.com"]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToWhitelistBtn = screen.getByText("加入白名单");
+    fireEvent.click(addToWhitelistBtn);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalledWith("所选域名已在白名单中", true);
+    });
+  });
+
+  it("should show message when all domains already in blacklist", async () => {
+    render(
+      <CookieList
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={["example.com", "test.com"]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToBlacklistBtn = screen.getByText("加入黑名单");
+    fireEvent.click(addToBlacklistBtn);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalledWith("所选域名已在黑名单中", true);
+    });
+  });
 });
 
 describe("CookieListContent", () => {
