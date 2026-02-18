@@ -14,7 +14,6 @@ import {
   getRiskLevelText,
   clearSingleCookie,
   editCookie,
-  groupCookiesByDomain,
   getActionText,
   getActionColor,
   formatLogTime,
@@ -677,92 +676,6 @@ describe("editCookie", () => {
 
     const result = await editCookie(originalCookie, updates);
     expect(result).toBe(true);
-  });
-});
-
-describe("groupCookiesByDomain", () => {
-  it("should group cookies by domain", () => {
-    const cookies = [
-      {
-        name: "test1",
-        value: "v1",
-        domain: ".example.com",
-        path: "/",
-        secure: false,
-        httpOnly: false,
-        sameSite: "lax",
-        session: false,
-        hostOnly: false,
-        storeId: "0",
-      } as chrome.cookies.Cookie,
-      {
-        name: "test2",
-        value: "v2",
-        domain: "example.com",
-        path: "/",
-        secure: false,
-        httpOnly: false,
-        sameSite: "lax",
-        session: false,
-        hostOnly: false,
-        storeId: "0",
-      } as chrome.cookies.Cookie,
-      {
-        name: "test3",
-        value: "v3",
-        domain: "test.com",
-        path: "/",
-        secure: false,
-        httpOnly: false,
-        sameSite: "lax",
-        session: false,
-        hostOnly: false,
-        storeId: "0",
-      } as chrome.cookies.Cookie,
-    ];
-
-    const grouped = groupCookiesByDomain(cookies);
-    expect(grouped.size).toBe(2);
-    expect(grouped.get("example.com")?.length).toBe(2);
-    expect(grouped.get("test.com")?.length).toBe(1);
-  });
-
-  it("should handle empty cookie list", () => {
-    const grouped = groupCookiesByDomain([]);
-    expect(grouped.size).toBe(0);
-  });
-
-  it("should normalize domain names", () => {
-    const cookies = [
-      {
-        name: "test1",
-        value: "v1",
-        domain: ".EXAMPLE.COM",
-        path: "/",
-        secure: false,
-        httpOnly: false,
-        sameSite: "lax",
-        session: false,
-        hostOnly: false,
-        storeId: "0",
-      } as chrome.cookies.Cookie,
-      {
-        name: "test2",
-        value: "v2",
-        domain: "Example.Com",
-        path: "/",
-        secure: false,
-        httpOnly: false,
-        sameSite: "lax",
-        session: false,
-        hostOnly: false,
-        storeId: "0",
-      } as chrome.cookies.Cookie,
-    ];
-
-    const grouped = groupCookiesByDomain(cookies);
-    expect(grouped.size).toBe(1);
-    expect(grouped.get("example.com")?.length).toBe(2);
   });
 });
 

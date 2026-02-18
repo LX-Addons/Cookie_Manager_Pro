@@ -8,8 +8,6 @@ export const SENSITIVE_COOKIE_KEYWORDS = ["session", "auth", "token", "jwt", "si
 
 export const COOKIE_VALUE_MASK = "••••••••••••";
 
-export const COOKIE_MASK_LENGTH = 8;
-
 export const TRACKING_COOKIE_KEYWORDS = [
   "_ga",
   "_gid",

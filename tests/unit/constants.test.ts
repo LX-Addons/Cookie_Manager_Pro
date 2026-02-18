@@ -5,7 +5,6 @@ import {
   ALARM_INTERVAL_MINUTES,
   SENSITIVE_COOKIE_KEYWORDS,
   COOKIE_VALUE_MASK,
-  COOKIE_MASK_LENGTH,
   TRACKING_COOKIE_KEYWORDS,
   THIRD_PARTY_TRACKERS,
 } from "../../constants";
@@ -51,12 +50,6 @@ describe("constants", () => {
 
     it("should have correct length", () => {
       expect(COOKIE_VALUE_MASK.length).toBe(12);
-    });
-  });
-
-  describe("COOKIE_MASK_LENGTH", () => {
-    it("should be 8", () => {
-      expect(COOKIE_MASK_LENGTH).toBe(8);
     });
   });
 

@@ -1,10 +1,5 @@
 export type DomainList = string[];
 
-export interface StorageData {
-  whitelist: DomainList;
-  blacklist: DomainList;
-}
-
 export type SameSite = "strict" | "lax" | "none" | "unspecified" | "no_restriction";
 
 export interface Cookie {
@@ -109,8 +104,4 @@ export interface CookieRisk {
   reason: string;
   isTracking: boolean;
   isThirdParty: boolean;
-}
-
-export interface CookieWithRisk extends Cookie {
-  risk?: CookieRisk;
 }
