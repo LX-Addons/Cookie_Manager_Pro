@@ -205,7 +205,7 @@ describe("Settings", () => {
 
     const darkRadio = screen.getByLabelText("暗色");
     fireEvent.click(darkRadio);
-    
+
     const lightRadio = screen.getByLabelText("亮色");
     fireEvent.click(lightRadio);
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import IndexPopup from "../../popup";
+import * as storageHook from "@plasmohq/storage/hook";
 
 interface CookieListProps {
   cookies: unknown[];
@@ -282,7 +283,7 @@ describe("IndexPopup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const { useStorage } = require("@plasmohq/storage/hook");
+    const { useStorage } = storageHook;
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
@@ -1663,43 +1664,45 @@ describe("IndexPopup", () => {
   it("should apply custom theme CSS variables when theme is custom", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "settings") {
-        return [
-          {
-            mode: "whitelist",
-            themeMode: "custom",
-            customTheme: {
-              primary: "#ff0000",
-              success: "#00ff00",
-              warning: "#ffff00",
-              danger: "#0000ff",
-              bgPrimary: "#ffffff",
-              textPrimary: "#000000",
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "custom",
+              customTheme: {
+                primary: "#ff0000",
+                success: "#00ff00",
+                warning: "#ffff00",
+                danger: "#0000ff",
+                bgPrimary: "#ffffff",
+                textPrimary: "#000000",
+              },
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
             },
-            clearType: "all",
-            clearCache: false,
-            clearLocalStorage: false,
-            clearIndexedDB: false,
-            cleanupOnStartup: false,
-            cleanupExpiredCookies: false,
-            logRetention: "7d",
-            locale: "zh-CN",
-          },
-          vi.fn(),
-        ];
+            vi.fn(),
+          ];
+        }
+        if (key === "whitelist") {
+          return [[], vi.fn()];
+        }
+        if (key === "blacklist") {
+          return [[], vi.fn()];
+        }
+        if (key === "clearLog") {
+          return [[], vi.fn()];
+        }
+        return [defaultValue, vi.fn()];
       }
-      if (key === "whitelist") {
-        return [[], vi.fn()];
-      }
-      if (key === "blacklist") {
-        return [[], vi.fn()];
-      }
-      if (key === "clearLog") {
-        return [[], vi.fn()];
-      }
-      return [defaultValue, vi.fn()];
-    });
+    );
 
     await act(async () => {
       render(<IndexPopup />);
@@ -1715,35 +1718,37 @@ describe("IndexPopup", () => {
     const mockWhitelist = ["test.com"];
     const mockBlacklist = ["bad.com"];
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
-      if (key === "whitelist") {
-        return [mockWhitelist, vi.fn()];
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "whitelist") {
+          return [mockWhitelist, vi.fn()];
+        }
+        if (key === "blacklist") {
+          return [mockBlacklist, vi.fn()];
+        }
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        if (key === "clearLog") {
+          return [[], vi.fn()];
+        }
+        return [defaultValue, vi.fn()];
       }
-      if (key === "blacklist") {
-        return [mockBlacklist, vi.fn()];
-      }
-      if (key === "settings") {
-        return [
-          {
-            mode: "whitelist",
-            themeMode: "light",
-            clearType: "all",
-            clearCache: false,
-            clearLocalStorage: false,
-            clearIndexedDB: false,
-            cleanupOnStartup: false,
-            cleanupExpiredCookies: false,
-            logRetention: "7d",
-            locale: "zh-CN",
-          },
-          vi.fn(),
-        ];
-      }
-      if (key === "clearLog") {
-        return [[], vi.fn()];
-      }
-      return [defaultValue, vi.fn()];
-    });
+    );
 
     await act(async () => {
       render(<IndexPopup />);
