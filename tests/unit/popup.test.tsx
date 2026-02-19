@@ -282,6 +282,7 @@ describe("IndexPopup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useStorage } = require("@plasmohq/storage/hook");
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
