@@ -15,14 +15,8 @@ updates:
       include: "scope"
     labels:
       - "dependencies"
-      - "待审核"
     reviewers:
       - "LJL-zy"
-    cooldown:
-      default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
     groups:
       production-patch:
         dependency-type: "production"
@@ -39,6 +33,7 @@ updates:
           - "patch"
         exclude-patterns:
           - "vitest*"
+          - "@vitest/*"
           - "eslint*"
           - "@typescript-eslint/*"
           - "@testing-library/*"
@@ -94,11 +89,8 @@ updates:
     labels:
       - "github-actions"
       - "dependencies"
-      - "待审核"
     reviewers:
       - "LJL-zy"
-    cooldown:
-      default-days: 7
     groups:
       actions-dependencies:
         patterns:
