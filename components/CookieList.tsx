@@ -387,7 +387,7 @@ export const CookieListContent = memo(
 
                             <div className="cookie-details">
                               <div className="cookie-detail-row">
-                                <span className="detail-label">{t("cookieList.value")}:</span>
+                                <span className="detail-label">{t("cookieList.value")}</span>
                                 <span className="detail-value">
                                   {displayValue}
                                   <button
@@ -403,23 +403,23 @@ export const CookieListContent = memo(
                                 </span>
                               </div>
                               <div className="cookie-detail-row">
-                                <span className="detail-label">{t("cookieList.path")}:</span>
+                                <span className="detail-label">{t("cookieList.path")}</span>
                                 <span className="detail-value">{cookie.path}</span>
                               </div>
                               <div className="cookie-detail-row">
-                                <span className="detail-label">{t("cookieList.secure")}:</span>
+                                <span className="detail-label">{t("cookieList.secure")}</span>
                                 <span className="detail-value">
                                   {cookie.secure ? t("common.yes") : t("common.no")}
                                 </span>
                               </div>
                               <div className="cookie-detail-row">
-                                <span className="detail-label">{t("cookieList.httpOnly")}:</span>
+                                <span className="detail-label">{t("cookieList.httpOnly")}</span>
                                 <span className="detail-value">
                                   {cookie.httpOnly ? t("common.yes") : t("common.no")}
                                 </span>
                               </div>
                               <div className="cookie-detail-row">
-                                <span className="detail-label">{t("cookieList.sameSite")}:</span>
+                                <span className="detail-label">{t("cookieList.sameSite")}</span>
                                 <span className="detail-value">
                                   {cookie.sameSite || t("cookieList.notSet")}
                                 </span>
@@ -427,7 +427,7 @@ export const CookieListContent = memo(
                               {cookie.expirationDate && (
                                 <div className="cookie-detail-row">
                                   <span className="detail-label">
-                                    {t("cookieList.expirationTime")}:
+                                    {t("cookieList.expirationTime")}
                                   </span>
                                   <span className="detail-value">
                                     {new Date(cookie.expirationDate * 1000).toLocaleString()}

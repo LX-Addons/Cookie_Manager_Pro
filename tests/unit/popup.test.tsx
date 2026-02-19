@@ -282,6 +282,39 @@ describe("IndexPopup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    const { useStorage } = require("@plasmohq/storage/hook");
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        if (key === "whitelist") {
+          return [[], vi.fn()];
+        }
+        if (key === "blacklist") {
+          return [[], vi.fn()];
+        }
+        if (key === "clearLog") {
+          return [[], vi.fn()];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
     (chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve([
         {

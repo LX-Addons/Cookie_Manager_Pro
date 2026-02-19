@@ -29,14 +29,23 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
         return;
       }
       if (list.includes(trimmed)) {
-        onMessage(t("domainManager.alreadyInList", { domain: trimmed }));
+        onMessage(
+          t("domainManager.alreadyInList", {
+            domain: trimmed,
+            listType: type === "whitelist" ? t("tabs.whitelist") : t("tabs.blacklist"),
+          })
+        );
         return;
       }
       setList([...list, trimmed]);
       setInputValue("");
-      onMessage(t("domainManager.addedToList"));
+      onMessage(
+        t("domainManager.addedToList", {
+          listType: type === "whitelist" ? t("tabs.whitelist") : t("tabs.blacklist"),
+        })
+      );
     },
-    [list, onMessage, setList, t]
+    [list, onMessage, setList, t, type]
   );
 
   const removeDomain = useCallback(

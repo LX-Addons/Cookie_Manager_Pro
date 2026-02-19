@@ -6,6 +6,81 @@ import { useState, ReactNode } from "react";
 import { CookieList, CookieListContent } from "../../components/CookieList";
 import { isSensitiveCookie } from "../../utils";
 
+vi.mock("~hooks/useTranslation", () => ({
+  useTranslation: vi.fn(() => ({
+    t: vi.fn((key: string, params?: Record<string, string | number>) => {
+      const translations: Record<string, string> = {
+        "common.confirm": "确定",
+        "common.cancel": "取消",
+        "common.add": "添加",
+        "common.delete": "删除",
+        "common.save": "保存",
+        "common.edit": "编辑",
+        "common.clear": "清除",
+        "common.clearAll": "清除全部",
+        "common.export": "导出",
+        "common.yes": "是",
+        "common.no": "否",
+        "cookieList.noCookies": "当前网站暂无 Cookie",
+        "cookieList.cookieDetails": "Cookie 详情 ({count})",
+        "cookieList.selected": "{count} 个已选中",
+        "cookieList.deleteSelected": "删除选中",
+        "cookieList.addToWhitelist": "加入白名单",
+        "cookieList.addToBlacklist": "加入黑名单",
+        "cookieList.selectAll": "全选",
+        "cookieList.deletedCookie": "已删除 Cookie: {name}",
+        "cookieList.deleteCookieFailed": "删除 Cookie 失败",
+        "cookieList.deleteSensitiveCookie": "删除敏感 Cookie",
+        "cookieList.deleteConfirm": "删除确认",
+        "cookieList.deleteSensitiveMessage":
+          '即将删除敏感 Cookie "{name}"，这可能导致您在该网站的登录状态失效。确定要继续吗？',
+        "cookieList.deleteMessage": '确定要删除 Cookie "{name}" 吗？',
+        "cookieList.cookieUpdated": "Cookie 已更新",
+        "cookieList.updateCookieFailed": "更新 Cookie 失败",
+        "cookieList.deleteSelectedSensitive": "批量删除敏感 Cookie",
+        "cookieList.deleteSelectedConfirm": "批量删除确认",
+        "cookieList.deleteSelectedSensitiveMessage":
+          "选中的 Cookie 中包含 {sensitiveCount} 个敏感 Cookie，删除后可能影响登录状态。确定要删除选中的 {selectedCount} 个 Cookie 吗？",
+        "cookieList.deleteSelectedMessage": "确定要删除选中的 {selectedCount} 个 Cookie 吗？",
+        "cookieList.deletedSelected": "已删除 {count} 个 Cookie",
+        "cookieList.functionUnavailable": "此功能当前不可用",
+        "cookieList.addedDomainsToWhitelist": "已添加 {count} 个域名到白名单",
+        "cookieList.domainsAlreadyInWhitelist": "所选域名已在白名单中",
+        "cookieList.selectDomainsFirst": "请先选择要添加的域名",
+        "cookieList.addedDomainsToBlacklist": "已添加 {count} 个域名到黑名单",
+        "cookieList.domainsAlreadyInBlacklist": "所选域名已在黑名单中",
+        "cookieList.sensitiveCookie": "敏感 Cookie",
+        "cookieList.edit": "编辑",
+        "cookieList.hide": "隐藏",
+        "cookieList.show": "显示",
+        "cookieList.value": "值:",
+        "cookieList.path": "路径:",
+        "cookieList.secure": "安全:",
+        "cookieList.httpOnly": "仅 HTTP:",
+        "cookieList.sameSite": "SameSite:",
+        "cookieList.notSet": "未设置",
+        "cookieList.expirationTime": "过期时间:",
+        "cookieList.lowRisk": "低风险",
+        "cookieList.mediumRisk": "中风险",
+        "cookieList.highRisk": "高风险",
+        "cookieList.trackingCookie": "疑似追踪 Cookie",
+        "cookieList.thirdPartyCookie": "第三方 Cookie",
+        "cookieList.notHttpOnly": "非 HttpOnly（可被 JavaScript 访问）",
+        "cookieList.notSecure": "非 Secure（可能在不安全连接中传输）",
+      };
+      let result = translations[key] || key;
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          result = result.replace(`{${k}}`, String(v));
+        });
+      }
+      return result;
+    }),
+    setLocale: vi.fn(),
+    detectBrowserLocale: vi.fn(() => "zh-CN"),
+  })),
+}));
+
 const mockCookies = [
   {
     name: "cookie1",
