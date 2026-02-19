@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 
 const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
@@ -85,5 +85,36 @@ describe("ErrorBoundary", () => {
 
     const retryButton = screen.getByText("重试");
     expect(retryButton).toBeTruthy();
+  });
+
+  it("should reset error state when retry button is clicked", () => {
+    let shouldThrow = true;
+    const ControlledComponent = () => {
+      if (shouldThrow) {
+        throw new Error("Test error");
+      }
+      return <div>Normal content</div>;
+    };
+
+    const { rerender } = render(
+      <ErrorBoundary>
+        <ControlledComponent />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText("出错了")).toBeTruthy();
+
+    shouldThrow = false;
+
+    const retryButton = screen.getByText("重试");
+    fireEvent.click(retryButton);
+
+    rerender(
+      <ErrorBoundary>
+        <ControlledComponent />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText("Normal content")).toBeTruthy();
   });
 });

@@ -653,4 +653,89 @@ describe("Settings", () => {
     const sections = document.querySelectorAll(".section");
     expect(sections.length).toBe(9);
   });
+
+  it("should handle locale change to en-US", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const localeSelect = screen.getByTestId("locale-select") as HTMLSelectElement;
+    expect(localeSelect).toBeTruthy();
+    expect(localeSelect.tagName).toBe("SELECT");
+  });
+
+  it("should render locale select with correct options", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const localeSelect = screen.getByTestId("locale-select");
+    const options = localeSelect.querySelectorAll("option");
+
+    expect(options.length).toBe(2);
+    expect(options[0].value).toBe("zh-CN");
+    expect(options[1].value).toBe("en-US");
+  });
+
+  it("should render language settings section", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("语言设置")).toBeTruthy();
+    expect(screen.getByText("选择您喜欢的界面语言")).toBeTruthy();
+  });
+
+  it("should handle locale select change", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const localeSelect = screen.getByTestId("locale-select") as HTMLSelectElement;
+    fireEvent.change(localeSelect, { target: { value: "en-US" } });
+  });
+
+  it("should handle custom theme color change for bgPrimary", async () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const themeModeRadio = screen.getByTestId("radio-themeMode");
+    const customRadio = themeModeRadio.querySelector('input[value="custom"]') as HTMLInputElement;
+    fireEvent.click(customRadio);
+
+    await waitFor(() => {
+      const colorInputs = document.querySelectorAll('input[type="color"]');
+      expect(colorInputs.length).toBeGreaterThan(0);
+    });
+
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    const bgPrimaryInput = colorInputs[0] as HTMLInputElement;
+    fireEvent.change(bgPrimaryInput, { target: { value: "#ffffff" } });
+  });
+
+  it("should handle custom theme color change for bgSecondary", async () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const themeModeRadio = screen.getByTestId("radio-themeMode");
+    const customRadio = themeModeRadio.querySelector('input[value="custom"]') as HTMLInputElement;
+    fireEvent.click(customRadio);
+
+    await waitFor(() => {
+      const colorInputs = document.querySelectorAll('input[type="color"]');
+      expect(colorInputs.length).toBeGreaterThan(0);
+    });
+
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    const bgSecondaryInput = colorInputs[1] as HTMLInputElement;
+    fireEvent.change(bgSecondaryInput, { target: { value: "#f5f5f5" } });
+  });
+
+  it("should handle all custom theme color changes", async () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const themeModeRadio = screen.getByTestId("radio-themeMode");
+    const customRadio = themeModeRadio.querySelector('input[value="custom"]') as HTMLInputElement;
+    fireEvent.click(customRadio);
+
+    await waitFor(() => {
+      const colorInputs = document.querySelectorAll('input[type="color"]');
+      expect(colorInputs.length).toBeGreaterThan(0);
+    });
+
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    colorInputs.forEach((input, index) => {
+      fireEvent.change(input, { target: { value: `#ffffff` } });
+    });
+  });
 });
