@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Settings } from "../../components/Settings";
 import { LogRetention } from "../../types";
 
@@ -203,6 +203,9 @@ describe("Settings", () => {
   it("should call onMessage when light theme is selected", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
+    const darkRadio = screen.getByLabelText("暗色");
+    fireEvent.click(darkRadio);
+    
     const lightRadio = screen.getByLabelText("亮色");
     fireEvent.click(lightRadio);
 
@@ -498,13 +501,13 @@ describe("Settings", () => {
     fireEvent.click(customRadio);
     expect(screen.getByText("主色调")).toBeTruthy();
 
-    const lightRadio = screen.getByLabelText("亮色");
-    fireEvent.click(lightRadio);
+    const darkRadio = screen.getByLabelText("暗色");
+    fireEvent.click(darkRadio);
 
     expect(screen.queryByText("主色调")).toBeNull();
   });
 
-  it("should hide custom theme settings when selecting auto theme after custom", () => {
+  it("should hide custom theme settings when selecting auto theme after custom", async () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const customRadio = screen.getByLabelText("自定义");
@@ -514,7 +517,9 @@ describe("Settings", () => {
     const autoRadio = screen.getByLabelText("跟随浏览器");
     fireEvent.click(autoRadio);
 
-    expect(screen.queryByText("主色调")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("主色调")).toBeNull();
+    });
   });
 
   it("should not show custom theme settings initially", () => {

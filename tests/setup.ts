@@ -1,13 +1,22 @@
 import { expect, afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import * as matchers from "@testing-library/jest-dom/matchers";
-import { useState } from "react";
 
 expect.extend(matchers);
 
 vi.mock("@plasmohq/storage/hook", () => ({
   useStorage: vi.fn((key: string, defaultValue: unknown) => {
-    return useState(defaultValue);
+    if (key === "settings") {
+      const defaultSettings = defaultValue as Record<string, unknown>;
+      return [
+        {
+          ...defaultSettings,
+          locale: "zh-CN",
+        },
+        vi.fn(),
+      ];
+    }
+    return [defaultValue, vi.fn()];
   }),
 }));
 

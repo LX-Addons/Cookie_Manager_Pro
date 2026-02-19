@@ -282,7 +282,6 @@ describe("IndexPopup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useStorage } = require("@plasmohq/storage/hook");
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -1539,7 +1538,6 @@ describe("IndexPopup", () => {
 
   it("should handle settings change triggering init", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     const settingsMock = vi.fn((key: string, defaultValue: unknown) => {
       if (key === "settings") {
@@ -1554,10 +1552,21 @@ describe("IndexPopup", () => {
             cleanupOnStartup: false,
             cleanupExpiredCookies: false,
             logRetention: "7d",
+            locale: "zh-CN",
           },
+          vi.fn(),
         ];
       }
-      return useState(defaultValue);
+      if (key === "whitelist") {
+        return [[], vi.fn()];
+      }
+      if (key === "blacklist") {
+        return [[], vi.fn()];
+      }
+      if (key === "clearLog") {
+        return [[], vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
     });
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(settingsMock);
@@ -1654,7 +1663,7 @@ describe("IndexPopup", () => {
   it("should apply custom theme CSS variables when theme is custom", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
       if (key === "settings") {
         return [
           {
@@ -1675,10 +1684,21 @@ describe("IndexPopup", () => {
             cleanupOnStartup: false,
             cleanupExpiredCookies: false,
             logRetention: "7d",
+            locale: "zh-CN",
           },
+          vi.fn(),
         ];
       }
-      return [[]];
+      if (key === "whitelist") {
+        return [[], vi.fn()];
+      }
+      if (key === "blacklist") {
+        return [[], vi.fn()];
+      }
+      if (key === "clearLog") {
+        return [[], vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
     });
 
     await act(async () => {
@@ -1695,12 +1715,12 @@ describe("IndexPopup", () => {
     const mockWhitelist = ["test.com"];
     const mockBlacklist = ["bad.com"];
 
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string) => {
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation((key: string, defaultValue: unknown) => {
       if (key === "whitelist") {
-        return [mockWhitelist];
+        return [mockWhitelist, vi.fn()];
       }
       if (key === "blacklist") {
-        return [mockBlacklist];
+        return [mockBlacklist, vi.fn()];
       }
       if (key === "settings") {
         return [
@@ -1714,10 +1734,15 @@ describe("IndexPopup", () => {
             cleanupOnStartup: false,
             cleanupExpiredCookies: false,
             logRetention: "7d",
+            locale: "zh-CN",
           },
+          vi.fn(),
         ];
       }
-      return [[]];
+      if (key === "clearLog") {
+        return [[], vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
     });
 
     await act(async () => {
@@ -1786,7 +1811,6 @@ describe("IndexPopup onClearBlacklist", () => {
   it("should render blacklist tab and have clear blacklist button", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "blacklist",
@@ -1798,23 +1822,24 @@ describe("IndexPopup onClearBlacklist", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -1838,7 +1863,6 @@ describe("IndexPopup onClearBlacklist", () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "blacklist",
@@ -1850,23 +1874,24 @@ describe("IndexPopup onClearBlacklist", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -1899,7 +1924,6 @@ describe("IndexPopup onClearBlacklist", () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "blacklist",
@@ -1911,23 +1935,24 @@ describe("IndexPopup onClearBlacklist", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -1972,7 +1997,6 @@ describe("IndexPopup buildDomainString", () => {
 describe("IndexPopup addLog", () => {
   it("should render with FOREVER log retention", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1984,23 +2008,24 @@ describe("IndexPopup addLog", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "forever",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2015,7 +2040,6 @@ describe("IndexPopup addLog", () => {
 
   it("should render with 7d log retention", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2027,23 +2051,24 @@ describe("IndexPopup addLog", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2070,20 +2095,36 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
 
   it("should render with existing whitelist", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "whitelist") {
-          return useState(["example.com"]);
+          return [["example.com"], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2108,20 +2149,36 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
 
   it("should render with existing blacklist", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "blacklist") {
-          return useState(["example.com"]);
+          return [["example.com"], vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2139,7 +2196,6 @@ describe("IndexPopup cleanupExpiredCookies", () => {
   it("should call cleanupExpiredCookies and clear expired cookies", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2151,23 +2207,24 @@ describe("IndexPopup cleanupExpiredCookies", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: true,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2187,7 +2244,6 @@ describe("IndexPopup cleanupExpiredCookies", () => {
   it("should show message when no expired cookies found", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2199,23 +2255,24 @@ describe("IndexPopup cleanupExpiredCookies", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: true,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2235,7 +2292,6 @@ describe("IndexPopup cleanupExpiredCookies", () => {
   it("should handle cleanupExpiredCookies error", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2247,23 +2303,24 @@ describe("IndexPopup cleanupExpiredCookies", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: true,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2288,7 +2345,6 @@ describe("IndexPopup additional coverage", () => {
 
   it("should call onAddToWhitelist callback with new domains", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2300,23 +2356,24 @@ describe("IndexPopup additional coverage", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState(["existing.com"]);
+          return [["existing.com"], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2336,7 +2393,6 @@ describe("IndexPopup additional coverage", () => {
 
   it("should call onAddToBlacklist callback with new domains", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2348,23 +2404,24 @@ describe("IndexPopup additional coverage", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState(["existing.com"]);
+          return [["existing.com"], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2384,7 +2441,6 @@ describe("IndexPopup additional coverage", () => {
 
   it("should handle onAddToWhitelist with no new domains", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2396,23 +2452,24 @@ describe("IndexPopup additional coverage", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState(["existing.com"]);
+          return [["existing.com"], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2432,7 +2489,6 @@ describe("IndexPopup additional coverage", () => {
 
   it("should handle onAddToBlacklist with no new domains", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2444,23 +2500,24 @@ describe("IndexPopup additional coverage", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState(["existing.com"]);
+          return [["existing.com"], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2481,7 +2538,6 @@ describe("IndexPopup additional coverage", () => {
   it("should handle cleanupStartup function", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanup } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2493,23 +2549,24 @@ describe("IndexPopup additional coverage", () => {
       cleanupOnStartup: true,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2529,7 +2586,6 @@ describe("IndexPopup additional coverage", () => {
   it("should handle cleanupStartup with no count", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanup } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2541,23 +2597,24 @@ describe("IndexPopup additional coverage", () => {
       cleanupOnStartup: true,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2618,33 +2675,36 @@ describe("IndexPopup additional coverage", () => {
   it("should handle buildDomainString with no cleared domains and current domain", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState({
-            mode: "whitelist",
-            themeMode: "light",
-            clearType: "all",
-            clearCache: false,
-            clearLocalStorage: false,
-            clearIndexedDB: false,
-            cleanupOnStartup: false,
-            cleanupExpiredCookies: false,
-            logRetention: "7d",
-          });
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2678,33 +2738,36 @@ describe("IndexPopup additional coverage", () => {
   it("should handle quickClearCurrent function", async () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
-    const { useState } = await import("react");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState({
-            mode: "whitelist",
-            themeMode: "light",
-            clearType: "all",
-            clearCache: false,
-            clearLocalStorage: false,
-            clearIndexedDB: false,
-            cleanupOnStartup: false,
-            cleanupExpiredCookies: false,
-            logRetention: "7d",
-          });
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
@@ -2739,7 +2802,6 @@ describe("IndexPopup additional coverage", () => {
     const { useStorage } = await import("@plasmohq/storage/hook");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
-    const { useState } = await import("react");
 
     const mockSettings = {
       mode: "blacklist",
@@ -2751,23 +2813,24 @@ describe("IndexPopup additional coverage", () => {
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
       logRetention: "7d",
+      locale: "zh-CN",
     };
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "settings") {
-          return useState(mockSettings);
+          return [mockSettings, vi.fn()];
         }
         if (key === "whitelist") {
-          return useState([]);
+          return [[], vi.fn()];
         }
         if (key === "blacklist") {
-          return useState(["example.com"]);
+          return [["example.com"], vi.fn()];
         }
         if (key === "clearLog") {
-          return useState([]);
+          return [[], vi.fn()];
         }
-        return useState(defaultValue);
+        return [defaultValue, vi.fn()];
       }
     );
 
