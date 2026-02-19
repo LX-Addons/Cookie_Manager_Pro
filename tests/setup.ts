@@ -273,6 +273,7 @@ vi.mock("@plasmohq/storage", () => ({
   Storage: MockStorage,
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createMockEvent = <T extends (...args: any[]) => any = () => void>() => ({
   addListener: vi.fn<(callback: T) => void>(),
   removeListener: vi.fn<(callback: T) => void>(),

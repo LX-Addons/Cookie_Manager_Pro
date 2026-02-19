@@ -777,14 +777,21 @@ describe("IndexPopup", () => {
 
   it("should call cookies.onChanged listener", async () => {
     const mockAddListener = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chrome.cookies.onChanged.addListener = mockAddListener as any;
 
     render(<IndexPopup />);
 
     expect(mockAddListener).toHaveBeenCalled();
 
-    const listenerFn = mockAddListener.mock.calls[0][0] as (changeInfo: chrome.cookies.CookieChangeInfo) => void;
-    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
+    const listenerFn = mockAddListener.mock.calls[0][0] as (
+      changeInfo: chrome.cookies.CookieChangeInfo
+    ) => void;
+    listenerFn({
+      cookie: { name: "test" } as chrome.cookies.Cookie,
+      removed: false,
+      cause: "explicit",
+    });
   });
 
   it("should handle media query change event", async () => {
@@ -931,15 +938,26 @@ describe("IndexPopup", () => {
     vi.useFakeTimers();
 
     const mockAddListener = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chrome.cookies.onChanged.addListener = mockAddListener as any;
 
     render(<IndexPopup />);
 
     expect(mockAddListener).toHaveBeenCalled();
 
-    const listenerFn = mockAddListener.mock.calls[0][0] as (changeInfo: chrome.cookies.CookieChangeInfo) => void;
-    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
-    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
+    const listenerFn = mockAddListener.mock.calls[0][0] as (
+      changeInfo: chrome.cookies.CookieChangeInfo
+    ) => void;
+    listenerFn({
+      cookie: { name: "test" } as chrome.cookies.Cookie,
+      removed: false,
+      cause: "explicit",
+    });
+    listenerFn({
+      cookie: { name: "test" } as chrome.cookies.Cookie,
+      removed: false,
+      cause: "explicit",
+    });
     vi.advanceTimersByTime(300);
 
     vi.useRealTimers();
@@ -1378,6 +1396,7 @@ describe("IndexPopup", () => {
     vi.useFakeTimers();
 
     const mockAddListener = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chrome.cookies.onChanged.addListener = mockAddListener as any;
 
     render(<IndexPopup />);
@@ -1386,8 +1405,14 @@ describe("IndexPopup", () => {
 
     const initialCallCount = (chrome.cookies.getAll as Mock).mock.calls.length;
 
-    const listenerFn = mockAddListener.mock.calls[0][0] as (changeInfo: chrome.cookies.CookieChangeInfo) => void;
-    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
+    const listenerFn = mockAddListener.mock.calls[0][0] as (
+      changeInfo: chrome.cookies.CookieChangeInfo
+    ) => void;
+    listenerFn({
+      cookie: { name: "test" } as chrome.cookies.Cookie,
+      removed: false,
+      cause: "explicit",
+    });
     vi.advanceTimersByTime(300);
 
     vi.useRealTimers();
