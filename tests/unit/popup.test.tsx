@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import IndexPopup from "../../popup";
 import * as storageHook from "@plasmohq/storage/hook";
@@ -776,20 +776,15 @@ describe("IndexPopup", () => {
   });
 
   it("should call cookies.onChanged listener", async () => {
-    let cookieListener: (() => void) | null = null;
-    (chrome.cookies.onChanged.addListener as ReturnType<typeof vi.fn>).mockImplementation(
-      (fn: () => void) => {
-        cookieListener = fn;
-      }
-    );
+    const mockAddListener = vi.fn();
+    chrome.cookies.onChanged.addListener = mockAddListener as any;
 
     render(<IndexPopup />);
 
-    expect(cookieListener).not.toBeNull();
+    expect(mockAddListener).toHaveBeenCalled();
 
-    if (cookieListener) {
-      cookieListener();
-    }
+    const listenerFn = mockAddListener.mock.calls[0][0] as (changeInfo: chrome.cookies.CookieChangeInfo) => void;
+    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
   });
 
   it("should handle media query change event", async () => {
@@ -935,21 +930,16 @@ describe("IndexPopup", () => {
   it("should handle debounce timer on cookies change", async () => {
     vi.useFakeTimers();
 
-    let cookieListener: (() => void) | null = null;
-    (chrome.cookies.onChanged.addListener as ReturnType<typeof vi.fn>).mockImplementation(
-      (fn: () => void) => {
-        cookieListener = fn;
-      }
-    );
+    const mockAddListener = vi.fn();
+    chrome.cookies.onChanged.addListener = mockAddListener as any;
 
     render(<IndexPopup />);
 
-    expect(cookieListener).not.toBeNull();
+    expect(mockAddListener).toHaveBeenCalled();
 
-    if (cookieListener) {
-      cookieListener();
-      cookieListener();
-    }
+    const listenerFn = mockAddListener.mock.calls[0][0] as (changeInfo: chrome.cookies.CookieChangeInfo) => void;
+    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
+    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
     vi.advanceTimersByTime(300);
 
     vi.useRealTimers();
@@ -1387,22 +1377,17 @@ describe("IndexPopup", () => {
   it("should pass onUpdate callback to CookieList and trigger on cookie change", async () => {
     vi.useFakeTimers();
 
-    let cookieListener: (() => void) | null = null;
-    (chrome.cookies.onChanged.addListener as ReturnType<typeof vi.fn>).mockImplementation(
-      (fn: () => void) => {
-        cookieListener = fn;
-      }
-    );
+    const mockAddListener = vi.fn();
+    chrome.cookies.onChanged.addListener = mockAddListener as any;
 
     render(<IndexPopup />);
 
-    expect(cookieListener).not.toBeNull();
+    expect(mockAddListener).toHaveBeenCalled();
 
-    const initialCallCount = (chrome.cookies.getAll as ReturnType<typeof vi.fn>).mock.calls.length;
+    const initialCallCount = (chrome.cookies.getAll as Mock).mock.calls.length;
 
-    if (cookieListener) {
-      cookieListener();
-    }
+    const listenerFn = mockAddListener.mock.calls[0][0] as (changeInfo: chrome.cookies.CookieChangeInfo) => void;
+    listenerFn({ cookie: { name: "test" } as chrome.cookies.Cookie, removed: false, cause: "explicit" });
     vi.advanceTimersByTime(300);
 
     vi.useRealTimers();

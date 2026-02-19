@@ -273,11 +273,11 @@ vi.mock("@plasmohq/storage", () => ({
   Storage: MockStorage,
 }));
 
-const createMockEvent = () => ({
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-  hasListener: vi.fn(() => false),
-  hasListeners: vi.fn(() => false),
+const createMockEvent = <T extends (...args: any[]) => any = () => void>() => ({
+  addListener: vi.fn<(callback: T) => void>(),
+  removeListener: vi.fn<(callback: T) => void>(),
+  hasListener: vi.fn<(callback: T) => boolean>(() => false),
+  hasListeners: vi.fn<() => boolean>(() => false),
 });
 
 global.chrome = {
@@ -287,7 +287,7 @@ global.chrome = {
     set: vi.fn(() => Promise.resolve({})),
     get: vi.fn(),
     getAllCookieStores: vi.fn(),
-    onChanged: createMockEvent(),
+    onChanged: createMockEvent<(changeInfo: chrome.cookies.CookieChangeInfo) => void>(),
   },
   browsingData: {
     remove: vi.fn(),
