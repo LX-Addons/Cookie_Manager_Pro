@@ -1,14 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DomainManager } from "../../components/DomainManager";
+import * as storageHook from "@plasmohq/storage/hook";
+
+vi.mock("@plasmohq/storage/hook", () => ({
+  useStorage: vi.fn(),
+}));
 
 describe("DomainManager", () => {
   const mockOnMessage = vi.fn();
   const mockOnClearBlacklist = vi.fn();
+  const mockSetList = vi.fn();
 
   beforeEach(() => {
     mockOnMessage.mockClear();
     mockOnClearBlacklist.mockClear();
+    mockSetList.mockClear();
+
+    (storageHook.useStorage as ReturnType<typeof vi.fn>).mockImplementation(() => [
+      [],
+      mockSetList,
+    ]);
   });
 
   it("should render whitelist manager", () => {
@@ -136,5 +148,82 @@ describe("DomainManager", () => {
     fireEvent.click(addButton);
 
     expect(mockOnMessage).toHaveBeenCalledWith("已添加到黑名单");
+  });
+
+  it("should show error when domain already in whitelist", () => {
+    (storageHook.useStorage as ReturnType<typeof vi.fn>).mockImplementation(() => [
+      ["example.com"],
+      mockSetList,
+    ]);
+
+    render(
+      <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
+    );
+
+    const addButton = screen.getByText("添加当前网站");
+    fireEvent.click(addButton);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("example.com 已在白名单中");
+  });
+
+  it("should show error when domain already in blacklist", () => {
+    (storageHook.useStorage as ReturnType<typeof vi.fn>).mockImplementation(() => [
+      ["example.com"],
+      mockSetList,
+    ]);
+
+    render(
+      <DomainManager type="blacklist" currentDomain="example.com" onMessage={mockOnMessage} />
+    );
+
+    const addButton = screen.getByText("添加当前网站");
+    fireEvent.click(addButton);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("example.com 已在黑名单中");
+  });
+
+  it("should remove domain from list", () => {
+    (storageHook.useStorage as ReturnType<typeof vi.fn>).mockImplementation(() => [
+      ["test.com", "example.com"],
+      mockSetList,
+    ]);
+
+    render(
+      <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
+    );
+
+    const removeButtons = screen.getAllByText("删除");
+    fireEvent.click(removeButtons[0]);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("已删除");
+    expect(mockSetList).toHaveBeenCalled();
+  });
+
+  it("should render domain list items", () => {
+    (storageHook.useStorage as ReturnType<typeof vi.fn>).mockImplementation(() => [
+      ["test.com", "example.com"],
+      mockSetList,
+    ]);
+
+    render(
+      <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
+    );
+
+    expect(screen.getByText("test.com")).toBeTruthy();
+    expect(screen.getByText("example.com")).toBeTruthy();
+  });
+
+  it("should handle add domain with input", () => {
+    render(
+      <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
+    );
+
+    const input = screen.getByPlaceholderText("例如: google.com");
+    fireEvent.change(input, { target: { value: "newdomain.com" } });
+
+    const addButton = screen.getByText("添加");
+    fireEvent.click(addButton);
+
+    expect(mockSetList).toHaveBeenCalled();
   });
 });

@@ -2403,4 +2403,124 @@ describe("IndexPopup additional coverage", () => {
     const blacklistTab = await screen.findByRole("tab", { name: /黑名单/ });
     fireEvent.click(blacklistTab);
   });
+
+  it("should show already in blacklist message when domain exists", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        if (key === "whitelist") {
+          return [[], vi.fn()];
+        }
+        if (key === "blacklist") {
+          return [["example.com"], vi.fn()];
+        }
+        if (key === "clearLog") {
+          return [[], vi.fn()];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<IndexPopup />);
+
+    const addBlacklistBtn = await screen.findByText("添加到黑名单");
+    fireEvent.click(addBlacklistBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/已在黑名单中/)).toBeTruthy();
+    });
+  });
+
+  it("should call quickClearCurrent and clear cookies", async () => {
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 3, clearedDomains: ["example.com"] })
+    );
+
+    render(<IndexPopup />);
+
+    const clearCurrentBtn = await screen.findByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+
+    const confirmBtn = await screen.findByText("确定");
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(performCleanupWithFilter).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle onClearBlacklist with multiple domains", async () => {
+    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { isInList } = await import("~utils");
+
+    const mockSettings = {
+      mode: "blacklist",
+      themeMode: "light",
+      clearType: "all",
+      clearCache: false,
+      clearLocalStorage: false,
+      clearIndexedDB: false,
+      cleanupOnStartup: false,
+      cleanupExpiredCookies: false,
+      logRetention: "7d",
+      locale: "zh-CN",
+    };
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [mockSettings, vi.fn()];
+        }
+        if (key === "whitelist") {
+          return [[], vi.fn()];
+        }
+        if (key === "blacklist") {
+          return [["example.com", "test.com"], vi.fn()];
+        }
+        if (key === "clearLog") {
+          return [[], vi.fn()];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ count: 5, clearedDomains: ["example.com", "test.com"] })
+    );
+
+    (isInList as ReturnType<typeof vi.fn>).mockImplementation(() => true);
+
+    render(<IndexPopup />);
+
+    const blacklistTab = await screen.findByRole("tab", { name: /黑名单/ });
+    fireEvent.click(blacklistTab);
+
+    const clearBlacklistBtn = await screen.findByText("清除黑名单Cookie");
+    fireEvent.click(clearBlacklistBtn);
+
+    await waitFor(() => {
+      expect(performCleanupWithFilter).toHaveBeenCalled();
+    });
+  });
 });

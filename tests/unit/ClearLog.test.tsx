@@ -152,4 +152,189 @@ describe("ClearLog", () => {
 
     expect(mockOnMessage).not.toHaveBeenCalled();
   });
+
+  it("should show message when log retention is forever", async () => {
+    const { useStorage } = storageHook;
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "forever",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        if (key === "clearLog") {
+          return [[], vi.fn()];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<ClearLog onMessage={mockOnMessage} />);
+
+    const clearOldButton = screen.getByText("清除过期");
+    fireEvent.click(clearOldButton);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("日志保留设置为永久，无需清理");
+  });
+
+  it("should show message when no expired logs found", async () => {
+    const { useStorage } = storageHook;
+    const mockSetLogs = vi.fn((fn) => {
+      const result = fn([]);
+      return result;
+    });
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        if (key === "clearLog") {
+          return [[], mockSetLogs];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<ClearLog onMessage={mockOnMessage} />);
+
+    const clearOldButton = screen.getByText("清除过期");
+    fireEvent.click(clearOldButton);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("没有需要清理的过期日志");
+  });
+
+  it("should clear expired logs and show message", async () => {
+    const { useStorage } = storageHook;
+    const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
+    const recentTimestamp = Date.now() - 1 * 24 * 60 * 60 * 1000;
+
+    const mockLogs = [
+      {
+        id: "1",
+        domain: "old.com",
+        cookieType: "all",
+        count: 1,
+        timestamp: oldTimestamp,
+        action: "clear",
+      },
+      {
+        id: "2",
+        domain: "new.com",
+        cookieType: "all",
+        count: 2,
+        timestamp: recentTimestamp,
+        action: "clear",
+      },
+    ];
+
+    const mockSetLogs = vi.fn((fn) => {
+      const result = fn(mockLogs);
+      return result;
+    });
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        if (key === "clearLog") {
+          return [mockLogs, mockSetLogs];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<ClearLog onMessage={mockOnMessage} />);
+
+    const clearOldButton = screen.getByText("清除过期");
+    fireEvent.click(clearOldButton);
+
+    expect(mockOnMessage).toHaveBeenCalled();
+  });
+
+  it("should render log list with items", async () => {
+    const { useStorage } = storageHook;
+
+    const mockLogs = [
+      {
+        id: "1",
+        domain: "example.com",
+        cookieType: "all",
+        count: 5,
+        timestamp: Date.now(),
+        action: "clear",
+      },
+    ];
+
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "settings") {
+          return [
+            {
+              mode: "whitelist",
+              themeMode: "light",
+              clearType: "all",
+              clearCache: false,
+              clearLocalStorage: false,
+              clearIndexedDB: false,
+              cleanupOnStartup: false,
+              cleanupExpiredCookies: false,
+              logRetention: "7d",
+              locale: "zh-CN",
+            },
+            vi.fn(),
+          ];
+        }
+        if (key === "clearLog") {
+          return [mockLogs, vi.fn()];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<ClearLog onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("example.com")).toBeTruthy();
+  });
 });
