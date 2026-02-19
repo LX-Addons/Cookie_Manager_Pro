@@ -734,7 +734,7 @@ describe("Settings", () => {
     });
 
     const colorInputs = document.querySelectorAll('input[type="color"]');
-    colorInputs.forEach((input, index) => {
+    colorInputs.forEach((input) => {
       fireEvent.change(input, { target: { value: `#ffffff` } });
     });
   });

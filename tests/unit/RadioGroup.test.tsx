@@ -9,9 +9,7 @@ describe("RadioGroup", () => {
       { value: "option2", label: "Option 2" },
     ];
 
-    render(
-      <RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />
-    );
+    render(<RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />);
 
     expect(screen.getByText("Option 1")).toBeTruthy();
     expect(screen.getByText("Option 2")).toBeTruthy();
@@ -23,9 +21,7 @@ describe("RadioGroup", () => {
       { value: "option2", label: "Option 2" },
     ];
 
-    render(
-      <RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />
-    );
+    render(<RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />);
 
     const radios = screen.getAllByRole("radio");
     expect((radios[0] as HTMLInputElement).checked).toBe(true);
@@ -39,9 +35,7 @@ describe("RadioGroup", () => {
       { value: "option2", label: "Option 2" },
     ];
 
-    render(
-      <RadioGroup name="test" value="option1" onChange={mockOnChange} options={options} />
-    );
+    render(<RadioGroup name="test" value="option1" onChange={mockOnChange} options={options} />);
 
     const radios = screen.getAllByRole("radio");
     fireEvent.click(radios[1]);
@@ -52,9 +46,7 @@ describe("RadioGroup", () => {
   it("should render with radiogroup role", () => {
     const options = [{ value: "option1", label: "Option 1" }];
 
-    render(
-      <RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />
-    );
+    render(<RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />);
 
     const radiogroup = screen.getByRole("radiogroup");
     expect(radiogroup).toBeTruthy();
@@ -67,9 +59,7 @@ describe("RadioGroup", () => {
       { value: "option3", label: "Option 3" },
     ];
 
-    render(
-      <RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />
-    );
+    render(<RadioGroup name="test" value="option1" onChange={vi.fn()} options={options} />);
 
     const radios = screen.getAllByRole("radio");
     expect(radios.length).toBe(3);
@@ -78,9 +68,7 @@ describe("RadioGroup", () => {
   it("should have correct name attribute", () => {
     const options = [{ value: "option1", label: "Option 1" }];
 
-    render(
-      <RadioGroup name="test-group" value="option1" onChange={vi.fn()} options={options} />
-    );
+    render(<RadioGroup name="test-group" value="option1" onChange={vi.fn()} options={options} />);
 
     const radio = screen.getByRole("radio");
     expect(radio.getAttribute("name")).toBe("test-group");
