@@ -2,53 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DomainManager } from "../../components/DomainManager";
 
-vi.mock("~hooks/useTranslation", () => ({
-  useTranslation: vi.fn(() => ({
-    t: vi.fn((key: string, params?: Record<string, string | number>) => {
-      if (key === "domainManager.addedToList" && params?.listType === "白名单") {
-        return "已添加到白名单";
-      }
-      if (key === "domainManager.addedToList" && params?.listType === "黑名单") {
-        return "已添加到黑名单";
-      }
-      if (key === "domainManager.alreadyInList" && params?.listType === "白名单") {
-        return `${params.domain} 已在白名单中`;
-      }
-      if (key === "domainManager.alreadyInList" && params?.listType === "黑名单") {
-        return `${params.domain} 已在黑名单中`;
-      }
-      const translations: Record<string, string> = {
-        "common.confirm": "确定",
-        "common.cancel": "取消",
-        "common.add": "添加",
-        "common.delete": "删除",
-        "common.save": "保存",
-        "common.edit": "编辑",
-        "common.clear": "清除",
-        "common.clearAll": "清除全部",
-        "common.export": "导出",
-        "common.yes": "是",
-        "common.no": "否",
-        "tabs.whitelist": "白名单",
-        "tabs.blacklist": "黑名单",
-        "domainManager.whitelistDomains": "白名单域名",
-        "domainManager.blacklistDomains": "黑名单域名",
-        "domainManager.whitelistHelp": "白名单中的域名Cookie不会被清除",
-        "domainManager.blacklistHelp": "黑名单中的域名Cookie将被优先清除",
-        "domainManager.domainPlaceholder": "例如: google.com",
-        "domainManager.addCurrentWebsite": "添加当前网站",
-        "domainManager.clearBlacklistCookies": "清除黑名单Cookie",
-        "domainManager.domainEmpty": "域名不能为空",
-        "domainManager.invalidDomain": "域名格式不正确",
-        "domainManager.deleted": "已删除",
-      };
-      return translations[key] || key;
-    }),
-    setLocale: vi.fn(),
-    detectBrowserLocale: vi.fn(() => "zh-CN"),
-  })),
-}));
-
 describe("DomainManager", () => {
   const mockOnMessage = vi.fn();
   const mockOnClearBlacklist = vi.fn();

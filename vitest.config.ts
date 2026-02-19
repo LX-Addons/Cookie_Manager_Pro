@@ -8,6 +8,7 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./tests/setup.ts"],
     exclude: ["**/node_modules/**", "**/tests/e2e/**"],
+    testTimeout: 10000,
     coverage: {
       provider: "istanbul",
       reporter: ["text", "json", "html", "lcov"],

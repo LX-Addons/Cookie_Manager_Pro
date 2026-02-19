@@ -3,6 +3,33 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Settings } from "../../components/Settings";
 import { LogRetention } from "../../types";
 
+let mockSettings = {
+  mode: "whitelist",
+  themeMode: "auto",
+  clearType: "all",
+  clearCache: false,
+  clearLocalStorage: false,
+  clearIndexedDB: false,
+  cleanupOnStartup: false,
+  cleanupExpiredCookies: false,
+  logRetention: "7d",
+  locale: "zh-CN",
+};
+
+vi.mock("@plasmohq/storage/hook", () => ({
+  useStorage: vi.fn((key: string, defaultValue: unknown) => {
+    if (key === "settings") {
+      return [
+        mockSettings,
+        vi.fn((newSettings: unknown) => {
+          mockSettings = { ...mockSettings, ...(newSettings as object) };
+        }),
+      ];
+    }
+    return [defaultValue, vi.fn()];
+  }),
+}));
+
 vi.mock("~components/RadioGroup", () => ({
   RadioGroup: ({
     name,
@@ -58,6 +85,18 @@ describe("Settings", () => {
 
   beforeEach(() => {
     mockOnMessage.mockClear();
+    mockSettings = {
+      mode: "whitelist",
+      themeMode: "auto",
+      clearType: "all",
+      clearCache: false,
+      clearLocalStorage: false,
+      clearIndexedDB: false,
+      cleanupOnStartup: false,
+      cleanupExpiredCookies: false,
+      logRetention: "7d",
+      locale: "zh-CN",
+    };
   });
 
   it("should render settings container", () => {
@@ -481,7 +520,7 @@ describe("Settings", () => {
     expect(mockOnMessage).toHaveBeenCalledTimes(3);
   });
 
-  it("should hide custom theme settings when switching away from custom theme", () => {
+  it("should hide custom theme settings when switching away from custom theme", async () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const customRadio = screen.getByLabelText("自定义");
@@ -491,20 +530,24 @@ describe("Settings", () => {
     const darkRadio = screen.getByLabelText("暗色");
     fireEvent.click(darkRadio);
 
-    expect(screen.queryByText("主色调")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("主色调")).toBeNull();
+    });
   });
 
-  it("should hide custom theme settings when selecting light theme after custom", () => {
+  it("should hide custom theme settings when selecting light theme after custom", async () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const customRadio = screen.getByLabelText("自定义");
     fireEvent.click(customRadio);
     expect(screen.getByText("主色调")).toBeTruthy();
 
-    const darkRadio = screen.getByLabelText("暗色");
-    fireEvent.click(darkRadio);
+    const lightRadio = screen.getByLabelText("亮色");
+    fireEvent.click(lightRadio);
 
-    expect(screen.queryByText("主色调")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("主色调")).toBeNull();
+    });
   });
 
   it("should hide custom theme settings when selecting auto theme after custom", async () => {
