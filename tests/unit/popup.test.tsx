@@ -2438,6 +2438,17 @@ describe("IndexPopup additional coverage", () => {
       }
     );
 
+    (chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve([
+        {
+          id: 1,
+          url: "https://example.com/test",
+          active: true,
+          currentWindow: true,
+        },
+      ])
+    );
+
     render(<IndexPopup />);
 
     const addBlacklistBtn = await screen.findByText("添加到黑名单");
