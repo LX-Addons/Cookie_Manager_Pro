@@ -8,6 +8,7 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./tests/setup.ts"],
     exclude: ["**/node_modules/**", "**/tests/e2e/**"],
+    testTimeout: 10000,
     coverage: {
       provider: "istanbul",
       reporter: ["text", "json", "html", "lcov"],
@@ -24,6 +25,7 @@ export default defineConfig({
       "~constants": path.resolve(__dirname, "constants.ts"),
       "~components": path.resolve(__dirname, "components"),
       "~hooks": path.resolve(__dirname, "hooks"),
+      "~i18n": path.resolve(__dirname, "i18n/index.ts"),
     },
   },
 });

@@ -16,6 +16,7 @@ import {
 } from "~utils";
 import { CookieEditor } from "./CookieEditor";
 import { ConfirmDialogWrapper, type ShowConfirmFn } from "./ConfirmDialogWrapper";
+import { useTranslation } from "~hooks/useTranslation";
 
 interface Props {
   cookies: Cookie[];
@@ -51,6 +52,7 @@ export const CookieListContent = memo(
     const [editingCookie, setEditingCookie] = useState<Cookie | null>(null);
     const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
     const [selectAll, setSelectAll] = useState(false);
+    const { t } = useTranslation();
 
     const groupedCookies = useMemo(() => {
       const grouped = new Map<string, Cookie[]>();
@@ -100,23 +102,25 @@ export const CookieListContent = memo(
           cleanedDomain
         );
         if (success) {
-          onMessage?.(`已删除 Cookie: ${cookie.name}`);
+          onMessage?.(t("cookieList.deletedCookie", { name: cookie.name }));
           onUpdate?.();
         } else {
-          onMessage?.("删除 Cookie 失败", true);
+          onMessage?.(t("cookieList.deleteCookieFailed"), true);
         }
       } catch (e) {
         console.error("Failed to delete cookie:", e);
-        onMessage?.("删除 Cookie 失败", true);
+        onMessage?.(t("cookieList.deleteCookieFailed"), true);
       }
     };
 
     const handleDeleteCookie = (cookie: Cookie) => {
       const sensitive = isSensitiveCookie(cookie);
-      const title = sensitive ? "删除敏感 Cookie" : "删除确认";
+      const title = sensitive
+        ? t("cookieList.deleteSensitiveCookie")
+        : t("cookieList.deleteConfirm");
       const message = sensitive
-        ? `即将删除敏感 Cookie "${cookie.name}"，这可能导致您在该网站的登录状态失效。确定要继续吗？`
-        : `确定要删除 Cookie "${cookie.name}" 吗？`;
+        ? t("cookieList.deleteSensitiveMessage", { name: cookie.name })
+        : t("cookieList.deleteMessage", { name: cookie.name });
       const variant = sensitive ? "danger" : "warning";
 
       showConfirm(title, message, variant, () => performDeleteCookie(cookie));
@@ -135,15 +139,15 @@ export const CookieListContent = memo(
             updatedCookie as Partial<chrome.cookies.Cookie>
           );
           if (success) {
-            onMessage?.("Cookie 已更新");
+            onMessage?.(t("cookieList.cookieUpdated"));
             onUpdate?.();
           } else {
-            onMessage?.("更新 Cookie 失败", true);
+            onMessage?.(t("cookieList.updateCookieFailed"), true);
           }
         }
       } catch (e) {
         console.error("Failed to save cookie:", e);
-        onMessage?.("更新 Cookie 失败", true);
+        onMessage?.(t("cookieList.updateCookieFailed"), true);
       }
     };
 
@@ -165,7 +169,7 @@ export const CookieListContent = memo(
         }
       }
       if (deleted > 0) {
-        onMessage?.(`已删除 ${deleted} 个 Cookie`);
+        onMessage?.(t("cookieList.deletedSelected", { count: deleted }));
         setSelectedCookies(new Set());
         setSelectAll(false);
         onUpdate?.();
@@ -177,11 +181,17 @@ export const CookieListContent = memo(
         .filter((c) => selectedCookies.has(getCookieKey(c.name, c.domain)))
         .filter((c) => isSensitiveCookie(c)).length;
 
-      const title = sensitiveCount > 0 ? "批量删除敏感 Cookie" : "批量删除确认";
+      const title =
+        sensitiveCount > 0
+          ? t("cookieList.deleteSelectedSensitive")
+          : t("cookieList.deleteSelectedConfirm");
       const message =
         sensitiveCount > 0
-          ? `选中的 Cookie 中包含 ${sensitiveCount} 个敏感 Cookie，删除后可能影响登录状态。确定要删除选中的 ${selectedCookies.size} 个 Cookie 吗？`
-          : `确定要删除选中的 ${selectedCookies.size} 个 Cookie 吗？`;
+          ? t("cookieList.deleteSelectedSensitiveMessage", {
+              sensitiveCount,
+              count: selectedCookies.size,
+            })
+          : t("cookieList.deleteSelectedMessage", { count: selectedCookies.size });
       const variant = sensitiveCount > 0 ? "danger" : "warning";
 
       showConfirm(title, message, variant, performDeleteSelected);
@@ -200,7 +210,7 @@ export const CookieListContent = memo(
 
     const handleAddToWhitelist = () => {
       if (!onAddToWhitelist) {
-        onMessage?.("此功能当前不可用", true);
+        onMessage?.(t("cookieList.functionUnavailable"), true);
         return;
       }
       const domains = getSelectedDomains();
@@ -210,17 +220,17 @@ export const CookieListContent = memo(
       );
       if (newDomains.length > 0) {
         onAddToWhitelist(newDomains);
-        onMessage?.(`已添加 ${newDomains.length} 个域名到白名单`);
+        onMessage?.(t("cookieList.addedDomainsToWhitelist", { count: newDomains.length }));
       } else if (domainArray.length > 0) {
-        onMessage?.("所选域名已在白名单中", true);
+        onMessage?.(t("cookieList.domainsAlreadyInWhitelist"), true);
       } else {
-        onMessage?.("请先选择要添加的域名", true);
+        onMessage?.(t("cookieList.selectDomainsFirst"), true);
       }
     };
 
     const handleAddToBlacklist = () => {
       if (!onAddToBlacklist) {
-        onMessage?.("此功能当前不可用", true);
+        onMessage?.(t("cookieList.functionUnavailable"), true);
         return;
       }
       const domains = getSelectedDomains();
@@ -230,18 +240,18 @@ export const CookieListContent = memo(
       );
       if (newDomains.length > 0) {
         onAddToBlacklist(newDomains);
-        onMessage?.(`已添加 ${newDomains.length} 个域名到黑名单`);
+        onMessage?.(t("cookieList.addedDomainsToBlacklist", { count: newDomains.length }));
       } else if (domainArray.length > 0) {
-        onMessage?.("所选域名已在黑名单中", true);
+        onMessage?.(t("cookieList.domainsAlreadyInBlacklist"), true);
       } else {
-        onMessage?.("请先选择要添加的域名", true);
+        onMessage?.(t("cookieList.selectDomainsFirst"), true);
       }
     };
 
     if (cookies.length === 0) {
       return (
         <div className="cookie-list-empty">
-          <p>当前网站暂无 Cookie</p>
+          <p>{t("cookieList.noCookies")}</p>
         </div>
       );
     }
@@ -255,7 +265,8 @@ export const CookieListContent = memo(
           aria-expanded={isExpanded}
         >
           <h3>
-            <span aria-hidden="true">🍪</span> Cookie 详情 ({cookies.length})
+            <span aria-hidden="true">🍪</span>{" "}
+            {t("cookieList.cookieDetails", { count: cookies.length })}
           </h3>
           <span className={`expand-icon ${isExpanded ? "expanded" : ""}`} aria-hidden="true">
             ▼
@@ -266,16 +277,18 @@ export const CookieListContent = memo(
           <>
             {selectedCookies.size > 0 && (
               <div className="batch-actions">
-                <span className="batch-count">{selectedCookies.size} 个已选中</span>
+                <span className="batch-count">
+                  {t("cookieList.selected", { count: selectedCookies.size })}
+                </span>
                 <div className="batch-buttons">
                   <button onClick={handleDeleteSelected} className="btn btn-danger btn-sm">
-                    删除选中
+                    {t("cookieList.deleteSelected")}
                   </button>
                   <button onClick={handleAddToWhitelist} className="btn btn-success btn-sm">
-                    加入白名单
+                    {t("cookieList.addToWhitelist")}
                   </button>
                   <button onClick={handleAddToBlacklist} className="btn btn-secondary btn-sm">
-                    加入黑名单
+                    {t("cookieList.addToBlacklist")}
                   </button>
                 </div>
               </div>
@@ -284,7 +297,7 @@ export const CookieListContent = memo(
             <div className="select-all-row">
               <label className="checkbox-label">
                 <input type="checkbox" checked={selectAll} onChange={toggleSelectAll} />
-                <span>全选</span>
+                <span>{t("cookieList.selectAll")}</span>
               </label>
             </div>
 
@@ -314,7 +327,7 @@ export const CookieListContent = memo(
                         const displayValue = isVisible
                           ? cookie.value
                           : maskCookieValue(cookie.value, COOKIE_VALUE_MASK);
-                        const risk = assessCookieRisk(cookie, currentDomain);
+                        const risk = assessCookieRisk(cookie, currentDomain, t);
                         const isSelected = selectedCookies.has(key);
                         const sensitive = isSensitiveCookie(cookie);
 
@@ -344,7 +357,7 @@ export const CookieListContent = memo(
                                   type="button"
                                   className="action-btn"
                                   onClick={() => handleEditCookie(cookie)}
-                                  aria-label="编辑"
+                                  aria-label={t("cookieList.edit")}
                                 >
                                   ✏️
                                 </button>
@@ -352,7 +365,7 @@ export const CookieListContent = memo(
                                   type="button"
                                   className="action-btn action-btn-danger"
                                   onClick={() => handleDeleteCookie(cookie)}
-                                  aria-label="删除"
+                                  aria-label={t("common.delete")}
                                 >
                                   🗑️
                                 </button>
@@ -367,49 +380,57 @@ export const CookieListContent = memo(
                                 className="risk-level"
                                 style={{ color: getRiskLevelColor(risk.level) }}
                               >
-                                {getRiskLevelText(risk.level)}
+                                {getRiskLevelText(risk.level, t)}
                               </span>
                               <span className="risk-reason">{risk.reason}</span>
                             </div>
 
                             <div className="cookie-details">
                               <div className="cookie-detail-row">
-                                <span className="detail-label">值:</span>
+                                <span className="detail-label">{t("cookieList.value")}</span>
                                 <span className="detail-value">
                                   {displayValue}
                                   <button
                                     type="button"
                                     className="value-toggle-btn"
                                     onClick={() => toggleValueVisibility(key)}
-                                    aria-label={isVisible ? "隐藏" : "显示"}
+                                    aria-label={
+                                      isVisible ? t("cookieList.hide") : t("cookieList.show")
+                                    }
                                   >
                                     {isVisible ? "👁️" : "👁️‍🗨️"}
                                   </button>
                                 </span>
                               </div>
                               <div className="cookie-detail-row">
-                                <span className="detail-label">路径:</span>
+                                <span className="detail-label">{t("cookieList.path")}</span>
                                 <span className="detail-value">{cookie.path}</span>
                               </div>
                               <div className="cookie-detail-row">
-                                <span className="detail-label">安全:</span>
-                                <span className="detail-value">{cookie.secure ? "是" : "否"}</span>
-                              </div>
-                              <div className="cookie-detail-row">
-                                <span className="detail-label">仅 HTTP:</span>
+                                <span className="detail-label">{t("cookieList.secure")}</span>
                                 <span className="detail-value">
-                                  {cookie.httpOnly ? "是" : "否"}
+                                  {cookie.secure ? t("common.yes") : t("common.no")}
                                 </span>
                               </div>
                               <div className="cookie-detail-row">
-                                <span className="detail-label">SameSite:</span>
-                                <span className="detail-value">{cookie.sameSite || "未设置"}</span>
+                                <span className="detail-label">{t("cookieList.httpOnly")}</span>
+                                <span className="detail-value">
+                                  {cookie.httpOnly ? t("common.yes") : t("common.no")}
+                                </span>
+                              </div>
+                              <div className="cookie-detail-row">
+                                <span className="detail-label">{t("cookieList.sameSite")}</span>
+                                <span className="detail-value">
+                                  {cookie.sameSite || t("cookieList.notSet")}
+                                </span>
                               </div>
                               {cookie.expirationDate && (
                                 <div className="cookie-detail-row">
-                                  <span className="detail-label">过期时间:</span>
+                                  <span className="detail-label">
+                                    {t("cookieList.expirationTime")}
+                                  </span>
                                   <span className="detail-value">
-                                    {new Date(cookie.expirationDate * 1000).toLocaleString("zh-CN")}
+                                    {new Date(cookie.expirationDate * 1000).toLocaleString()}
                                   </span>
                                 </div>
                               )}

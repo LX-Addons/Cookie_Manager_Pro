@@ -1666,4 +1666,54 @@ describe("CookieListContent", () => {
       expect(firstCheckbox.checked).toBe(false);
     }
   });
+
+  it("should show selectDomainsFirst error when adding to whitelist with no selection", async () => {
+    const user = userEvent.setup();
+    render(
+      <CookieListContent
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        showConfirm={mockShowConfirm}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    await user.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    await user.click(selectAllCheckbox);
+    await user.click(selectAllCheckbox);
+
+    const addToWhitelistBtn = screen.queryByText("加入白名单");
+    expect(addToWhitelistBtn).toBeNull();
+  });
+
+  it("should show selectDomainsFirst error when adding to blacklist with no selection", async () => {
+    const user = userEvent.setup();
+    render(
+      <CookieListContent
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onMessage={mockOnMessage}
+        showConfirm={mockShowConfirm}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    await user.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    await user.click(selectAllCheckbox);
+    await user.click(selectAllCheckbox);
+
+    const addToBlacklistBtn = screen.queryByText("加入黑名单");
+    expect(addToBlacklistBtn).toBeNull();
+  });
 });

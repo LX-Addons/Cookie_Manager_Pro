@@ -1,7 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Settings } from "../../components/Settings";
 import { LogRetention } from "../../types";
+
+let mockSettings = {
+  mode: "whitelist",
+  themeMode: "auto",
+  clearType: "all",
+  clearCache: false,
+  clearLocalStorage: false,
+  clearIndexedDB: false,
+  cleanupOnStartup: false,
+  cleanupExpiredCookies: false,
+  logRetention: "7d",
+  locale: "zh-CN",
+};
+
+vi.mock("@plasmohq/storage/hook", () => ({
+  useStorage: vi.fn((key: string, defaultValue: unknown) => {
+    if (key === "settings") {
+      return [
+        mockSettings,
+        vi.fn((newSettings: unknown) => {
+          mockSettings = { ...mockSettings, ...(newSettings as object) };
+        }),
+      ];
+    }
+    return [defaultValue, vi.fn()];
+  }),
+}));
 
 vi.mock("~components/RadioGroup", () => ({
   RadioGroup: ({
@@ -58,6 +85,18 @@ describe("Settings", () => {
 
   beforeEach(() => {
     mockOnMessage.mockClear();
+    mockSettings = {
+      mode: "whitelist",
+      themeMode: "auto",
+      clearType: "all",
+      clearCache: false,
+      clearLocalStorage: false,
+      clearIndexedDB: false,
+      cleanupOnStartup: false,
+      cleanupExpiredCookies: false,
+      logRetention: "7d",
+      locale: "zh-CN",
+    };
   });
 
   it("should render settings container", () => {
@@ -97,14 +136,14 @@ describe("Settings", () => {
   it("should render log retention select", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     expect(select).toBeTruthy();
   });
 
   it("should call onMessage when log retention changes", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.ONE_DAY } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -203,6 +242,9 @@ describe("Settings", () => {
   it("should call onMessage when light theme is selected", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
+    const darkRadio = screen.getByLabelText("暗色");
+    fireEvent.click(darkRadio);
+
     const lightRadio = screen.getByLabelText("亮色");
     fireEvent.click(lightRadio);
 
@@ -212,7 +254,7 @@ describe("Settings", () => {
   it("should render all log retention options", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     const options = select.querySelectorAll("option");
     expect(options.length).toBeGreaterThan(0);
   });
@@ -242,7 +284,7 @@ describe("Settings", () => {
   it("should handle log retention change to forever", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.FOREVER } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -421,7 +463,7 @@ describe("Settings", () => {
   it("should handle log retention change to one hour", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.ONE_HOUR } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -430,7 +472,7 @@ describe("Settings", () => {
   it("should handle log retention change to seven days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.SEVEN_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -478,7 +520,7 @@ describe("Settings", () => {
     expect(mockOnMessage).toHaveBeenCalledTimes(3);
   });
 
-  it("should hide custom theme settings when switching away from custom theme", () => {
+  it("should hide custom theme settings when switching away from custom theme", async () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const customRadio = screen.getByLabelText("自定义");
@@ -488,10 +530,12 @@ describe("Settings", () => {
     const darkRadio = screen.getByLabelText("暗色");
     fireEvent.click(darkRadio);
 
-    expect(screen.queryByText("主色调")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("主色调")).toBeNull();
+    });
   });
 
-  it("should hide custom theme settings when selecting light theme after custom", () => {
+  it("should hide custom theme settings when selecting light theme after custom", async () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const customRadio = screen.getByLabelText("自定义");
@@ -501,10 +545,12 @@ describe("Settings", () => {
     const lightRadio = screen.getByLabelText("亮色");
     fireEvent.click(lightRadio);
 
-    expect(screen.queryByText("主色调")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("主色调")).toBeNull();
+    });
   });
 
-  it("should hide custom theme settings when selecting auto theme after custom", () => {
+  it("should hide custom theme settings when selecting auto theme after custom", async () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const customRadio = screen.getByLabelText("自定义");
@@ -514,7 +560,9 @@ describe("Settings", () => {
     const autoRadio = screen.getByLabelText("跟随浏览器");
     fireEvent.click(autoRadio);
 
-    expect(screen.queryByText("主色调")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("主色调")).toBeNull();
+    });
   });
 
   it("should not show custom theme settings initially", () => {
@@ -541,7 +589,7 @@ describe("Settings", () => {
   it("should handle log retention change to six hours", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.SIX_HOURS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -550,7 +598,7 @@ describe("Settings", () => {
   it("should handle log retention change to twelve hours", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.TWELVE_HOURS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -559,7 +607,7 @@ describe("Settings", () => {
   it("should handle log retention change to three days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.THREE_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -568,7 +616,7 @@ describe("Settings", () => {
   it("should handle log retention change to ten days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.TEN_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -577,7 +625,7 @@ describe("Settings", () => {
   it("should handle log retention change to thirty days", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const select = screen.getByRole("combobox");
+    const select = screen.getByTestId("log-retention-select");
     fireEvent.change(select, { target: { value: LogRetention.THIRTY_DAYS } });
 
     expect(mockOnMessage).toHaveBeenCalledWith("设置已保存");
@@ -603,6 +651,91 @@ describe("Settings", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
     const sections = document.querySelectorAll(".section");
-    expect(sections.length).toBe(8);
+    expect(sections.length).toBe(9);
+  });
+
+  it("should handle locale change to en-US", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const localeSelect = screen.getByTestId("locale-select") as HTMLSelectElement;
+    expect(localeSelect).toBeTruthy();
+    expect(localeSelect.tagName).toBe("SELECT");
+  });
+
+  it("should render locale select with correct options", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const localeSelect = screen.getByTestId("locale-select");
+    const options = localeSelect.querySelectorAll("option");
+
+    expect(options.length).toBe(2);
+    expect(options[0].value).toBe("zh-CN");
+    expect(options[1].value).toBe("en-US");
+  });
+
+  it("should render language settings section", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("语言设置")).toBeTruthy();
+    expect(screen.getByText("选择您喜欢的界面语言")).toBeTruthy();
+  });
+
+  it("should handle locale select change", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const localeSelect = screen.getByTestId("locale-select") as HTMLSelectElement;
+    fireEvent.change(localeSelect, { target: { value: "en-US" } });
+  });
+
+  it("should handle custom theme color change for bgPrimary", async () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const themeModeRadio = screen.getByTestId("radio-themeMode");
+    const customRadio = themeModeRadio.querySelector('input[value="custom"]') as HTMLInputElement;
+    fireEvent.click(customRadio);
+
+    await waitFor(() => {
+      const colorInputs = document.querySelectorAll('input[type="color"]');
+      expect(colorInputs.length).toBeGreaterThan(0);
+    });
+
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    const bgPrimaryInput = colorInputs[0] as HTMLInputElement;
+    fireEvent.change(bgPrimaryInput, { target: { value: "#ffffff" } });
+  });
+
+  it("should handle custom theme color change for bgSecondary", async () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const themeModeRadio = screen.getByTestId("radio-themeMode");
+    const customRadio = themeModeRadio.querySelector('input[value="custom"]') as HTMLInputElement;
+    fireEvent.click(customRadio);
+
+    await waitFor(() => {
+      const colorInputs = document.querySelectorAll('input[type="color"]');
+      expect(colorInputs.length).toBeGreaterThan(0);
+    });
+
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    const bgSecondaryInput = colorInputs[1] as HTMLInputElement;
+    fireEvent.change(bgSecondaryInput, { target: { value: "#f5f5f5" } });
+  });
+
+  it("should handle all custom theme color changes", async () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const themeModeRadio = screen.getByTestId("radio-themeMode");
+    const customRadio = themeModeRadio.querySelector('input[value="custom"]') as HTMLInputElement;
+    fireEvent.click(customRadio);
+
+    await waitFor(() => {
+      const colorInputs = document.querySelectorAll('input[type="color"]');
+      expect(colorInputs.length).toBeGreaterThan(0);
+    });
+
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    colorInputs.forEach((input) => {
+      fireEvent.change(input, { target: { value: `#ffffff` } });
+    });
   });
 });

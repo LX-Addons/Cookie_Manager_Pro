@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Cookie, SameSite } from "~types";
+import { useTranslation } from "~hooks/useTranslation";
 
 interface Props {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
   const [formData, setFormData] = useState<Cookie>(() =>
     cookie ? { ...cookie } : { ...DEFAULT_COOKIE }
   );
+  const { t } = useTranslation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,11 +57,13 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
         role="dialog"
         aria-modal="true"
       >
-        <h3 className="confirm-title">{cookie ? "编辑 Cookie" : "新建 Cookie"}</h3>
+        <h3 className="confirm-title">
+          {cookie ? t("cookieEditor.editCookie") : t("cookieEditor.createCookie")}
+        </h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label" htmlFor="cookie-name">
-              名称
+              {t("cookieEditor.name")}
             </label>
             <input
               id="cookie-name"
@@ -72,7 +76,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="cookie-value">
-              值
+              {t("cookieEditor.value")}
             </label>
             <textarea
               id="cookie-value"
@@ -84,7 +88,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="cookie-domain">
-              域名
+              {t("cookieEditor.domain")}
             </label>
             <input
               id="cookie-domain"
@@ -97,7 +101,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="cookie-path">
-              路径
+              {t("cookieEditor.path")}
             </label>
             <input
               id="cookie-path"
@@ -110,7 +114,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="cookie-expiration">
-              过期时间（Unix 时间戳，可选）
+              {t("cookieEditor.expiration")}
             </label>
             <input
               id="cookie-expiration"
@@ -123,12 +127,12 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
                   expirationDate: e.target.value ? Number(e.target.value) : undefined,
                 })
               }
-              placeholder="留空表示会话 Cookie"
+              placeholder={t("cookieEditor.expirationPlaceholder")}
             />
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="cookie-samesite">
-              SameSite
+              {t("cookieEditor.sameSite")}
             </label>
             <select
               id="cookie-samesite"
@@ -136,10 +140,10 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
               value={formData.sameSite}
               onChange={(e) => setFormData({ ...formData, sameSite: e.target.value as SameSite })}
             >
-              <option value="unspecified">未设置</option>
-              <option value="strict">Strict</option>
-              <option value="lax">Lax</option>
-              <option value="none">None</option>
+              <option value="unspecified">{t("cookieEditor.unspecified")}</option>
+              <option value="strict">{t("cookieEditor.strict")}</option>
+              <option value="lax">{t("cookieEditor.lax")}</option>
+              <option value="none">{t("cookieEditor.none")}</option>
             </select>
           </div>
           <div className="checkbox-group">
@@ -149,7 +153,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
                 checked={formData.secure}
                 onChange={(e) => setFormData({ ...formData, secure: e.target.checked })}
               />
-              <span>Secure（仅 HTTPS）</span>
+              <span>{t("cookieEditor.secureOnly")}</span>
             </label>
             <label className="checkbox-label">
               <input
@@ -157,15 +161,15 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
                 checked={formData.httpOnly}
                 onChange={(e) => setFormData({ ...formData, httpOnly: e.target.checked })}
               />
-              <span>HttpOnly（禁止 JavaScript 访问）</span>
+              <span>{t("cookieEditor.httpOnlyOnly")}</span>
             </label>
           </div>
           <div className="confirm-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              取消
+              {t("common.cancel")}
             </button>
             <button type="submit" className="btn btn-primary">
-              保存
+              {t("common.save")}
             </button>
           </div>
         </form>

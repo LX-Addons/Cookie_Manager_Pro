@@ -52,4 +52,5 @@ export const DEFAULT_SETTINGS: Settings = {
   customTheme: DEFAULT_CUSTOM_THEME,
   scheduleInterval: ScheduleInterval.DISABLED,
   showCookieRisk: true,
+  locale: "zh-CN",
 };

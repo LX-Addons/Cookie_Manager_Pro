@@ -32,7 +32,17 @@ export const isInList = (domain: string, list: string[]): boolean => {
   });
 };
 
-export const getCookieTypeName = (type: string): string => {
+export const getCookieTypeName = (type: string, t?: (key: string) => string): string => {
+  if (t) {
+    switch (type) {
+      case "session":
+        return t("cookieTypes.session");
+      case "persistent":
+        return t("cookieTypes.persistent");
+      default:
+        return t("cookieTypes.all");
+    }
+  }
   switch (type) {
     case "session":
       return "会话Cookie";
@@ -80,7 +90,8 @@ export const isThirdPartyCookie = (cookieDomain: string, currentDomain?: string)
 
 export const assessCookieRisk = (
   cookie: { name: string; domain: string; httpOnly: boolean; secure?: boolean },
-  currentDomain?: string
+  currentDomain?: string,
+  t?: (key: string) => string
 ): CookieRisk => {
   let riskLevel: "low" | "medium" | "high" = "low";
   const reasons: string[] = [];
@@ -90,27 +101,27 @@ export const assessCookieRisk = (
 
   if (isTracking) {
     riskLevel = "high";
-    reasons.push("疑似追踪 Cookie");
+    reasons.push(t ? t("cookieList.trackingCookie") : "疑似追踪 Cookie");
   }
 
   if (isThirdParty) {
     if (riskLevel === "low") riskLevel = "medium";
-    reasons.push("第三方 Cookie");
+    reasons.push(t ? t("cookieList.thirdPartyCookie") : "第三方 Cookie");
   }
 
   if (!cookie.httpOnly) {
     if (riskLevel === "low") riskLevel = "medium";
-    reasons.push("非 HttpOnly（可被 JavaScript 访问）");
+    reasons.push(t ? t("cookieList.notHttpOnly") : "非 HttpOnly（可被 JavaScript 访问）");
   }
 
   if (!cookie.secure && cookie.domain.startsWith(".")) {
     if (riskLevel === "low") riskLevel = "medium";
-    reasons.push("非 Secure（可能在不安全连接中传输）");
+    reasons.push(t ? t("cookieList.notSecure") : "非 Secure（可能在不安全连接中传输）");
   }
 
   return {
     level: riskLevel,
-    reason: reasons.length > 0 ? reasons.join("、") : "低风险",
+    reason: reasons.length > 0 ? reasons.join("、") : t ? t("cookieList.lowRisk") : "低风险",
     isTracking,
     isThirdParty,
   };
@@ -127,7 +138,17 @@ export const getRiskLevelColor = (level: string): string => {
   }
 };
 
-export const getRiskLevelText = (level: string): string => {
+export const getRiskLevelText = (level: string, t?: (key: string) => string): string => {
+  if (t) {
+    switch (level) {
+      case "high":
+        return t("cookieList.highRisk");
+      case "medium":
+        return t("cookieList.mediumRisk");
+      default:
+        return t("cookieList.lowRisk");
+    }
+  }
   switch (level) {
     case "high":
       return "高风险";
@@ -289,7 +310,23 @@ export const clearBrowserData = async (domains: Set<string>, options: ClearBrows
   }
 };
 
-export const getActionText = (action: string): string => {
+export const getActionText = (action: string, t?: (key: string) => string): string => {
+  if (t) {
+    switch (action) {
+      case "clear":
+        return t("actions.clear");
+      case "edit":
+        return t("actions.edit");
+      case "delete":
+        return t("actions.delete");
+      case "import":
+        return t("actions.import");
+      case "export":
+        return t("actions.export");
+      default:
+        return t("actions.action");
+    }
+  }
   switch (action) {
     case "clear":
       return "清除";
@@ -323,7 +360,7 @@ export const getActionColor = (action: string): string => {
   }
 };
 
-export const formatLogTime = (timestamp: number): string => {
+export const formatLogTime = (timestamp: number, _t?: (key: string) => string): string => {
   const date = new Date(timestamp);
   return date.toLocaleString("zh-CN", {
     year: "numeric",
@@ -353,17 +390,20 @@ export const toggleSetValue = (set: Set<string>, value: string): Set<string> => 
   return next;
 };
 
-export const validateDomain = (domain: string): { valid: boolean; message?: string } => {
+export const validateDomain = (
+  domain: string,
+  t?: (key: string) => string
+): { valid: boolean; message?: string } => {
   const trimmed = domain.trim();
   if (!trimmed) {
-    return { valid: false, message: "域名不能为空" };
+    return { valid: false, message: t ? t("domainManager.domainEmpty") : "域名不能为空" };
   }
   if (
     !/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/.test(
       trimmed
     )
   ) {
-    return { valid: false, message: "域名格式不正确" };
+    return { valid: false, message: t ? t("domainManager.invalidDomain") : "域名格式不正确" };
   }
   return { valid: true };
 };

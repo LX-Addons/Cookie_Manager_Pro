@@ -14,7 +14,8 @@ updates:
       prefix: "deps"
       include: "scope"
     labels:
-      - "automated"
+      - "dependencies"
+      - "待审核"
     reviewers:
       - "LJL-zy"
     cooldown:
@@ -92,6 +93,8 @@ updates:
       include: "scope"
     labels:
       - "github-actions"
+      - "dependencies"
+      - "待审核"
     reviewers:
       - "LJL-zy"
     cooldown:

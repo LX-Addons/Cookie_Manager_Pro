@@ -3,6 +3,7 @@ import { useStorage } from "@plasmohq/storage/hook";
 import { WHITELIST_KEY, BLACKLIST_KEY } from "~store";
 import type { DomainList } from "~types";
 import { validateDomain } from "~utils";
+import { useTranslation } from "~hooks/useTranslation";
 
 interface Props {
   type: "whitelist" | "blacklist";
@@ -17,51 +18,63 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
     type === "whitelist" ? WHITELIST_KEY : BLACKLIST_KEY,
     []
   );
+  const { t } = useTranslation();
 
   const addDomain = useCallback(
     (domain: string) => {
       const trimmed = domain.trim();
-      const validation = validateDomain(domain);
+      const validation = validateDomain(domain, t);
       if (!validation.valid) {
-        onMessage(validation.message || "域名格式不正确");
+        onMessage(validation.message || t("domainManager.invalidDomain"));
         return;
       }
       if (list.includes(trimmed)) {
-        onMessage(`${trimmed} 已在${type === "whitelist" ? "白名单" : "黑名单"}中`);
+        onMessage(
+          t("domainManager.alreadyInList", {
+            domain: trimmed,
+            listType: type === "whitelist" ? t("tabs.whitelist") : t("tabs.blacklist"),
+          })
+        );
         return;
       }
       setList([...list, trimmed]);
       setInputValue("");
-      onMessage(`已添加到${type === "whitelist" ? "白名单" : "黑名单"}`);
+      onMessage(
+        t("domainManager.addedToList", {
+          listType: type === "whitelist" ? t("tabs.whitelist") : t("tabs.blacklist"),
+        })
+      );
     },
-    [list, type, onMessage, setList]
+    [list, onMessage, setList, t, type]
   );
 
   const removeDomain = useCallback(
     (domain: string) => {
       setList(list.filter((d) => d !== domain));
-      onMessage("已删除");
+      onMessage(t("domainManager.deleted"));
     },
-    [list, setList, onMessage]
+    [list, setList, onMessage, t]
   );
 
   return (
     <div className="section">
-      <h3>{type === "whitelist" ? "白名单域名" : "黑名单域名"}</h3>
-      <p className="help-text">
+      <h3>
         {type === "whitelist"
-          ? "白名单中的域名Cookie不会被清除"
-          : "黑名单中的域名Cookie将被优先清除"}
+          ? t("domainManager.whitelistDomains")
+          : t("domainManager.blacklistDomains")}
+      </h3>
+      <p className="help-text">
+        {type === "whitelist" ? t("domainManager.whitelistHelp") : t("domainManager.blacklistHelp")}
       </p>
       <div className="input-group">
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="例如: google.com"
+          placeholder={t("domainManager.domainPlaceholder")}
         />
         <button onClick={() => addDomain(inputValue)} className="btn btn-primary">
-          添加
+          {t("common.add")}
         </button>
       </div>
       <button
@@ -69,11 +82,11 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
         className="btn btn-secondary"
         disabled={!currentDomain}
       >
-        添加当前网站
+        {t("domainManager.addCurrentWebsite")}
       </button>
       {type === "blacklist" && onClearBlacklist && (
         <button onClick={onClearBlacklist} className="btn btn-danger btn-margin-top">
-          清除黑名单Cookie
+          {t("domainManager.clearBlacklistCookies")}
         </button>
       )}
       <ul className="domain-list">
@@ -81,7 +94,7 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
           <li key={domain}>
             <span>{domain}</span>
             <button className="remove-btn" onClick={() => removeDomain(domain)}>
-              删除
+              {t("common.delete")}
             </button>
           </li>
         ))}

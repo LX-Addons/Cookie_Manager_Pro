@@ -139,6 +139,30 @@ describe("getCookieTypeName", () => {
     expect(getCookieTypeName("unknown")).toBe("所有Cookie");
     expect(getCookieTypeName("")).toBe("所有Cookie");
   });
+
+  it("should return translated name for session type with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieTypes.session") return "Session Cookie";
+      return key;
+    });
+    expect(getCookieTypeName("session", mockT)).toBe("Session Cookie");
+  });
+
+  it("should return translated name for persistent type with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieTypes.persistent") return "Persistent Cookie";
+      return key;
+    });
+    expect(getCookieTypeName("persistent", mockT)).toBe("Persistent Cookie");
+  });
+
+  it("should return translated default name for unknown type with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieTypes.all") return "All Cookies";
+      return key;
+    });
+    expect(getCookieTypeName("unknown", mockT)).toBe("All Cookies");
+  });
 });
 
 describe("buildOrigins", () => {
@@ -534,6 +558,41 @@ describe("getRiskLevelText", () => {
   it("should return low risk for unknown risk level", () => {
     expect(getRiskLevelText("unknown")).toBe("低风险");
   });
+
+  it("should return translated text for high risk with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieList.highRisk") return "High Risk";
+      return key;
+    });
+    expect(getRiskLevelText("high", mockT)).toBe("High Risk");
+    expect(mockT).toHaveBeenCalledWith("cookieList.highRisk");
+  });
+
+  it("should return translated text for medium risk with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieList.mediumRisk") return "Medium Risk";
+      return key;
+    });
+    expect(getRiskLevelText("medium", mockT)).toBe("Medium Risk");
+    expect(mockT).toHaveBeenCalledWith("cookieList.mediumRisk");
+  });
+
+  it("should return translated text for low risk with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieList.lowRisk") return "Low Risk";
+      return key;
+    });
+    expect(getRiskLevelText("low", mockT)).toBe("Low Risk");
+    expect(mockT).toHaveBeenCalledWith("cookieList.lowRisk");
+  });
+
+  it("should return translated text for unknown risk level with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieList.lowRisk") return "Low Risk";
+      return key;
+    });
+    expect(getRiskLevelText("unknown", mockT)).toBe("Low Risk");
+  });
 });
 
 describe("clearSingleCookie", () => {
@@ -703,6 +762,54 @@ describe("getActionText", () => {
   it("should return default text for unknown action", () => {
     expect(getActionText("unknown")).toBe("操作");
     expect(getActionText("")).toBe("操作");
+  });
+
+  it("should return translated text for clear action with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "actions.clear") return "Clear";
+      return key;
+    });
+    expect(getActionText("clear", mockT)).toBe("Clear");
+  });
+
+  it("should return translated text for edit action with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "actions.edit") return "Edit";
+      return key;
+    });
+    expect(getActionText("edit", mockT)).toBe("Edit");
+  });
+
+  it("should return translated text for delete action with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "actions.delete") return "Delete";
+      return key;
+    });
+    expect(getActionText("delete", mockT)).toBe("Delete");
+  });
+
+  it("should return translated text for import action with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "actions.import") return "Import";
+      return key;
+    });
+    expect(getActionText("import", mockT)).toBe("Import");
+  });
+
+  it("should return translated text for export action with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "actions.export") return "Export";
+      return key;
+    });
+    expect(getActionText("export", mockT)).toBe("Export");
+  });
+
+  it("should return translated default text for unknown action with t function", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "actions.action") return "Action";
+      return key;
+    });
+    expect(getActionText("unknown", mockT)).toBe("Action");
   });
 });
 
