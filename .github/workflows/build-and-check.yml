@@ -292,22 +292,25 @@ jobs:
         id: audit
         run: |
           echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
+          
+          AUDIT_OUTPUT=$(npm audit --audit-level=moderate 2>&1) || true
+          AUDIT_EXIT_CODE=$?
+          
           echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY 2>&1
-          AUDIT_EXIT_CODE=$?
+          echo "$AUDIT_OUTPUT" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
           
-          if [ $AUDIT_EXIT_CODE -ne 0 ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ **发现安全漏洞！** 请查看上方审计报告并修复。" >> $GITHUB_STEP_SUMMARY
-            echo "audit_status=warning" >> $GITHUB_OUTPUT
-          else
+          if echo "$AUDIT_OUTPUT" | grep -q "found 0 vulnerabilities"; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ 未发现安全漏洞" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=clean" >> $GITHUB_OUTPUT
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **发现安全漏洞！** 请查看上方审计报告并修复。" >> $GITHUB_STEP_SUMMARY
+            echo "audit_status=warning" >> $GITHUB_OUTPUT
           fi
 
       - name: 安全模式检查
