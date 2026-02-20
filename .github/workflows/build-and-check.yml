@@ -231,11 +231,23 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: SonarCloud 代码扫描
+        id: sonar
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: SonarCloud 扫描结果报告
+        if: always()
+        run: |
+          if [ "${{ steps.sonar.outcome }}" = "failure" ]; then
+            echo "### ⚠️ SonarCloud 扫描失败" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "SonarCloud 代码质量扫描未能完成，请检查 SONAR_TOKEN 配置或访问 SonarCloud 查看详情。" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.sonar.outcome }}" = "success" ]; then
+            echo "### ✅ SonarCloud 扫描完成" >> $GITHUB_STEP_SUMMARY
+          fi
 
   security:
     name: 安全扫描
@@ -277,15 +289,26 @@ jobs:
           extra_args: --only-verified
 
       - name: 依赖安全审计
+        id: audit
         run: |
           echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
           echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY 2>&1
+          AUDIT_EXIT_CODE=$?
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
-        continue-on-error: true
+          
+          if [ $AUDIT_EXIT_CODE -ne 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **发现安全漏洞！** 请查看上方审计报告并修复。" >> $GITHUB_STEP_SUMMARY
+            echo "audit_status=warning" >> $GITHUB_OUTPUT
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ 未发现安全漏洞" >> $GITHUB_STEP_SUMMARY
+            echo "audit_status=clean" >> $GITHUB_OUTPUT
+          fi
 
       - name: 安全模式检查
         run: |
@@ -314,7 +337,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [setup, lint, test]
-    if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped') && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    if: needs.lint.result == 'success' && needs.test.result == 'success'
     outputs:
       version: ${{ steps.version.outputs.version }}
       name: ${{ steps.version.outputs.name }}
@@ -636,10 +659,9 @@ jobs:
     timeout-minutes: 15
     needs: [setup, build, e2e, security]
     if: |
-      always() &&
       needs.build.result == 'success' &&
       (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') &&
-      (needs.security.result == 'success' || needs.security.result == 'skipped') &&
+      needs.security.result == 'success' &&
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.create_release == 'true'
     steps:

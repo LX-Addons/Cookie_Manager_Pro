@@ -224,7 +224,3 @@ export interface Translations {
     action: string;
   };
 }
-
-export interface TranslationKey {
-  (path: string, params?: Record<string, string | number>): string;
-}
