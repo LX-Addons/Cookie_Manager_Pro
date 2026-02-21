@@ -111,7 +111,9 @@
     "clearLocalStorage": "Clear local storage",
     "clearIndexedDB": "Clear IndexedDB",
     "clearCache": "Clear cache",
-    "settingsSaved": "Settings saved"
+    "settingsSaved": "Settings saved",
+    "language": "Language",
+    "languageDesc": "Select your preferred interface language"
   },
   "domainManager": {
     "whitelistDomains": "Whitelist Domains",

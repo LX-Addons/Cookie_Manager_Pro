@@ -80,10 +80,10 @@ jobs:
               '${{ runner.os }}-' + branchPrefix + '-plasmo-'
             ];
             let cachesCleared = 0;
-            
+
             console.log('🔍 正在清除当前分支相关缓存...');
             console.log('分支前缀: ' + branchPrefix);
-            
+
             for (const prefix of prefixes) {
               let page = 1;
               const perPage = 100;
@@ -118,7 +118,7 @@ jobs:
                 page++;
               }
             }
-            
+
             console.log(`\n✅ 成功清除 ${cachesCleared} 个缓存`);
 
       - name: 输出准备摘要
@@ -231,11 +231,23 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: SonarCloud 代码扫描
+        id: sonar
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: SonarCloud 扫描结果报告
+        if: always()
+        run: |
+          if [ "${{ steps.sonar.outcome }}" = "failure" ]; then
+            echo "### ⚠️ SonarCloud 扫描失败" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "SonarCloud 代码质量扫描未能完成，请检查 SONAR_TOKEN 配置或访问 SonarCloud 查看详情。" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.sonar.outcome }}" = "success" ]; then
+            echo "### ✅ SonarCloud 扫描完成" >> $GITHUB_STEP_SUMMARY
+          fi
 
   security:
     name: 安全扫描
@@ -277,21 +289,34 @@ jobs:
           extra_args: --only-verified
 
       - name: 依赖安全审计
+        id: audit
         run: |
           echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
+
+          AUDIT_OUTPUT=$(npm audit --audit-level=moderate 2>&1) || true
+
           echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          echo "$AUDIT_OUTPUT" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
-        continue-on-error: true
+
+          if echo "$AUDIT_OUTPUT" | grep -q "found 0 vulnerabilities"; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ 未发现安全漏洞" >> $GITHUB_STEP_SUMMARY
+            echo "audit_status=clean" >> $GITHUB_OUTPUT
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **发现安全漏洞！** 请查看上方审计报告并修复。" >> $GITHUB_STEP_SUMMARY
+            echo "audit_status=warning" >> $GITHUB_OUTPUT
+          fi
 
       - name: 安全模式检查
         run: |
           echo "### 🔍 安全模式检查" >> $GITHUB_STEP_SUMMARY
           EXIT_CODE=0
-          
+
           echo "#### eval 使用检查" >> $GITHUB_STEP_SUMMARY
           if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
             echo "❌ 发现 eval() 使用 - 潜在安全风险" >> $GITHUB_STEP_SUMMARY
@@ -299,14 +324,14 @@ jobs:
           else
             echo "✅ 未发现 eval() 使用" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "#### dangerouslySetInnerHTML 检查" >> $GITHUB_STEP_SUMMARY
           if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
             echo "⚠️ 发现 dangerouslySetInnerHTML 使用 - XSS 风险" >> $GITHUB_STEP_SUMMARY
           else
             echo "✅ 未发现 dangerouslySetInnerHTML 使用" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           exit $EXIT_CODE
 
   build:
@@ -314,7 +339,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [setup, lint, test]
-    if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped') && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    if: needs.lint.result == 'success' && needs.test.result == 'success'
     outputs:
       version: ${{ steps.version.outputs.version }}
       name: ${{ steps.version.outputs.name }}
@@ -381,15 +406,15 @@ jobs:
       - name: 验证构建产物
         run: |
           BUILD_DIR="build/chrome-mv3-prod"
-          
+
           if [ ! -d "$BUILD_DIR" ]; then
             echo "❌ 构建目录不存在: $BUILD_DIR"
             exit 1
           fi
-          
+
           echo "📁 构建内容:"
           ls -la "$BUILD_DIR"
-          
+
           REQUIRED_FILES=("manifest.json" "popup.html")
           for file in "${REQUIRED_FILES[@]}"; do
             if [ -f "$BUILD_DIR/$file" ]; then
@@ -399,7 +424,7 @@ jobs:
               exit 1
             fi
           done
-          
+
           if [ -f "$BUILD_DIR/manifest.json" ]; then
             echo "📄 Manifest 内容:"
             jq '.' "$BUILD_DIR/manifest.json"
@@ -412,11 +437,11 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
           NAME=${{ steps.version.outputs.name }}
-          
+
           if [ -d "build/chrome-mv3-prod" ]; then
             mv "build/chrome-mv3-prod" "build/${NAME}-${VERSION}-chrome"
           fi
-          
+
           if [ -f "build/chrome-mv3-prod.zip" ]; then
             mv "build/chrome-mv3-prod.zip" "build/${NAME}-${VERSION}-chrome.zip"
           fi
@@ -480,11 +505,11 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' package.json)
           NAME=$(jq -r '.name' package.json)
-          
+
           if [ -d "build/${NAME}-${VERSION}-chrome" ]; then
             mv "build/${NAME}-${VERSION}-chrome" "build/chrome-mv3-prod"
           fi
-          
+
           ls -la build/
 
       - name: 安装 Playwright 浏览器
@@ -538,20 +563,20 @@ jobs:
             const e2eResult = '${{ needs.e2e.result }}';
             const version = '${{ steps.info.outputs.version }}';
             const isDependabot = '${{ steps.dependabot.outputs.is_dependabot }}' === 'true';
-            
+
             const statusEmoji = (result) => {
               if (result === 'success') return '✅';
               if (result === 'failure') return '❌';
               if (result === 'skipped') return '⏭️';
               return '⚠️';
             };
-            
+
             const statusColor = (result) => {
               if (result === 'success') return 'brightgreen';
               if (result === 'failure') return 'red';
               return 'yellow';
             };
-            
+
             const getBadge = (label, result) => {
               const color = statusColor(result);
               return `![${label}](https://img.shields.io/badge/${encodeURIComponent(label)}-${result}-${color}?style=flat-square)`;
@@ -559,7 +584,7 @@ jobs:
 
             let body = `## 🛠️ 扩展构建仪表盘\n\n`;
             body += `> **版本:** \`${version}\` | **分支:** \`${{ github.ref_name }}\` | **运行 ID:** [#${{ github.run_number }}](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})\n\n`;
-            
+
             body += `### 📊 检查结果概览\n\n`;
             body += `| 阶段 | 检查项 | 状态 | 说明 |\n`;
             body += `| :---: | :--- | :---: | :--- |\n`;
@@ -569,27 +594,34 @@ jobs:
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | 密钥泄露 + 依赖审计 |\n`;
             body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | Plasmo 生产构建 |\n`;
             body += `| 🎭 | **E2E 测试** | ${statusEmoji(e2eResult)} | Playwright 浏览器测试 |\n\n`;
-            
+
             body += `### 🏷️ 状态徽章\n\n`;
             body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityResult)} ${getBadge('构建', buildResult)} ${getBadge('E2E测试', e2eResult)}\n\n`;
-            
+
+            const results = {
+              lint: lintResult,
+              test: testResult,
+              security: securityResult,
+              build: buildResult
+            };
+
             const allSuccess = ['lint', 'test', 'security', 'build'].every(r => 
-              eval(r + 'Result') === 'success' || eval(r + 'Result') === 'skipped'
+              results[r] === 'success' || results[r] === 'skipped'
             );
             const e2eSuccess = e2eResult === 'success' || e2eResult === 'skipped';
-            
+
             if (allSuccess && e2eSuccess) {
               body += `> 🎉 **所有检查已通过！** 代码已准备好合并。\n\n`;
             } else {
               body += `> ⚠️ **部分检查未通过**，请查看上方详情或检查日志。\n\n`;
             }
-            
+
             if (buildResult === 'success') {
               body += `---\n\n`;
               body += `### 📥 下载构建产物\n\n`;
               body += `构建产物可在 [工作流运行页面](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}) 的 **Artifacts** 区域下载。\n\n`;
             }
-            
+
             if (isDependabot) {
               body += `---\n\n`;
               body += `### 🤖 Dependabot 依赖更新\n\n`;
@@ -600,7 +632,7 @@ jobs:
                 body += `⚠️ 部分检查未通过，需要人工审核。\n`;
               }
             }
-            
+
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -636,10 +668,9 @@ jobs:
     timeout-minutes: 15
     needs: [setup, build, e2e, security]
     if: |
-      always() &&
       needs.build.result == 'success' &&
       (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') &&
-      (needs.security.result == 'success' || needs.security.result == 'skipped') &&
+      needs.security.result == 'success' &&
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.create_release == 'true'
     steps:
@@ -668,17 +699,17 @@ jobs:
         run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           CURRENT_VERSION="${{ steps.version.outputs.version }}"
-          
+
           if [ -z "$PREVIOUS_TAG" ]; then
             NOTES=$(npx git-cliff --strip header 2>/dev/null || echo "初始发布 v${CURRENT_VERSION}")
           else
             NOTES=$(npx git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "发布 v${CURRENT_VERSION}")
           fi
-          
+
           if [ -z "$NOTES" ] || [ "$NOTES" = "## [Unreleased]" ]; then
             NOTES="## 更新内容\n\n- 版本更新至 ${CURRENT_VERSION}"
           fi
-          
+
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo -e "$NOTES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

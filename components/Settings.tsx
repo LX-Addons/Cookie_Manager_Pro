@@ -98,8 +98,8 @@ export const Settings = ({ onMessage }: Props) => {
       </div>
 
       <div className="section">
-        <h3>语言设置</h3>
-        <p className="setting-description">选择您喜欢的界面语言</p>
+        <h3>{t("settings.language")}</h3>
+        <p className="setting-description">{t("settings.languageDesc")}</p>
         <select
           data-testid="locale-select"
           className="select-input"

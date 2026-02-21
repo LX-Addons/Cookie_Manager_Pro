@@ -7,6 +7,7 @@ import { CookieList } from "~components/CookieList";
 import { ErrorBoundary } from "~components/ErrorBoundary";
 import { ConfirmDialog } from "~components/ConfirmDialog";
 import { useTranslation } from "~hooks/useTranslation";
+import { useConfirmDialog } from "~hooks/useConfirmDialog";
 import {
   WHITELIST_KEY,
   BLACKLIST_KEY,
@@ -32,14 +33,6 @@ import {
 import { MESSAGE_DURATION, DEBOUNCE_DELAY_MS } from "~constants";
 import "./style.css";
 
-interface ConfirmState {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  variant: "danger" | "warning";
-  onConfirm: () => void;
-}
-
 function IndexPopup() {
   const [currentDomain, setCurrentDomain] = useState("");
   const [activeTab, setActiveTab] = useState("manage");
@@ -59,14 +52,9 @@ function IndexPopup() {
     }
     return "light";
   });
-  const [confirmState, setConfirmState] = useState<ConfirmState>({
-    isOpen: false,
-    title: "",
-    message: "",
-    variant: "warning",
-    onConfirm: () => {},
-  });
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { confirmState, showConfirm, closeConfirm, handleConfirm } = useConfirmDialog();
 
   const [whitelist, setWhitelist] = useStorage<DomainList>(WHITELIST_KEY, []);
   const [blacklist, setBlacklist] = useStorage<DomainList>(BLACKLIST_KEY, []);
@@ -307,22 +295,6 @@ function IndexPopup() {
       showMessage(t("popup.alreadyInBlacklist", { domain: currentDomain }));
     }
   }, [currentDomain, blacklist, setBlacklist, showMessage, t]);
-
-  const showConfirm = useCallback(
-    (title: string, message: string, variant: "danger" | "warning", onConfirm: () => void) => {
-      setConfirmState({ isOpen: true, title, message, variant, onConfirm });
-    },
-    []
-  );
-
-  const closeConfirm = useCallback(() => {
-    setConfirmState((prev) => ({ ...prev, isOpen: false }));
-  }, []);
-
-  const handleConfirm = useCallback(() => {
-    confirmState.onConfirm();
-    closeConfirm();
-  }, [confirmState, closeConfirm]);
 
   const quickClearCurrent = useCallback(() => {
     showConfirm(
