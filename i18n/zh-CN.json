@@ -111,7 +111,9 @@
     "clearLocalStorage": "清理本地存储",
     "clearIndexedDB": "清理索引数据库",
     "clearCache": "清理缓存",
-    "settingsSaved": "设置已保存"
+    "settingsSaved": "设置已保存",
+    "language": "语言设置",
+    "languageDesc": "选择您喜欢的界面语言"
   },
   "domainManager": {
     "whitelistDomains": "白名单域名",

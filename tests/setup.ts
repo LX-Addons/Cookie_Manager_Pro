@@ -113,6 +113,8 @@ vi.mock("~hooks/useTranslation", () => ({
       "settings.clearIndexedDB": "清理索引数据库",
       "settings.clearCache": "清理缓存",
       "settings.settingsSaved": "设置已保存",
+      "settings.language": "语言设置",
+      "settings.languageDesc": "选择您喜欢的界面语言",
       "domainManager.whitelistDomains": "白名单域名",
       "domainManager.blacklistDomains": "黑名单域名",
       "domainManager.whitelistHelp": "白名单中的域名Cookie不会被清除",
