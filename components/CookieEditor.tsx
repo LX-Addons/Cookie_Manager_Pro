@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Cookie, SameSite } from "~types";
-import { useTranslation } from "~hooks/useTranslation";
+import type { Cookie, SameSite } from "@/types";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {
   isOpen: boolean;

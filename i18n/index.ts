@@ -1,6 +1,6 @@
 import zhCN from "./zh-CN.json";
 import enUS from "./en-US.json";
-import type { Locale as ProjectLocale } from "~types";
+import type { Locale as ProjectLocale } from "@/types";
 import type { Translations } from "./types";
 
 type Locale = ProjectLocale;

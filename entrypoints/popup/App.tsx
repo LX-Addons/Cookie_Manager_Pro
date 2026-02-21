@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { useStorage } from "@plasmohq/storage/hook";
-import { DomainManager } from "~components/DomainManager";
-import { Settings } from "~components/Settings";
-import { ClearLog } from "~components/ClearLog";
-import { CookieList } from "~components/CookieList";
-import { ErrorBoundary } from "~components/ErrorBoundary";
-import { ConfirmDialog } from "~components/ConfirmDialog";
-import { useTranslation } from "~hooks/useTranslation";
-import { useConfirmDialog } from "~hooks/useConfirmDialog";
+import { createRoot } from "react-dom/client";
+import { useStorage } from "@/hooks/useStorage";
+import { DomainManager } from "@/components/DomainManager";
+import { Settings } from "@/components/Settings";
+import { ClearLog } from "@/components/ClearLog";
+import { CookieList } from "@/components/CookieList";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   WHITELIST_KEY,
   BLACKLIST_KEY,
@@ -15,22 +16,22 @@ import {
   CLEAR_LOG_KEY,
   DEFAULT_SETTINGS,
   LOG_RETENTION_MAP,
-} from "~store";
+} from "@/lib/store";
 import type {
   DomainList,
   CookieStats,
   Settings as SettingsType,
   ClearLogEntry,
   Cookie,
-} from "~types";
-import { CookieClearType, ThemeMode, LogRetention, ModeType } from "~types";
-import { isDomainMatch, isInList, isTrackingCookie, isThirdPartyCookie } from "~utils";
+} from "@/types";
+import { CookieClearType, ThemeMode, LogRetention, ModeType } from "@/types";
+import { isDomainMatch, isInList, isTrackingCookie, isThirdPartyCookie } from "@/utils";
 import {
   performCleanupWithFilter,
   cleanupExpiredCookies as cleanupExpiredCookiesUtil,
   performCleanup,
-} from "~utils/cleanup";
-import { MESSAGE_DURATION, DEBOUNCE_DELAY_MS } from "~constants";
+} from "@/utils/cleanup";
+import { MESSAGE_DURATION, DEBOUNCE_DELAY_MS } from "@/lib/constants";
 import "./style.css";
 
 function IndexPopup() {
@@ -273,10 +274,10 @@ function IndexPopup() {
 
       updateStats();
     } catch (e) {
-      console.error("Failed to cleanup expired cookies:", e);
-      showMessage(t("popup.cleanExpiredFailed"), true);
-    }
-  }, [addLog, showMessage, updateStats, t]);
+        console.error("Failed to cleanup expired cookies:", e);
+        showMessage(t("popup.cleanExpiredFailed"), true);
+      }
+    }, [addLog, showMessage, updateStats, t]);
 
   const quickAddToWhitelist = useCallback(() => {
     if (currentDomain && !whitelist.includes(currentDomain)) {
@@ -593,4 +594,5 @@ function IndexPopup() {
   );
 }
 
-export default IndexPopup;
+const root = createRoot(document.getElementById("root")!);
+root.render(<IndexPopup />);

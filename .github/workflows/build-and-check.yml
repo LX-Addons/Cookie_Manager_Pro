@@ -18,7 +18,7 @@ on:
         default: false
         type: boolean
       clear_caches:
-        description: "清除旧的 npm 和 Plasmo 缓存后再构建"
+        description: "清除旧的 npm 和 WXT 缓存后再构建"
         required: false
         default: false
         type: boolean
@@ -77,7 +77,7 @@ jobs:
             const branchPrefix = '${{ github.ref_name }}'.replace(/[^a-zA-Z0-9-]/g, '-');
             const prefixes = [
               '${{ runner.os }}-' + branchPrefix + '-node-',
-              '${{ runner.os }}-' + branchPrefix + '-plasmo-'
+              '${{ runner.os }}-' + branchPrefix + '-wxt-'
             ];
             let cachesCleared = 0;
 
@@ -318,7 +318,7 @@ jobs:
           EXIT_CODE=0
 
           echo "#### eval 使用检查" >> $GITHUB_STEP_SUMMARY
-          if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
+          if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".wxt"; then
             echo "❌ 发现 eval() 使用 - 潜在安全风险" >> $GITHUB_STEP_SUMMARY
             EXIT_CODE=1
           else
@@ -326,7 +326,7 @@ jobs:
           fi
 
           echo "#### dangerouslySetInnerHTML 检查" >> $GITHUB_STEP_SUMMARY
-          if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
+          if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".wxt"; then
             echo "⚠️ 发现 dangerouslySetInnerHTML 使用 - XSS 风险" >> $GITHUB_STEP_SUMMARY
           else
             echo "✅ 未发现 dangerouslySetInnerHTML 使用" >> $GITHUB_STEP_SUMMARY
@@ -368,14 +368,14 @@ jobs:
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline
 
-      - name: 缓存 Plasmo 构建缓存
+      - name: 缓存 WXT 构建缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
         with:
-          path: .plasmo
-          key: ${{ runner.os }}-${{ github.ref_name }}-plasmo-${{ hashFiles('**/package-lock.json', 'src/**/*') }}
+          path: .wxt
+          key: ${{ runner.os }}-${{ github.ref_name }}-wxt-${{ hashFiles('**/package-lock.json', 'entrypoints/**/*', 'components/**/*', 'hooks/**/*', 'lib/**/*', 'i18n/**/*', 'utils/**/*', 'types/**/*', 'wxt.config.ts') }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-plasmo-
-            ${{ runner.os }}-plasmo-
+            ${{ runner.os }}-${{ github.ref_name }}-wxt-
+            ${{ runner.os }}-wxt-
 
       - name: 构建扩展
         run: npm run build
@@ -390,7 +390,7 @@ jobs:
 
       - name: 检查扩展体积
         run: |
-          BUILD_DIR="build/chrome-mv3-prod"
+          BUILD_DIR=".output/chrome-mv3"
           if [ -d "$BUILD_DIR" ]; then
             SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
             SIZE_MB=$((SIZE_KB / 1024))
@@ -405,7 +405,7 @@ jobs:
 
       - name: 验证构建产物
         run: |
-          BUILD_DIR="build/chrome-mv3-prod"
+          BUILD_DIR=".output/chrome-mv3"
 
           if [ ! -d "$BUILD_DIR" ]; then
             echo "❌ 构建目录不存在: $BUILD_DIR"
@@ -431,26 +431,26 @@ jobs:
           fi
 
       - name: 打包扩展
-        run: npm run package
+        run: npm run zip
 
       - name: 重命名构建产物
         run: |
           VERSION=${{ steps.version.outputs.version }}
           NAME=${{ steps.version.outputs.name }}
 
-          if [ -d "build/chrome-mv3-prod" ]; then
-            mv "build/chrome-mv3-prod" "build/${NAME}-${VERSION}-chrome"
+          if [ -d ".output/chrome-mv3" ]; then
+            mv ".output/chrome-mv3" ".output/${NAME}-${VERSION}-chrome"
           fi
 
-          if [ -f "build/chrome-mv3-prod.zip" ]; then
-            mv "build/chrome-mv3-prod.zip" "build/${NAME}-${VERSION}-chrome.zip"
+          if [ -f ".output/chrome-mv3.zip" ]; then
+            mv ".output/chrome-mv3.zip" ".output/${NAME}-${VERSION}-chrome.zip"
           fi
 
       - name: 上传构建产物
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: extension-${{ steps.version.outputs.version }}
-          path: build/
+          path: .output/
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
 
       - name: 输出构建摘要
@@ -498,7 +498,7 @@ jobs:
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           pattern: extension-*
-          path: build/
+          path: .output/
           merge-multiple: true
 
       - name: 准备测试扩展
@@ -506,11 +506,11 @@ jobs:
           VERSION=$(jq -r '.version' package.json)
           NAME=$(jq -r '.name' package.json)
 
-          if [ -d "build/${NAME}-${VERSION}-chrome" ]; then
-            mv "build/${NAME}-${VERSION}-chrome" "build/chrome-mv3-prod"
+          if [ -d ".output/${NAME}-${VERSION}-chrome" ]; then
+            mv ".output/${NAME}-${VERSION}-chrome" ".output/chrome-mv3"
           fi
 
-          ls -la build/
+          ls -la .output/
 
       - name: 安装 Playwright 浏览器
         run: npx playwright install --with-deps chromium
@@ -592,7 +592,7 @@ jobs:
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
             body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js 18/20 多版本测试 |\n`;
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | 密钥泄露 + 依赖审计 |\n`;
-            body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | Plasmo 生产构建 |\n`;
+            body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n`;
             body += `| 🎭 | **E2E 测试** | ${statusEmoji(e2eResult)} | Playwright 浏览器测试 |\n\n`;
 
             body += `### 🏷️ 状态徽章\n\n`;
@@ -691,7 +691,7 @@ jobs:
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           pattern: extension-*
-          path: build/
+          path: .output/
           merge-multiple: true
 
       - name: 生成更新日志
@@ -731,7 +731,7 @@ jobs:
           name: 发布 v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.notes }}
           files: |
-            build/*.zip
+            .output/*.zip
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           generate_release_notes: false
@@ -746,7 +746,7 @@ jobs:
           echo "| **类型** | ${{ github.ref == 'refs/heads/main' && '正式版' || '预发布版' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📦 发布资源:" >> $GITHUB_STEP_SUMMARY
-          ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
+          ls -la .output/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
 
   dependabot-notify:
     name: Dependabot通知

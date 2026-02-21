@@ -1,11 +1,11 @@
-import { useStorage } from "@plasmohq/storage/hook";
-import { SETTINGS_KEY, DEFAULT_SETTINGS, DEFAULT_CUSTOM_THEME } from "~store";
-import type { Settings as SettingsType, CustomTheme, Locale } from "~types";
-import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "~types";
-import { RadioGroup } from "~components/RadioGroup";
-import { CheckboxGroup } from "~components/CheckboxGroup";
+import { useStorage } from "@/hooks/useStorage";
+import { SETTINGS_KEY, DEFAULT_SETTINGS, DEFAULT_CUSTOM_THEME } from "@/lib/store";
+import type { Settings as SettingsType, CustomTheme, Locale } from "@/types";
+import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "@/types";
+import { RadioGroup } from "@/components/RadioGroup";
+import { CheckboxGroup } from "@/components/CheckboxGroup";
 import { useState } from "react";
-import { useTranslation } from "~hooks/useTranslation";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {
   onMessage: (msg: string) => void;
