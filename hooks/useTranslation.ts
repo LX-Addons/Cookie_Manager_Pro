@@ -26,9 +26,14 @@ export function useTranslation() {
     [settings, setSettings]
   );
 
-  const t = useCallback((path: string, params?: Record<string, string | number>): string => {
-    return translate(path, params);
-  }, []);
+  const t = useCallback(
+    (path: string, params?: Record<string, string | number>): string => {
+      return translate(path, params);
+    },
+    // locale dependency is required to invalidate memoization when language changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [settings.locale]
+  );
 
   return {
     t,

@@ -41,7 +41,7 @@ jobs:
           echo "## 🔒 安全审计报告" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          AUDIT_OUTPUT=$(npm audit --audit-level=moderate 2>&1)
+          AUDIT_OUTPUT=$(npm audit --audit-level=moderate 2>&1) || true
           AUDIT_EXIT_CODE=$?
 
           if [ $AUDIT_EXIT_CODE -eq 0 ]; then

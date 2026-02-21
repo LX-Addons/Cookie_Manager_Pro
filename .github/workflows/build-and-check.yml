@@ -294,7 +294,6 @@ jobs:
           echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
 
           AUDIT_OUTPUT=$(npm audit --audit-level=moderate 2>&1) || true
-          AUDIT_EXIT_CODE=$?
 
           echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
