@@ -598,8 +598,15 @@ jobs:
             body += `### 🏷️ 状态徽章\n\n`;
             body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityResult)} ${getBadge('构建', buildResult)} ${getBadge('E2E测试', e2eResult)}\n\n`;
 
+            const results = {
+              lint: lintResult,
+              test: testResult,
+              security: securityResult,
+              build: buildResult
+            };
+
             const allSuccess = ['lint', 'test', 'security', 'build'].every(r => 
-              eval(r + 'Result') === 'success' || eval(r + 'Result') === 'skipped'
+              results[r] === 'success' || results[r] === 'skipped'
             );
             const e2eSuccess = e2eResult === 'success' || e2eResult === 'skipped';
 
