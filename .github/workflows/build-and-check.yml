@@ -379,15 +379,20 @@ jobs:
 
       - name: 构建扩展
         run: |
-          npm run build
-          BUILD_EXIT_CODE=$?
-          if [ $BUILD_EXIT_CODE -ne 0 ]; then
-            echo "❌ 构建失败，退出码: $BUILD_EXIT_CODE"
-            exit $BUILD_EXIT_CODE
-          fi
+          set -e
+          echo "🔨 开始构建..."
+          npm run build 2>&1
+          echo "✅ 构建命令完成"
           
           echo "📁 构建后检查 .output/ 目录:"
-          ls -la .output/ || echo "目录不存在"
+          if [ -d ".output" ]; then
+            ls -la .output/
+          else
+            echo "❌ .output/ 目录不存在"
+            echo "📁 当前目录内容:"
+            ls -la
+            exit 1
+          fi
 
       - name: 获取版本信息
         id: version
@@ -447,12 +452,22 @@ jobs:
           fi
 
       - name: 打包扩展
-        run: npm run zip
+        run: |
+          echo "📁 打包前 .output/ 目录内容:"
+          ls -la .output/
+          
+          npm run zip
+          
+          echo "📁 打包后 .output/ 目录内容:"
+          ls -la .output/
 
       - name: 重命名构建产物
         run: |
           VERSION=${{ steps.version.outputs.version }}
           NAME=${{ steps.version.outputs.name }}
+
+          echo "📁 重命名前 .output/ 目录内容:"
+          ls -la .output/
 
           if [ -d ".output/chrome-mv3" ]; then
             mv ".output/chrome-mv3" ".output/${NAME}-${VERSION}-chrome"
@@ -461,6 +476,9 @@ jobs:
           if [ -f ".output/chrome-mv3.zip" ]; then
             mv ".output/chrome-mv3.zip" ".output/${NAME}-${VERSION}-chrome.zip"
           fi
+          
+          echo "📁 重命名后 .output/ 目录内容:"
+          ls -la .output/
 
       - name: 验证构建产物
         run: |
