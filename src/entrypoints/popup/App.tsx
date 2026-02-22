@@ -274,10 +274,10 @@ function IndexPopup() {
 
       updateStats();
     } catch (e) {
-        console.error("Failed to cleanup expired cookies:", e);
-        showMessage(t("popup.cleanExpiredFailed"), true);
-      }
-    }, [addLog, showMessage, updateStats, t]);
+      console.error("Failed to cleanup expired cookies:", e);
+      showMessage(t("popup.cleanExpiredFailed"), true);
+    }
+  }, [addLog, showMessage, updateStats, t]);
 
   const quickAddToWhitelist = useCallback(() => {
     if (currentDomain && !whitelist.includes(currentDomain)) {

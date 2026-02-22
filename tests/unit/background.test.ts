@@ -15,7 +15,7 @@ vi.mock("wxt/utils/storage", () => ({
   Storage: MockStorage,
 }));
 
-vi.mock("~utils/cleanup", () => ({
+vi.mock("@/utils/cleanup", () => ({
   performCleanup: vi.fn(() => Promise.resolve({ count: 5, clearedDomains: ["example.com"] })),
   performCleanupWithFilter: vi.fn(() =>
     Promise.resolve({ count: 10, clearedDomains: ["test.com", "example.com"] })
@@ -221,7 +221,7 @@ describe("background", () => {
   });
 
   it("should handle scheduled cleanup alarm", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       scheduleInterval: "hourly",
@@ -241,7 +241,7 @@ describe("background", () => {
   });
 
   it("should not run scheduled cleanup when disabled", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       scheduleInterval: "disabled",
@@ -258,7 +258,7 @@ describe("background", () => {
   });
 
   it("should handle tab discard event with cleanup enabled", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -278,7 +278,7 @@ describe("background", () => {
   });
 
   it("should not cleanup on tab discard when disabled", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: false,
@@ -295,7 +295,7 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup when enabled", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -315,7 +315,7 @@ describe("background", () => {
   });
 
   it("should not cleanup on startup when disabled", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: false,
@@ -332,7 +332,7 @@ describe("background", () => {
   });
 
   it("should handle scheduled cleanup with interval elapsed", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       scheduleInterval: "daily",
@@ -352,7 +352,7 @@ describe("background", () => {
   });
 
   it("should not run scheduled cleanup when interval not elapsed", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       scheduleInterval: "daily",
@@ -372,7 +372,7 @@ describe("background", () => {
   });
 
   it("should handle scheduled cleanup with no settings", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     await import("../../background");
 
@@ -384,7 +384,7 @@ describe("background", () => {
   });
 
   it("should handle tab discard with invalid URL", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -404,7 +404,7 @@ describe("background", () => {
   });
 
   it("should handle tab discard without URL", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -424,7 +424,7 @@ describe("background", () => {
   });
 
   it("should handle tab update without discarded flag", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -444,7 +444,7 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup with no active tab", async () => {
-    await import("~utils/cleanup");
+    await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -472,7 +472,7 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup with active tab having no URL", async () => {
-    await import("~utils/cleanup");
+    await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -497,7 +497,7 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup with invalid URL in active tab", async () => {
-    await import("~utils/cleanup");
+    await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -519,7 +519,7 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup with invalid URL in all tabs", async () => {
-    await import("~utils/cleanup");
+    await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -547,7 +547,7 @@ describe("background", () => {
   });
 
   it("should handle alarm with different name", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       scheduleInterval: "hourly",
@@ -579,7 +579,7 @@ describe("background", () => {
   });
 
   it("should handle cleanup error in scheduled cleanup", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup failed"))
     );
@@ -600,7 +600,7 @@ describe("background", () => {
   });
 
   it("should handle cleanup error in tab discard", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
     (performCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup failed"))
     );
@@ -621,7 +621,7 @@ describe("background", () => {
   });
 
   it("should handle cleanup error in startup cleanup", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
     (performCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup failed"))
     );
@@ -642,7 +642,7 @@ describe("background", () => {
   });
 
   it("should handle tabs query error in startup cleanup", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -666,7 +666,7 @@ describe("background", () => {
   });
 
   it("should handle settings without enableAutoCleanup", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       cleanupOnTabDiscard: true,
@@ -682,7 +682,7 @@ describe("background", () => {
   });
 
   it("should handle settings without cleanupOnTabDiscard", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -698,7 +698,7 @@ describe("background", () => {
   });
 
   it("should handle settings without cleanupOnStartup", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       enableAutoCleanup: true,
@@ -714,7 +714,7 @@ describe("background", () => {
   });
 
   it("should handle settings with null value", async () => {
-    const { performCleanup } = await import("~utils/cleanup");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", null);
 
@@ -728,7 +728,7 @@ describe("background", () => {
   });
 
   it("should update lastScheduledCleanup after scheduled cleanup", async () => {
-    await import("~utils/cleanup");
+    await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       scheduleInterval: "hourly",
@@ -749,7 +749,7 @@ describe("background", () => {
   });
 
   it("should call checkScheduledCleanup on installed", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     mockStorageData.set("settings", {
       scheduleInterval: "hourly",

@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import IndexPopup from "../../popup";
-import * as storageHook from "wxt/utils/storage";
+import * as storageHook from "@/hooks/useStorage";
+
+vi.mock("@/hooks/useStorage", () => ({
+  useStorage: vi.fn(),
+}));
 
 interface CookieListProps {
   cookies: unknown[];
@@ -14,7 +18,7 @@ interface CookieListProps {
   onAddToBlacklist?: (domains: string[]) => void;
 }
 
-vi.mock("~utils/cleanup", () => ({
+vi.mock("@/utils/cleanup", () => ({
   performCleanupWithFilter: vi.fn(() =>
     Promise.resolve({ count: 5, clearedDomains: ["example.com"] })
   ),
@@ -23,7 +27,7 @@ vi.mock("~utils/cleanup", () => ({
 }));
 
 let cookieListProps: CookieListProps | null = null;
-vi.mock("~components/CookieList", () => ({
+vi.mock("@/components/CookieList", () => ({
   CookieList: vi.fn((props: CookieListProps) => {
     cookieListProps = props;
     return <div data-testid="cookie-list">Cookie 详情</div>;
@@ -260,7 +264,7 @@ describe("IndexPopup", () => {
   });
 
   it("should execute clear when confirm is clicked", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     render(<IndexPopup />);
 
@@ -280,7 +284,7 @@ describe("IndexPopup", () => {
   });
 
   it("should execute clear all when confirm is clicked", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     render(<IndexPopup />);
 
@@ -390,7 +394,7 @@ describe("IndexPopup", () => {
   });
 
   it("should show success message after clearing cookies", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     render(<IndexPopup />);
 
@@ -650,7 +654,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle multiple clears in sequence", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     render(<IndexPopup />);
 
@@ -753,7 +757,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle clearCookies error", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.reject(new Error("Failed to clear"))
     );
@@ -839,7 +843,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle clear with multiple domains", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({ count: 10, clearedDomains: ["example.com", "test.com", "other.com"] })
     );
@@ -862,7 +866,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle clear with zero count", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({ count: 0, clearedDomains: [] })
     );
@@ -912,7 +916,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle clear with single domain", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({ count: 5, clearedDomains: ["example.com"] })
     );
@@ -1042,7 +1046,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle error message with error class", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.reject(new Error("Failed"))
     );
@@ -1182,7 +1186,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle settings change triggering init", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const settingsMock = vi.fn((key: string, defaultValue: unknown) => {
       if (key === "settings") {
@@ -1296,7 +1300,7 @@ describe("IndexPopup", () => {
   });
 
   it("should apply custom theme CSS variables when theme is custom", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -1347,7 +1351,7 @@ describe("IndexPopup", () => {
   });
 
   it("should render CookieList with all required props", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const mockWhitelist = ["test.com"];
     const mockBlacklist = ["bad.com"];
@@ -1440,8 +1444,8 @@ describe("IndexPopup", () => {
 
 describe("IndexPopup onClearBlacklist", () => {
   it("should render blacklist tab and have clear blacklist button", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "blacklist",
@@ -1489,8 +1493,8 @@ describe("IndexPopup onClearBlacklist", () => {
   });
 
   it("should call onClearBlacklist and clear blacklist cookies", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     const { isInList } = await import("~utils");
 
     const mockSettings = {
@@ -1548,8 +1552,8 @@ describe("IndexPopup onClearBlacklist", () => {
   });
 
   it("should show message when no cookies to clear from blacklist", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     const { isInList } = await import("~utils");
 
     const mockSettings = {
@@ -1619,7 +1623,7 @@ describe("IndexPopup buildDomainString", () => {
 
 describe("IndexPopup addLog", () => {
   it("should render with FOREVER log retention", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1660,7 +1664,7 @@ describe("IndexPopup addLog", () => {
   });
 
   it("should render with 7d log retention", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1711,7 +1715,7 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
   });
 
   it("should render with existing whitelist", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -1761,7 +1765,7 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
   });
 
   it("should render with existing blacklist", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -1805,8 +1809,8 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
 
 describe("IndexPopup cleanupExpiredCookies", () => {
   it("should call cleanupExpiredCookies and clear expired cookies", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1851,8 +1855,8 @@ describe("IndexPopup cleanupExpiredCookies", () => {
   });
 
   it("should show message when no expired cookies found", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1897,8 +1901,8 @@ describe("IndexPopup cleanupExpiredCookies", () => {
   });
 
   it("should handle cleanupExpiredCookies error", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1949,7 +1953,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should call onAddToWhitelist callback with new domains", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1993,7 +1997,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should call onAddToBlacklist callback with new domains", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2037,7 +2041,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onAddToWhitelist with no new domains", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2081,7 +2085,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onAddToBlacklist with no new domains", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2125,8 +2129,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle cleanupStartup function", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanup } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2171,8 +2175,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle cleanupStartup with no count", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanup } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2250,8 +2254,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle buildDomainString with no cleared domains and current domain", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -2303,8 +2307,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle quickClearCurrent function", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -2356,8 +2360,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onClearBlacklist function", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     const { isInList } = await import("~utils");
 
     const mockSettings = {
@@ -2404,7 +2408,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should show already in blacklist message when domain exists", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -2460,7 +2464,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should call quickClearCurrent and clear cookies", async () => {
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({ count: 3, clearedDomains: ["example.com"] })
@@ -2480,8 +2484,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onClearBlacklist with multiple domains", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     const { isInList } = await import("~utils");
 
     const mockSettings = {
@@ -2535,8 +2539,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle cleanupStartup error", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanup } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanup } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2581,7 +2585,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should show already in whitelist message when domain exists", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
+    const { useStorage } = await import("@/hooks/useStorage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -2626,8 +2630,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onClearBlacklist with no cookies", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
     const { isInList } = await import("~utils");
 
     const mockSettings = {
@@ -2681,8 +2685,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle quickClearCurrent function", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2733,8 +2737,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle buildDomainString with multiple domains", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2785,8 +2789,8 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle buildDomainString with all websites", async () => {
-    const { useStorage } = await import("wxt/utils/storage");
-    const { performCleanupWithFilter } = await import("~utils/cleanup");
+    const { useStorage } = await import("@/hooks/useStorage");
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
     const mockSettings = {
       mode: "whitelist",

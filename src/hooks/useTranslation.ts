@@ -13,13 +13,10 @@ export function useTranslation() {
     });
   }, []);
 
-  const setSettings = useCallback(
-    (newSettings: Settings) => {
-      setSettingsState(newSettings);
-      storage.setItem(SETTINGS_KEY, newSettings);
-    },
-    []
-  );
+  const setSettings = useCallback((newSettings: Settings) => {
+    setSettingsState(newSettings);
+    storage.setItem(SETTINGS_KEY, newSettings);
+  }, []);
 
   useEffect(() => {
     let localeToUse: Locale;

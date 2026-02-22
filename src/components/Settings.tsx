@@ -13,8 +13,9 @@ interface Props {
 
 export const Settings = ({ onMessage }: Props) => {
   const [settings, setSettings] = useStorage<SettingsType>(SETTINGS_KEY, DEFAULT_SETTINGS);
-  const [showCustomTheme, setShowCustomTheme] = useState(false);
   const { t, setLocale } = useTranslation();
+
+  const showCustomTheme = settings.themeMode === ThemeMode.CUSTOM;
 
   const updateSetting = <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => {
     setSettings({ ...settings, [key]: value });
@@ -119,7 +120,6 @@ export const Settings = ({ onMessage }: Props) => {
           value={settings.themeMode}
           onChange={(value) => {
             updateSetting("themeMode", value);
-            setShowCustomTheme(value === ThemeMode.CUSTOM);
           }}
           options={[
             { value: ThemeMode.AUTO, label: t("settings.followBrowser") },

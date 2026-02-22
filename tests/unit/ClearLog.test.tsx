@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { useState, ReactNode } from "react";
-import { ClearLog } from "../../components/ClearLog";
+import { ClearLog } from "@/components/ClearLog";
 import * as storageHook from "wxt/utils/storage";
 
 vi.mock("../../components/ConfirmDialogWrapper", () => ({

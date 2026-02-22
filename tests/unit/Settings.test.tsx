@@ -1,36 +1,105 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, useState } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { Settings } from "../../components/Settings";
-import { LogRetention } from "../../types";
+import { Settings } from "@/components/Settings";
+import { LogRetention, ModeType, CookieClearType, ThemeMode, ScheduleInterval } from "@/types";
+import { DEFAULT_CUSTOM_THEME } from "@/lib/store";
 
 let mockSettings = {
-  mode: "whitelist",
-  themeMode: "auto",
-  clearType: "all",
+  mode: ModeType.WHITELIST,
+  themeMode: ThemeMode.AUTO,
+  clearType: CookieClearType.ALL,
   clearCache: false,
   clearLocalStorage: false,
   clearIndexedDB: false,
   cleanupOnStartup: false,
   cleanupExpiredCookies: false,
-  logRetention: "7d",
+  logRetention: LogRetention.SEVEN_DAYS,
   locale: "zh-CN",
+  enableAutoCleanup: false,
+  cleanupOnTabDiscard: false,
+  customTheme: DEFAULT_CUSTOM_THEME,
+  scheduleInterval: ScheduleInterval.DISABLED,
+  showCookieRisk: true,
 };
 
-vi.mock("wxt/utils/storage", () => ({
+let useStorageMock: any;
+
+vi.mock("@/hooks/useStorage", () => ({
   useStorage: vi.fn((key: string, defaultValue: unknown) => {
-    if (key === "settings") {
-      return [
-        mockSettings,
-        vi.fn((newSettings: unknown) => {
-          mockSettings = { ...mockSettings, ...(newSettings as object) };
-        }),
-      ];
-    }
-    return [defaultValue, vi.fn()];
+    return useStorageMock(key, defaultValue);
   }),
 }));
 
-vi.mock("~components/RadioGroup", () => ({
+vi.mock("@/hooks/useTranslation", () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        "settings.workMode": "工作模式",
+        "settings.workModeDesc": "控制 Cookie 清理的应用范围，根据您的需求选择合适的保护策略",
+        "settings.whitelistMode": "白名单模式：仅白名单内网站不执行清理",
+        "settings.blacklistMode": "黑名单模式：仅黑名单内网站执行清理",
+        "settings.cookieClearType": "Cookie清除类型",
+        "settings.cookieClearTypeDesc":
+          "选择要清除的 Cookie 类型，会话 Cookie 在关闭浏览器后会自动失效",
+        "settings.clearSessionOnly": "仅清除会话Cookie",
+        "settings.clearPersistentOnly": "仅清除持久Cookie",
+        "settings.clearAll": "清除所有Cookie",
+        "settings.scheduledCleanup": "定时清理",
+        "settings.scheduledCleanupDesc": "设置自动清理的时间间隔，确保您的隐私得到持续保护",
+        "settings.disabled": "禁用",
+        "settings.hourly": "每小时",
+        "settings.daily": "每天",
+        "settings.weekly": "每周",
+        "settings.logRetention": "日志保留时长",
+        "settings.logRetentionDesc": "控制操作日志的保存时间，过长时间的日志会占用存储空间",
+        "settings.oneHour": "1小时",
+        "settings.sixHours": "6小时",
+        "settings.twelveHours": "12小时",
+        "settings.oneDay": "1天",
+        "settings.threeDays": "3天",
+        "settings.sevenDays": "7天",
+        "settings.tenDays": "10天",
+        "settings.thirtyDays": "30天",
+        "settings.forever": "永久",
+        "settings.themeMode": "主题模式",
+        "settings.themeModeDesc": "选择您喜欢的界面主题，自定义主题可以让您完全掌控视觉效果",
+        "settings.followBrowser": "跟随浏览器",
+        "settings.light": "亮色",
+        "settings.dark": "暗色",
+        "settings.custom": "自定义",
+        "settings.primaryColor": "主色调",
+        "settings.successColor": "成功色",
+        "settings.warningColor": "警告色",
+        "settings.dangerColor": "危险色",
+        "settings.bgPrimary": "主背景",
+        "settings.bgSecondary": "次背景",
+        "settings.textPrimary": "主文字",
+        "settings.textSecondary": "次文字",
+        "settings.autoCleanup": "自动清理",
+        "settings.autoCleanupDesc": "配置不同场景下的自动清理行为，减少手动操作的繁琐",
+        "settings.enableAutoCleanup": "启用自动清理",
+        "settings.cleanupOnTabDiscard": "启用已丢弃/未加载标签的清理",
+        "settings.cleanupOnStartup": "启动时清理打开标签页的 Cookie",
+        "settings.cleanupExpiredCookies": "清理所有过期的 Cookie",
+        "settings.privacyProtection": "隐私保护",
+        "settings.privacyProtectionDesc": "增强您的在线隐私保护，识别并警示潜在的追踪行为",
+        "settings.showCookieRisk": "显示 Cookie 风险评估",
+        "settings.advancedCleanup": "高级清理",
+        "settings.advancedCleanupDesc": "除了 Cookie 外，还可以清理其他可能存储您数据的浏览器存储",
+        "settings.clearLocalStorage": "清理本地存储",
+        "settings.clearIndexedDB": "清理索引数据库",
+        "settings.clearCache": "清理缓存",
+        "settings.settingsSaved": "设置已保存",
+        "settings.language": "语言设置",
+        "settings.languageDesc": "选择您喜欢的界面语言",
+      };
+      return translations[key] || key;
+    },
+    setLocale: vi.fn(),
+  }),
+}));
+
+vi.mock("@/components/RadioGroup", () => ({
   RadioGroup: ({
     name,
     value,
@@ -59,7 +128,7 @@ vi.mock("~components/RadioGroup", () => ({
   ),
 }));
 
-vi.mock("~components/CheckboxGroup", () => ({
+vi.mock("@/components/CheckboxGroup", () => ({
   CheckboxGroup: ({
     options,
   }: {
@@ -86,17 +155,39 @@ describe("Settings", () => {
   beforeEach(() => {
     mockOnMessage.mockClear();
     mockSettings = {
-      mode: "whitelist",
-      themeMode: "auto",
-      clearType: "all",
+      mode: ModeType.WHITELIST,
+      themeMode: ThemeMode.AUTO,
+      clearType: CookieClearType.ALL,
       clearCache: false,
       clearLocalStorage: false,
       clearIndexedDB: false,
       cleanupOnStartup: false,
       cleanupExpiredCookies: false,
-      logRetention: "7d",
+      logRetention: LogRetention.SEVEN_DAYS,
       locale: "zh-CN",
+      enableAutoCleanup: false,
+      cleanupOnTabDiscard: false,
+      customTheme: DEFAULT_CUSTOM_THEME,
+      scheduleInterval: ScheduleInterval.DISABLED,
+      showCookieRisk: true,
     };
+
+    let currentSettings = { ...mockSettings };
+
+    useStorageMock = vi.fn((key: string, defaultValue: unknown) => {
+      if (key === "settings") {
+        return [
+          currentSettings,
+          vi.fn((newSettings: unknown) => {
+            currentSettings = { ...currentSettings, ...(newSettings as object) };
+            mockSettings = currentSettings;
+          }),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    (vi.mocked as any)(useStorageMock).mockClear();
   });
 
   it("should render settings container", () => {

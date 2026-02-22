@@ -9,7 +9,7 @@ import {
   DEFAULT_CUSTOM_THEME,
   DEFAULT_SETTINGS,
 } from "../../store";
-import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "../../types";
+import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "@/types";
 
 vi.mock("wxt/utils/storage", () => ({
   Storage: class {

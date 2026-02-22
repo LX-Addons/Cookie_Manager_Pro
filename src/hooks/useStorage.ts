@@ -24,7 +24,8 @@ export function useStorage<T>(key: string, defaultValue: T) {
 
   const updateValue = useCallback(
     (newValue: T | ((prev: T) => T)) => {
-      const valueToStore = typeof newValue === "function" ? (newValue as (prev: T) => T)(value) : newValue;
+      const valueToStore =
+        typeof newValue === "function" ? (newValue as (prev: T) => T)(value) : newValue;
       setValue(valueToStore);
       storage.setItem(key, valueToStore);
     },

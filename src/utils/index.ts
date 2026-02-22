@@ -372,7 +372,9 @@ export const formatLogTime = (timestamp: number, _t?: (key: string) => string): 
 };
 
 export const maskCookieValue = (value: string, mask: string): string => {
-  return mask;
+  if (!value || value.length === 0) return mask;
+  if (value.length <= 8) return mask;
+  return value.slice(0, 4) + mask.substring(4);
 };
 
 export const getCookieKey = (name: string, domain: string): string => {

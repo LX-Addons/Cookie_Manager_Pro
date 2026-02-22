@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { CookieEditor } from "../../components/CookieEditor";
+import { CookieEditor } from "@/components/CookieEditor";
 
 const mockCookie = {
   name: "test",

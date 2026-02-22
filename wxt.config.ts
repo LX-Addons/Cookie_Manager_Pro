@@ -1,6 +1,14 @@
 import { defineConfig } from "wxt";
 
+const icons = {
+  16: "/icon.png",
+  32: "/icon.png",
+  48: "/icon.png",
+  128: "/icon.png",
+};
+
 export default defineConfig({
+  srcDir: "src",
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "Cookie Manager Pro",
@@ -8,21 +16,12 @@ export default defineConfig({
     permissions: ["cookies", "storage", "tabs", "browsingData", "alarms"],
     host_permissions: ["https://*/*", "http://*/*"],
     action: {
-      default_icon: {
-        16: "/icon.png",
-        32: "/icon.png",
-        48: "/icon.png",
-        128: "/icon.png",
-      },
+      default_icon: icons,
     },
-    icons: {
-      16: "/icon.png",
-      32: "/icon.png",
-      48: "/icon.png",
-      128: "/icon.png",
-    },
+    icons,
     content_security_policy: {
-      extension_pages: "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';",
+      extension_pages:
+        "default-src 'self'; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'; form-action 'none'; base-uri 'self';",
     },
   },
 });

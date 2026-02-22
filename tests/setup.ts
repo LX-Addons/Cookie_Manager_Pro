@@ -4,7 +4,7 @@ import * as matchers from "@testing-library/jest-dom/matchers";
 
 expect.extend(matchers);
 
-vi.mock("~hooks/useTranslation", () => ({
+vi.mock("@/hooks/useTranslation", () => ({
   useTranslation: vi.fn(() => {
     const translations: Record<string, string> = {
       "common.confirm": "确定",
@@ -244,22 +244,6 @@ vi.mock("~hooks/useTranslation", () => ({
   }),
 }));
 
-vi.mock("wxt/utils/storage", () => ({
-  useStorage: vi.fn((key: string, defaultValue: unknown) => {
-    if (key === "settings") {
-      const defaultSettings = defaultValue as Record<string, unknown>;
-      return [
-        {
-          ...defaultSettings,
-          locale: "zh-CN",
-        },
-        vi.fn(),
-      ];
-    }
-    return [defaultValue, vi.fn()];
-  }),
-}));
-
 const mockStorage = new Map<string, unknown>();
 
 class MockStorage {
@@ -273,6 +257,31 @@ class MockStorage {
 
 vi.mock("wxt/utils/storage", () => ({
   Storage: MockStorage,
+  storage: {
+    getItem: vi.fn(async (key: string) => mockStorage.get(key)),
+    setItem: vi.fn(async (key: string, value: unknown) => {
+      mockStorage.set(key, value);
+    }),
+    watch: vi.fn((key: string, callback: (value: unknown) => void) => {
+      return vi.fn();
+    }),
+  },
+}));
+
+vi.mock("@/hooks/useStorage", () => ({
+  useStorage: vi.fn((key: string, defaultValue: unknown) => {
+    if (key === "settings") {
+      const defaultSettings = defaultValue as Record<string, unknown>;
+      return [
+        {
+          ...defaultSettings,
+          locale: "zh-CN",
+        },
+        vi.fn(),
+      ];
+    }
+    return [defaultValue, vi.fn()];
+  }),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

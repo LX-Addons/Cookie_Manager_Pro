@@ -3,8 +3,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import { useState, ReactNode } from "react";
-import { CookieList, CookieListContent } from "../../components/CookieList";
-import { isSensitiveCookie } from "../../utils";
+import { CookieList, CookieListContent } from "@/components/CookieList";
+import { isSensitiveCookie } from "@/utils";
 
 const mockCookies = [
   {
