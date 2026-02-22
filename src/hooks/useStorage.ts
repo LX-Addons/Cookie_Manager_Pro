@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { storage } from "wxt/utils/storage";
 
-export function useStorage<T>(key: string, defaultValue: T) {
+// Define the valid storage key types
+type StorageKey = `local:${string}` | `session:${string}` | `sync:${string}` | `managed:${string}`;
+
+export function useStorage<T>(key: StorageKey, defaultValue: T) {
   const [value, setValue] = useState<T>(defaultValue);
 
   useEffect(() => {

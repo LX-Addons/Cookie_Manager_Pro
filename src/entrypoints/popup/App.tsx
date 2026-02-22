@@ -594,5 +594,16 @@ function IndexPopup() {
   );
 }
 
-const root = createRoot(document.getElementById("root")!);
-root.render(<IndexPopup />);
+export default IndexPopup;
+
+// Only render in browser environment, not in tests
+// In test environment, vitest sets import.meta.env.TEST to true
+const isTestEnvironment = import.meta.env?.TEST === true || typeof window !== "undefined" && (window as Window & { __VITEST__?: boolean }).__VITEST__;
+
+if (!isTestEnvironment) {
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    const root = createRoot(rootElement);
+    root.render(<IndexPopup />);
+  }
+}

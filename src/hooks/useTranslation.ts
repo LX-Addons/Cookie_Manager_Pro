@@ -9,7 +9,7 @@ export function useTranslation() {
 
   useEffect(() => {
     storage.getItem<Settings>(SETTINGS_KEY).then((val) => {
-      if (val !== undefined) setSettingsState(val);
+      if (val !== undefined && val !== null) setSettingsState(val);
     });
   }, []);
 

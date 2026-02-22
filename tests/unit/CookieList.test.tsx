@@ -40,8 +40,8 @@ const mockCookies = [
 const mockClearSingleCookie = vi.fn(() => Promise.resolve(true));
 const mockEditCookie = vi.fn(() => Promise.resolve(true));
 
-vi.mock("../../utils", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../../utils")>();
+vi.mock("@/utils", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/utils")>();
   return {
     ...original,
     assessCookieRisk: vi.fn(() => ({ level: "low", reason: "安全" })),
@@ -56,7 +56,7 @@ vi.mock("../../utils", async (importOriginal) => {
   };
 });
 
-vi.mock("../../components/CookieEditor", () => ({
+vi.mock("@/components/CookieEditor", () => ({
   CookieEditor: ({
     isOpen,
     cookie,
@@ -86,7 +86,7 @@ vi.mock("../../components/CookieEditor", () => ({
   },
 }));
 
-vi.mock("../../components/ConfirmDialogWrapper", () => ({
+vi.mock("@/components/ConfirmDialogWrapper", () => ({
   ConfirmDialogWrapper: ({
     children,
   }: {

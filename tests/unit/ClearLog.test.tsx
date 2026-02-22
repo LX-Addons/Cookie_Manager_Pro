@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { useState, ReactNode } from "react";
 import { ClearLog } from "@/components/ClearLog";
-import * as storageHook from "wxt/utils/storage";
+import * as storageHook from "@/hooks/useStorage";
 
 vi.mock("../../components/ConfirmDialogWrapper", () => ({
   ConfirmDialogWrapper: ({
@@ -63,10 +63,10 @@ describe("ClearLog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const { useStorage } = storageHook;
+    const useStorage = storageHook.useStorage;
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
-        if (key === "settings") {
+        if (key === "local:settings") {
           return [
             {
               mode: "whitelist",
@@ -83,7 +83,7 @@ describe("ClearLog", () => {
             vi.fn(),
           ];
         }
-        if (key === "clearLog") {
+        if (key === "local:clearLog") {
           return [[], vi.fn()];
         }
         return [defaultValue, vi.fn()];
@@ -154,10 +154,10 @@ describe("ClearLog", () => {
   });
 
   it("should show message when log retention is forever", async () => {
-    const { useStorage } = storageHook;
+    const useStorage = storageHook.useStorage;
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
-        if (key === "settings") {
+        if (key === "local:settings") {
           return [
             {
               mode: "whitelist",
@@ -174,7 +174,7 @@ describe("ClearLog", () => {
             vi.fn(),
           ];
         }
-        if (key === "clearLog") {
+        if (key === "local:clearLog") {
           return [[], vi.fn()];
         }
         return [defaultValue, vi.fn()];
@@ -190,7 +190,7 @@ describe("ClearLog", () => {
   });
 
   it("should show message when no expired logs found", async () => {
-    const { useStorage } = storageHook;
+    const useStorage = storageHook.useStorage;
     const mockSetLogs = vi.fn((fn) => {
       const result = fn([]);
       return result;
@@ -198,7 +198,7 @@ describe("ClearLog", () => {
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
-        if (key === "settings") {
+        if (key === "local:settings") {
           return [
             {
               mode: "whitelist",
@@ -215,7 +215,7 @@ describe("ClearLog", () => {
             vi.fn(),
           ];
         }
-        if (key === "clearLog") {
+        if (key === "local:clearLog") {
           return [[], mockSetLogs];
         }
         return [defaultValue, vi.fn()];
@@ -231,7 +231,7 @@ describe("ClearLog", () => {
   });
 
   it("should clear expired logs and show message", async () => {
-    const { useStorage } = storageHook;
+    const useStorage = storageHook.useStorage;
     const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
     const recentTimestamp = Date.now() - 1 * 24 * 60 * 60 * 1000;
 
@@ -261,7 +261,7 @@ describe("ClearLog", () => {
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
-        if (key === "settings") {
+        if (key === "local:settings") {
           return [
             {
               mode: "whitelist",
@@ -278,7 +278,7 @@ describe("ClearLog", () => {
             vi.fn(),
           ];
         }
-        if (key === "clearLog") {
+        if (key === "local:clearLog") {
           return [mockLogs, mockSetLogs];
         }
         return [defaultValue, vi.fn()];
@@ -294,7 +294,7 @@ describe("ClearLog", () => {
   });
 
   it("should render log list with items", async () => {
-    const { useStorage } = storageHook;
+    const useStorage = storageHook.useStorage;
 
     const mockLogs = [
       {
@@ -309,7 +309,7 @@ describe("ClearLog", () => {
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
-        if (key === "settings") {
+        if (key === "local:settings") {
           return [
             {
               mode: "whitelist",
@@ -326,7 +326,7 @@ describe("ClearLog", () => {
             vi.fn(),
           ];
         }
-        if (key === "clearLog") {
+        if (key === "local:clearLog") {
           return [mockLogs, vi.fn()];
         }
         return [defaultValue, vi.fn()];

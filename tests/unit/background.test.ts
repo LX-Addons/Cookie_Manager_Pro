@@ -15,6 +15,11 @@ vi.mock("wxt/utils/storage", () => ({
   Storage: MockStorage,
 }));
 
+// Mock defineBackground to immediately execute the callback
+vi.mock("wxt/utils/define-background", () => ({
+  defineBackground: (fn: () => void) => fn(),
+}));
+
 vi.mock("@/utils/cleanup", () => ({
   performCleanup: vi.fn(() => Promise.resolve({ count: 5, clearedDomains: ["example.com"] })),
   performCleanupWithFilter: vi.fn(() =>
@@ -22,32 +27,16 @@ vi.mock("@/utils/cleanup", () => ({
   ),
 }));
 
-vi.mock("~store", () => {
-  const mockStorage = new MockStorage();
+vi.mock("@/lib/store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/store")>();
   return {
-    storage: mockStorage,
-    WHITELIST_KEY: "whitelist",
-    BLACKLIST_KEY: "blacklist",
-    SETTINGS_KEY: "settings",
-    DEFAULT_SETTINGS: {
-      clearType: "all",
-      logRetention: "7d",
-      themeMode: "auto",
-      mode: "whitelist",
-      clearLocalStorage: false,
-      clearIndexedDB: false,
-      clearCache: false,
-      enableAutoCleanup: false,
-      cleanupOnTabDiscard: false,
-      cleanupOnStartup: false,
-      cleanupExpiredCookies: false,
-      scheduleInterval: "disabled",
-      showCookieRisk: true,
-    },
-    SCHEDULE_INTERVAL_MAP: {
-      hourly: 60 * 60 * 1000,
-      daily: 24 * 60 * 60 * 1000,
-      weekly: 7 * 24 * 60 * 60 * 1000,
+    ...actual,
+    storage: {
+      getItem: vi.fn((key: string) => Promise.resolve(mockStorageData.get(key))),
+      setItem: vi.fn((key: string, value: unknown) => {
+        mockStorageData.set(key, value);
+        return Promise.resolve();
+      }),
     },
   };
 });
@@ -119,85 +108,85 @@ describe("background", () => {
   });
 
   it("should register onInstalled listener", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     expect(listeners.onInstalled.length).toBeGreaterThan(0);
   });
 
   it("should register onStartup listener", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     expect(listeners.onStartup.length).toBeGreaterThan(0);
   });
 
   it("should register tabs onUpdated listener", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     expect(listeners.onUpdated.length).toBeGreaterThan(0);
   });
 
   it("should register alarms onAlarm listener", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     expect(listeners.onAlarm.length).toBeGreaterThan(0);
   });
 
   it("should initialize whitelist on install when undefined", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();
     }
 
-    expect(mockStorageData.get("whitelist")).toEqual([]);
+    expect(mockStorageData.get("local:whitelist")).toEqual([]);
   });
 
   it("should initialize blacklist on install when undefined", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();
     }
 
-    expect(mockStorageData.get("blacklist")).toEqual([]);
+    expect(mockStorageData.get("local:blacklist")).toEqual([]);
   });
 
   it("should initialize settings on install when undefined", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();
     }
 
-    expect(mockStorageData.get("settings")).toBeDefined();
+    expect(mockStorageData.get("local:settings")).toBeDefined();
   });
 
   it("should not overwrite existing whitelist on install", async () => {
-    mockStorageData.set("whitelist", ["existing.com"]);
+    mockStorageData.set("local:whitelist", ["existing.com"]);
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();
     }
 
-    expect(mockStorageData.get("whitelist")).toEqual(["existing.com"]);
+    expect(mockStorageData.get("local:whitelist")).toEqual(["existing.com"]);
   });
 
   it("should not overwrite existing blacklist on install", async () => {
-    mockStorageData.set("blacklist", ["bad.com"]);
+    mockStorageData.set("local:blacklist", ["bad.com"]);
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();
     }
 
-    expect(mockStorageData.get("blacklist")).toEqual(["bad.com"]);
+    expect(mockStorageData.get("local:blacklist")).toEqual(["bad.com"]);
   });
 
   it("should create scheduled cleanup alarm on installed", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();
@@ -209,7 +198,7 @@ describe("background", () => {
   });
 
   it("should create scheduled cleanup alarm on startup", async () => {
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -223,7 +212,7 @@ describe("background", () => {
   it("should handle scheduled cleanup alarm", async () => {
     const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "hourly",
       lastScheduledCleanup: Date.now() - 2 * 60 * 60 * 1000,
       clearCache: false,
@@ -231,7 +220,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "scheduled-cleanup" });
@@ -243,12 +232,12 @@ describe("background", () => {
   it("should not run scheduled cleanup when disabled", async () => {
     const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "disabled",
       lastScheduledCleanup: 0,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "scheduled-cleanup" });
@@ -260,7 +249,7 @@ describe("background", () => {
   it("should handle tab discard event with cleanup enabled", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnTabDiscard: true,
       clearCache: false,
@@ -268,7 +257,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: "https://example.com/test" });
@@ -280,12 +269,12 @@ describe("background", () => {
   it("should not cleanup on tab discard when disabled", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: false,
       cleanupOnTabDiscard: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: "https://example.com/test" });
@@ -297,7 +286,7 @@ describe("background", () => {
   it("should handle startup cleanup when enabled", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnStartup: true,
       clearCache: false,
@@ -305,7 +294,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -317,12 +306,12 @@ describe("background", () => {
   it("should not cleanup on startup when disabled", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: false,
       cleanupOnStartup: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -334,7 +323,7 @@ describe("background", () => {
   it("should handle scheduled cleanup with interval elapsed", async () => {
     const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "daily",
       lastScheduledCleanup: Date.now() - 25 * 60 * 60 * 1000,
       clearCache: true,
@@ -342,7 +331,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "scheduled-cleanup" });
@@ -354,7 +343,7 @@ describe("background", () => {
   it("should not run scheduled cleanup when interval not elapsed", async () => {
     const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "daily",
       lastScheduledCleanup: Date.now() - 1 * 60 * 60 * 1000,
       clearCache: false,
@@ -362,7 +351,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "scheduled-cleanup" });
@@ -374,7 +363,7 @@ describe("background", () => {
   it("should handle scheduled cleanup with no settings", async () => {
     const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "scheduled-cleanup" });
@@ -386,7 +375,7 @@ describe("background", () => {
   it("should handle tab discard with invalid URL", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnTabDiscard: true,
       clearCache: false,
@@ -394,7 +383,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: "invalid-url" });
@@ -406,7 +395,7 @@ describe("background", () => {
   it("should handle tab discard without URL", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnTabDiscard: true,
       clearCache: false,
@@ -414,7 +403,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: undefined });
@@ -426,7 +415,7 @@ describe("background", () => {
   it("should handle tab update without discarded flag", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnTabDiscard: true,
       clearCache: false,
@@ -434,7 +423,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { loading: true }, { url: "https://example.com" });
@@ -446,7 +435,7 @@ describe("background", () => {
   it("should handle startup cleanup with no active tab", async () => {
     await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnStartup: true,
       clearCache: false,
@@ -464,7 +453,7 @@ describe("background", () => {
       ])
     );
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -474,7 +463,7 @@ describe("background", () => {
   it("should handle startup cleanup with active tab having no URL", async () => {
     await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnStartup: true,
       clearCache: false,
@@ -489,7 +478,7 @@ describe("background", () => {
       Promise.resolve([{ id: 2, url: "https://example.com" }])
     );
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -499,7 +488,7 @@ describe("background", () => {
   it("should handle startup cleanup with invalid URL in active tab", async () => {
     await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnStartup: true,
       clearCache: false,
@@ -511,7 +500,7 @@ describe("background", () => {
       Promise.resolve([{ id: 1, active: true, url: "chrome://extensions" }])
     );
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -521,7 +510,7 @@ describe("background", () => {
   it("should handle startup cleanup with invalid URL in all tabs", async () => {
     await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnStartup: true,
       clearCache: false,
@@ -539,7 +528,7 @@ describe("background", () => {
       ])
     );
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -549,12 +538,12 @@ describe("background", () => {
   it("should handle alarm with different name", async () => {
     const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "hourly",
       lastScheduledCleanup: 0,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "other-alarm" });
@@ -564,18 +553,18 @@ describe("background", () => {
   });
 
   it("should handle onInstalled with existing whitelist and blacklist", async () => {
-    mockStorageData.set("whitelist", ["a.com"]);
-    mockStorageData.set("blacklist", ["b.com"]);
-    mockStorageData.set("settings", { mode: "whitelist" });
+    mockStorageData.set("local:whitelist", ["a.com"]);
+    mockStorageData.set("local:blacklist", ["b.com"]);
+    mockStorageData.set("local:settings", { mode: "whitelist" });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();
     }
 
-    expect(mockStorageData.get("whitelist")).toEqual(["a.com"]);
-    expect(mockStorageData.get("blacklist")).toEqual(["b.com"]);
+    expect(mockStorageData.get("local:whitelist")).toEqual(["a.com"]);
+    expect(mockStorageData.get("local:blacklist")).toEqual(["b.com"]);
   });
 
   it("should handle cleanup error in scheduled cleanup", async () => {
@@ -584,7 +573,7 @@ describe("background", () => {
       Promise.reject(new Error("Cleanup failed"))
     );
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "hourly",
       lastScheduledCleanup: 0,
       clearCache: false,
@@ -592,7 +581,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "scheduled-cleanup" });
@@ -605,7 +594,7 @@ describe("background", () => {
       Promise.reject(new Error("Cleanup failed"))
     );
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnTabDiscard: true,
       clearCache: false,
@@ -613,7 +602,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: "https://example.com" });
@@ -626,7 +615,7 @@ describe("background", () => {
       Promise.reject(new Error("Cleanup failed"))
     );
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnStartup: true,
       clearCache: false,
@@ -634,7 +623,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -644,7 +633,7 @@ describe("background", () => {
   it("should handle tabs query error in startup cleanup", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
       cleanupOnStartup: true,
       clearCache: false,
@@ -656,7 +645,7 @@ describe("background", () => {
       Promise.reject(new Error("Query failed"))
     );
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -668,11 +657,11 @@ describe("background", () => {
   it("should handle settings without enableAutoCleanup", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       cleanupOnTabDiscard: true,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: "https://example.com" });
@@ -684,11 +673,11 @@ describe("background", () => {
   it("should handle settings without cleanupOnTabDiscard", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: "https://example.com" });
@@ -700,11 +689,11 @@ describe("background", () => {
   it("should handle settings without cleanupOnStartup", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onStartup) {
       await cb();
@@ -716,9 +705,9 @@ describe("background", () => {
   it("should handle settings with null value", async () => {
     const { performCleanup } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", null);
+    mockStorageData.set("local:settings", null);
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onUpdated) {
       await cb(1, { discarded: true }, { url: "https://example.com" });
@@ -730,7 +719,7 @@ describe("background", () => {
   it("should update lastScheduledCleanup after scheduled cleanup", async () => {
     await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "hourly",
       lastScheduledCleanup: 0,
       clearCache: false,
@@ -738,20 +727,20 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onAlarm) {
       await cb({ name: "scheduled-cleanup" });
     }
 
-    const settings = mockStorageData.get("settings") as { lastScheduledCleanup: number };
+    const settings = mockStorageData.get("local:settings") as { lastScheduledCleanup: number };
     expect(settings.lastScheduledCleanup).toBeGreaterThan(0);
   });
 
   it("should call checkScheduledCleanup on installed", async () => {
     const { performCleanupWithFilter } = await import("@/utils/cleanup");
 
-    mockStorageData.set("settings", {
+    mockStorageData.set("local:settings", {
       scheduleInterval: "hourly",
       lastScheduledCleanup: 0,
       clearCache: false,
@@ -759,7 +748,7 @@ describe("background", () => {
       clearIndexedDB: false,
     });
 
-    await import("../../background");
+    await import("@/entrypoints/background");
 
     for (const cb of listeners.onInstalled) {
       await cb();

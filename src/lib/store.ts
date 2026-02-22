@@ -2,10 +2,10 @@ import { storage } from "wxt/utils/storage";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "@/types";
 import type { Settings, CustomTheme } from "@/types";
 
-export const WHITELIST_KEY = "local:whitelist";
-export const BLACKLIST_KEY = "local:blacklist";
-export const SETTINGS_KEY = "local:settings";
-export const CLEAR_LOG_KEY = "local:clearLog";
+export const WHITELIST_KEY = "local:whitelist" as const;
+export const BLACKLIST_KEY = "local:blacklist" as const;
+export const SETTINGS_KEY = "local:settings" as const;
+export const CLEAR_LOG_KEY = "local:clearLog" as const;
 
 export const LOG_RETENTION_MAP: Record<string, number> = {
   [LogRetention.ONE_HOUR]: 1 * 60 * 60 * 1000,
