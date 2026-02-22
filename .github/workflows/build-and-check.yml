@@ -461,25 +461,6 @@ jobs:
           echo "📁 打包后 .output/ 目录内容:"
           ls -la .output/
 
-      - name: 重命名构建产物
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          NAME=${{ steps.version.outputs.name }}
-
-          echo "📁 重命名前 .output/ 目录内容:"
-          ls -la .output/
-
-          if [ -d ".output/chrome-mv3" ]; then
-            mv ".output/chrome-mv3" ".output/${NAME}-${VERSION}-chrome"
-          fi
-
-          if [ -f ".output/chrome-mv3.zip" ]; then
-            mv ".output/chrome-mv3.zip" ".output/${NAME}-${VERSION}-chrome.zip"
-          fi
-          
-          echo "📁 重命名后 .output/ 目录内容:"
-          ls -la .output/
-
       - name: 验证构建产物
         run: |
           echo "📁 检查 .output/ 目录:"
@@ -490,8 +471,15 @@ jobs:
             exit 1
           fi
           
-          if [ -z "$(ls -A .output/)" ]; then
-            echo "❌ .output/ 目录为空"
+          if [ ! -d ".output/chrome-mv3" ]; then
+            echo "❌ .output/chrome-mv3/ 目录不存在"
+            echo "📁 .output/ 目录内容:"
+            ls -la .output/
+            exit 1
+          fi
+          
+          if [ -z "$(ls -A .output/chrome-mv3/)" ]; then
+            echo "❌ .output/chrome-mv3/ 目录为空"
             exit 1
           fi
           
@@ -501,7 +489,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: extension-build
-          path: .output/
+          path: .output/chrome-mv3/
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
           if-no-files-found: error
 
@@ -559,9 +547,6 @@ jobs:
 
       - name: 准备测试扩展
         run: |
-          VERSION=$(jq -r '.version' package.json)
-          NAME=$(jq -r '.name' package.json)
-
           echo "📁 当前目录内容:"
           ls -la
           
@@ -569,23 +554,22 @@ jobs:
           ls -la .output/ || echo "目录为空或不存在"
 
           # 检查下载后的目录结构
-          if [ -d ".output/${NAME}-${VERSION}-chrome" ]; then
-            echo "✅ 找到构建目录: .output/${NAME}-${VERSION}-chrome"
-            SOURCE_DIR=".output/${NAME}-${VERSION}-chrome"
-          elif [ -d ".output/chrome-mv3" ]; then
-            echo "✅ 构建目录已存在: .output/chrome-mv3"
-            SOURCE_DIR=".output/chrome-mv3"
-          elif [ -f ".output/manifest.json" ]; then
-            echo "✅ 找到 manifest.json"
+          if [ -d ".output" ] && [ -f ".output/manifest.json" ]; then
+            echo "✅ 找到 manifest.json 在 .output/ 根目录"
             SOURCE_DIR=".output"
+          elif [ -d ".output/chrome-mv3" ]; then
+            echo "✅ 找到构建目录: .output/chrome-mv3"
+            SOURCE_DIR=".output/chrome-mv3"
           else
             echo "❌ 未找到构建产物，检查所有目录..."
             find . -name "manifest.json" -type f 2>/dev/null | head -5
+            echo "📁 当前目录完整内容:"
+            ls -laR
             exit 1
           fi
 
           # E2E 测试期望的目录结构是 build/chrome-mv3-prod
-          mkdir -p build
+          mkdir -p build/chrome-mv3-prod
           cp -r "$SOURCE_DIR"/* build/chrome-mv3-prod/
 
           echo "📁 最终 build/chrome-mv3-prod/ 目录内容:"
