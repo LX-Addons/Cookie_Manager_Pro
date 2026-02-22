@@ -378,7 +378,16 @@ jobs:
             ${{ runner.os }}-wxt-
 
       - name: 构建扩展
-        run: npm run build
+        run: |
+          npm run build
+          BUILD_EXIT_CODE=$?
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "❌ 构建失败，退出码: $BUILD_EXIT_CODE"
+            exit $BUILD_EXIT_CODE
+          fi
+          
+          echo "📁 构建后检查 .output/ 目录:"
+          ls -la .output/ || echo "目录不存在"
 
       - name: 获取版本信息
         id: version
@@ -391,17 +400,24 @@ jobs:
       - name: 检查扩展体积
         run: |
           BUILD_DIR=".output/chrome-mv3"
-          if [ -d "$BUILD_DIR" ]; then
-            SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
-            SIZE_MB=$((SIZE_KB / 1024))
-            echo "📊 扩展体积: ${SIZE_MB}MB (${SIZE_KB}KB)"
-            
-            if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
-              echo "❌ 扩展体积 (${SIZE_MB}MB) 超出限制 (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
-              exit 1
-            fi
-            echo "✅ 扩展体积符合限制"
+          if [ ! -d "$BUILD_DIR" ]; then
+            echo "❌ 构建目录不存在: $BUILD_DIR"
+            echo "📁 当前目录内容:"
+            ls -la
+            echo "📁 .output/ 目录内容:"
+            ls -la .output/ 2>/dev/null || echo ".output/ 目录不存在"
+            exit 1
           fi
+          
+          SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
+          SIZE_MB=$((SIZE_KB / 1024))
+          echo "📊 扩展体积: ${SIZE_MB}MB (${SIZE_KB}KB)"
+          
+          if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
+            echo "❌ 扩展体积 (${SIZE_MB}MB) 超出限制 (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
+            exit 1
+          fi
+          echo "✅ 扩展体积符合限制"
 
       - name: 验证构建产物
         run: |
