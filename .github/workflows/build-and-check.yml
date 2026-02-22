@@ -446,12 +446,30 @@ jobs:
             mv ".output/chrome-mv3.zip" ".output/${NAME}-${VERSION}-chrome.zip"
           fi
 
+      - name: 验证构建产物
+        run: |
+          echo "📁 检查 .output/ 目录:"
+          ls -la .output/ || echo "目录不存在"
+          
+          if [ ! -d ".output" ]; then
+            echo "❌ .output/ 目录不存在"
+            exit 1
+          fi
+          
+          if [ -z "$(ls -A .output/)" ]; then
+            echo "❌ .output/ 目录为空"
+            exit 1
+          fi
+          
+          echo "✅ 构建产物验证通过"
+
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: extension-build
           path: .output/
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
+          if-no-files-found: error
 
       - name: 输出构建摘要
         run: |
@@ -493,6 +511,11 @@ jobs:
       - name: 安装依赖
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline
+
+      - name: 列出可用 Artifacts
+        run: |
+          echo "📦 尝试下载 artifact: extension-build"
+          echo "🔍 工作流运行 ID: ${{ github.run_id }}"
 
       - name: 下载构建产物
         uses: actions/download-artifact@v4
