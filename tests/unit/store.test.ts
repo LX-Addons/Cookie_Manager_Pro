@@ -11,7 +11,7 @@ import {
 } from "../../store";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "../../types";
 
-vi.mock("@plasmohq/storage", () => ({
+vi.mock("wxt/utils/storage", () => ({
   Storage: class {
     async get() {
       return undefined;

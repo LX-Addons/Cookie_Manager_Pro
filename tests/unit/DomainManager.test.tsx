@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DomainManager } from "../../components/DomainManager";
-import * as storageHook from "@plasmohq/storage/hook";
+import * as storageHook from "wxt/utils/storage";
 
-vi.mock("@plasmohq/storage/hook", () => ({
+vi.mock("wxt/utils/storage", () => ({
   useStorage: vi.fn(),
 }));
 

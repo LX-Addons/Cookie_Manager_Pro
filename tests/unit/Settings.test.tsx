@@ -16,7 +16,7 @@ let mockSettings = {
   locale: "zh-CN",
 };
 
-vi.mock("@plasmohq/storage/hook", () => ({
+vi.mock("wxt/utils/storage", () => ({
   useStorage: vi.fn((key: string, defaultValue: unknown) => {
     if (key === "settings") {
       return [

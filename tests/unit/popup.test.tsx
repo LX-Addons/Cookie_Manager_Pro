@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import IndexPopup from "../../popup";
-import * as storageHook from "@plasmohq/storage/hook";
+import * as storageHook from "wxt/utils/storage";
 
 interface CookieListProps {
   cookies: unknown[];
@@ -1182,7 +1182,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle settings change triggering init", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const settingsMock = vi.fn((key: string, defaultValue: unknown) => {
       if (key === "settings") {
@@ -1296,7 +1296,7 @@ describe("IndexPopup", () => {
   });
 
   it("should apply custom theme CSS variables when theme is custom", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -1347,7 +1347,7 @@ describe("IndexPopup", () => {
   });
 
   it("should render CookieList with all required props", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const mockWhitelist = ["test.com"];
     const mockBlacklist = ["bad.com"];
@@ -1440,7 +1440,7 @@ describe("IndexPopup", () => {
 
 describe("IndexPopup onClearBlacklist", () => {
   it("should render blacklist tab and have clear blacklist button", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -1489,7 +1489,7 @@ describe("IndexPopup onClearBlacklist", () => {
   });
 
   it("should call onClearBlacklist and clear blacklist cookies", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
 
@@ -1548,7 +1548,7 @@ describe("IndexPopup onClearBlacklist", () => {
   });
 
   it("should show message when no cookies to clear from blacklist", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
 
@@ -1619,7 +1619,7 @@ describe("IndexPopup buildDomainString", () => {
 
 describe("IndexPopup addLog", () => {
   it("should render with FOREVER log retention", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1660,7 +1660,7 @@ describe("IndexPopup addLog", () => {
   });
 
   it("should render with 7d log retention", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1711,7 +1711,7 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
   });
 
   it("should render with existing whitelist", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -1761,7 +1761,7 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
   });
 
   it("should render with existing blacklist", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -1805,7 +1805,7 @@ describe("IndexPopup whitelist and blacklist callbacks", () => {
 
 describe("IndexPopup cleanupExpiredCookies", () => {
   it("should call cleanupExpiredCookies and clear expired cookies", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -1851,7 +1851,7 @@ describe("IndexPopup cleanupExpiredCookies", () => {
   });
 
   it("should show message when no expired cookies found", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -1897,7 +1897,7 @@ describe("IndexPopup cleanupExpiredCookies", () => {
   });
 
   it("should handle cleanupExpiredCookies error", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { cleanupExpiredCookies: cleanupExpiredCookiesUtil } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -1949,7 +1949,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should call onAddToWhitelist callback with new domains", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -1993,7 +1993,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should call onAddToBlacklist callback with new domains", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2037,7 +2037,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onAddToWhitelist with no new domains", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2081,7 +2081,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onAddToBlacklist with no new domains", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     const mockSettings = {
       mode: "whitelist",
@@ -2125,7 +2125,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle cleanupStartup function", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanup } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -2171,7 +2171,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle cleanupStartup with no count", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanup } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -2250,7 +2250,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle buildDomainString with no cleared domains and current domain", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
@@ -2303,7 +2303,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle quickClearCurrent function", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
@@ -2356,7 +2356,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onClearBlacklist function", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
 
@@ -2404,7 +2404,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should show already in blacklist message when domain exists", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -2480,7 +2480,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onClearBlacklist with multiple domains", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
 
@@ -2535,7 +2535,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle cleanupStartup error", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanup } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -2581,7 +2581,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should show already in whitelist message when domain exists", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
 
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
@@ -2626,7 +2626,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle onClearBlacklist with no cookies", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
     const { isInList } = await import("~utils");
 
@@ -2681,7 +2681,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle quickClearCurrent function", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -2733,7 +2733,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle buildDomainString with multiple domains", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
 
     const mockSettings = {
@@ -2785,7 +2785,7 @@ describe("IndexPopup additional coverage", () => {
   });
 
   it("should handle buildDomainString with all websites", async () => {
-    const { useStorage } = await import("@plasmohq/storage/hook");
+    const { useStorage } = await import("wxt/utils/storage");
     const { performCleanupWithFilter } = await import("~utils/cleanup");
 
     const mockSettings = {

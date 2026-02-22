@@ -25,7 +25,7 @@
   "dependencies": {
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "wxt": "0.20.17"
+    "wxt": "0.20.11"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",

@@ -1,4 +1,4 @@
-import { storage } from "wxt/storage";
+import { storage } from "wxt/utils/storage";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "@/types";
 import type { Settings, CustomTheme } from "@/types";
 

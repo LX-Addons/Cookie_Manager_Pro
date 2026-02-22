@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { storage } from "wxt/storage";
+import { storage } from "wxt/utils/storage";
 
 export function useStorage<T>(key: string, defaultValue: T) {
   const [value, setValue] = useState<T>(defaultValue);

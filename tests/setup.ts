@@ -244,7 +244,7 @@ vi.mock("~hooks/useTranslation", () => ({
   }),
 }));
 
-vi.mock("@plasmohq/storage/hook", () => ({
+vi.mock("wxt/utils/storage", () => ({
   useStorage: vi.fn((key: string, defaultValue: unknown) => {
     if (key === "settings") {
       const defaultSettings = defaultValue as Record<string, unknown>;
@@ -271,7 +271,7 @@ class MockStorage {
   }
 }
 
-vi.mock("@plasmohq/storage", () => ({
+vi.mock("wxt/utils/storage", () => ({
   Storage: MockStorage,
 }));
 

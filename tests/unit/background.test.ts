@@ -11,7 +11,7 @@ class MockStorage {
   }
 }
 
-vi.mock("@plasmohq/storage", () => ({
+vi.mock("wxt/utils/storage", () => ({
   Storage: MockStorage,
 }));
 
