@@ -598,7 +598,9 @@ export default IndexPopup;
 
 // Only render in browser environment, not in tests
 // In test environment, vitest sets import.meta.env.TEST to true
-const isTestEnvironment = import.meta.env?.TEST === true || typeof window !== "undefined" && (window as Window & { __VITEST__?: boolean }).__VITEST__;
+const isTestEnvironment =
+  import.meta.env?.TEST === true ||
+  (typeof window !== "undefined" && (window as Window & { __VITEST__?: boolean }).__VITEST__);
 
 if (!isTestEnvironment) {
   const rootElement = document.getElementById("root");

@@ -68,7 +68,9 @@ vi.mock("@/components/ConfirmDialogWrapper", () => ({
   ConfirmDialogWrapper: ({
     children,
   }: {
-    children: (showConfirm: (options: { title: string; onConfirm: () => void }) => void) => React.ReactNode;
+    children: (
+      showConfirm: (options: { title: string; onConfirm: () => void }) => void
+    ) => React.ReactNode;
   }) => {
     const showConfirm = vi.fn(({ onConfirm }: { title: string; onConfirm: () => void }) => {
       onConfirm();
