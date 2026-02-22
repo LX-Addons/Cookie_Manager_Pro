@@ -494,17 +494,10 @@ jobs:
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline
 
-      - name: 获取版本信息
-        id: e2e-version
-        run: |
-          VERSION=$(jq -r '.version' package.json)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 版本: $VERSION"
-
       - name: 下载构建产物
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
-          name: extension-${{ steps.e2e-version.outputs.version }}
+          name: extension-build
           path: .output/
 
       - name: 准备测试扩展
