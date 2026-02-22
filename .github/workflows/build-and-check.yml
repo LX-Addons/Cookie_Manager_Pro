@@ -506,11 +506,35 @@ jobs:
           VERSION=$(jq -r '.version' package.json)
           NAME=$(jq -r '.name' package.json)
 
+          echo "📁 当前 .output/ 目录内容:"
+          ls -la .output/ || echo "目录为空或不存在"
+
+          # 检查各种可能的目录结构
           if [ -d ".output/${NAME}-${VERSION}-chrome" ]; then
-            mv ".output/${NAME}-${VERSION}-chrome" ".output/chrome-mv3"
+            echo "✅ 找到构建目录: .output/${NAME}-${VERSION}-chrome"
+            SOURCE_DIR=".output/${NAME}-${VERSION}-chrome"
+          elif [ -d ".output/chrome-mv3" ]; then
+            echo "✅ 构建目录已存在: .output/chrome-mv3"
+            SOURCE_DIR=".output/chrome-mv3"
+          elif [ -f ".output/manifest.json" ]; then
+            echo "✅ 找到 manifest.json"
+            SOURCE_DIR=".output"
+          else
+            echo "❌ 未找到构建产物"
+            echo "📁 .output/ 目录内容:"
+            find .output/ -type f 2>/dev/null || echo "目录为空"
+            exit 1
           fi
 
-          ls -la .output/
+          # E2E 测试期望的目录结构是 build/chrome-mv3-prod
+          mkdir -p build
+          cp -r "$SOURCE_DIR" build/chrome-mv3-prod
+
+          echo "📁 最终 build/ 目录内容:"
+          ls -la build/
+          
+          echo "📁 build/chrome-mv3-prod/ 目录内容:"
+          ls -la build/chrome-mv3-prod/
 
       - name: 安装 Playwright 浏览器
         run: npx playwright install --with-deps chromium
