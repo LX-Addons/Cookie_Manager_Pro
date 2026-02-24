@@ -5,6 +5,45 @@ import { useState, ReactNode } from "react";
 import { ClearLog } from "@/components/ClearLog";
 import * as storageHook from "@/hooks/useStorage";
 
+vi.mock("@/hooks/useTranslation", () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      const translations: Record<string, string> = {
+        "clearLog.clearLogs": "清除日志",
+        "clearLog.noLogs": "暂无清除日志记录",
+        "clearLog.clearExpired": "清除过期",
+        "clearLog.clearAllLogs": "清除全部",
+        "clearLog.exportLogs": "导出日志",
+        "clearLog.domain": "域名",
+        "clearLog.action": "操作",
+        "clearLog.count": "数量",
+        "clearLog.time": "时间",
+        "clearLog.actions.clear": "清除",
+        "clearLog.actions.export": "导出",
+        "clearLog.logsCleared": "已清除日志",
+        "clearLog.expiredLogsCleared": "已清除过期日志",
+        "clearLog.noExpiredLogs": "没有需要清理的过期日志",
+        "clearLog.logsExported": "日志已导出",
+        "clearLog.confirmClearLogs": "确定要清除所有日志记录吗？",
+        "clearLog.logRetentionForever": "日志保留设置为永久，无需清理",
+        "cookieTypes.all": "全部",
+        "common.cancel": "取消",
+        "common.confirm": "确定",
+        "common.delete": "删除",
+        "common.yes": "是",
+        "common.no": "否",
+      };
+      let text = translations[key] || key;
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          text = text.replace(`{${k}}`, String(v));
+        });
+      }
+      return text;
+    },
+  }),
+}));
+
 vi.mock("../../components/ConfirmDialogWrapper", () => ({
   ConfirmDialogWrapper: ({
     children,
@@ -138,7 +177,7 @@ describe("ClearLog", () => {
     const confirmButton = screen.getByText("确定");
     fireEvent.click(confirmButton);
 
-    expect(mockOnMessage).toHaveBeenCalledWith("已清除所有日志");
+    expect(mockOnMessage).toHaveBeenCalledWith("已清除日志");
   });
 
   it("should not clear logs when confirm is cancelled", () => {

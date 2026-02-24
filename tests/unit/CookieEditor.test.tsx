@@ -2,6 +2,39 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { CookieEditor } from "@/components/CookieEditor";
 
+vi.mock("@/hooks/useTranslation", () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      const translations: Record<string, string> = {
+        "cookieEditor.createCookie": "新建 Cookie",
+        "cookieEditor.editCookie": "编辑 Cookie",
+        "cookieEditor.name": "名称",
+        "cookieEditor.value": "值",
+        "cookieEditor.domain": "域名",
+        "cookieEditor.path": "路径",
+        "cookieEditor.expiration": "过期时间",
+        "cookieEditor.expirationPlaceholder": "留空表示会话 Cookie",
+        "cookieEditor.sameSite": "SameSite",
+        "cookieEditor.unspecified": "未指定",
+        "cookieEditor.strict": "严格",
+        "cookieEditor.lax": "宽松",
+        "cookieEditor.none": "无",
+        "cookieEditor.secureOnly": "仅安全连接",
+        "cookieEditor.httpOnlyOnly": "仅 HttpOnly",
+        "common.cancel": "取消",
+        "common.save": "保存",
+      };
+      let text = translations[key] || key;
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          text = text.replace(`{${k}}`, String(v));
+        });
+      }
+      return text;
+    },
+  }),
+}));
+
 const mockCookie = {
   name: "test",
   value: "value123",
