@@ -4,7 +4,6 @@ import type { Settings as SettingsType, CustomTheme, Locale } from "@/types";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "@/types";
 import { RadioGroup } from "@/components/RadioGroup";
 import { CheckboxGroup } from "@/components/CheckboxGroup";
-import { useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {
@@ -19,250 +18,257 @@ export const Settings = ({ onMessage }: Props) => {
 
   const updateSetting = <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => {
     setSettings({ ...settings, [key]: value });
-    onMessage(t("settings.settingsSaved"));
   };
 
   const updateCustomTheme = (key: keyof CustomTheme, value: string) => {
-    const newCustomTheme = {
-      ...(settings.customTheme || DEFAULT_CUSTOM_THEME),
-      [key]: value,
-    };
-    updateSetting("customTheme", newCustomTheme);
+    setSettings({
+      ...settings,
+      customTheme: { ...settings.customTheme, [key]: value },
+    });
+  };
+
+  const resetCustomTheme = () => {
+    setSettings({
+      ...settings,
+      customTheme: { ...DEFAULT_CUSTOM_THEME },
+    });
+    onMessage(t("settings.resetTheme"));
+  };
+
+  const handleLocaleChange = (locale: Locale) => {
+    setLocale(locale);
   };
 
   return (
     <div className="settings-container">
-      <div className="section">
+      <div className="settings-section">
         <h3>{t("settings.workMode")}</h3>
-        <p className="setting-description">{t("settings.workModeDesc")}</p>
+        <p className="settings-description">{t("settings.workModeDesc")}</p>
         <RadioGroup
-          name="mode"
-          value={settings.mode}
-          onChange={(value) => updateSetting("mode", value)}
           options={[
             { value: ModeType.WHITELIST, label: t("settings.whitelistMode") },
             { value: ModeType.BLACKLIST, label: t("settings.blacklistMode") },
           ]}
+          value={settings.mode}
+          onChange={(value) => updateSetting("mode", value as ModeType)}
         />
       </div>
 
-      <div className="section">
+      <div className="settings-section">
         <h3>{t("settings.cookieClearType")}</h3>
-        <p className="setting-description">{t("settings.cookieClearTypeDesc")}</p>
+        <p className="settings-description">{t("settings.cookieClearTypeDesc")}</p>
         <RadioGroup
-          name="clearType"
-          value={settings.clearType}
-          onChange={(value) => updateSetting("clearType", value)}
           options={[
             { value: CookieClearType.SESSION, label: t("settings.clearSessionOnly") },
             { value: CookieClearType.PERSISTENT, label: t("settings.clearPersistentOnly") },
             { value: CookieClearType.ALL, label: t("settings.clearAll") },
           ]}
+          value={settings.clearType}
+          onChange={(value) => updateSetting("clearType", value as CookieClearType)}
         />
       </div>
 
-      <div className="section">
+      <div className="settings-section">
         <h3>{t("settings.scheduledCleanup")}</h3>
-        <p className="setting-description">{t("settings.scheduledCleanupDesc")}</p>
+        <p className="settings-description">{t("settings.scheduledCleanupDesc")}</p>
         <RadioGroup
-          name="scheduleInterval"
-          value={settings.scheduleInterval}
-          onChange={(value) => updateSetting("scheduleInterval", value)}
           options={[
             { value: ScheduleInterval.DISABLED, label: t("settings.disabled") },
             { value: ScheduleInterval.HOURLY, label: t("settings.hourly") },
             { value: ScheduleInterval.DAILY, label: t("settings.daily") },
             { value: ScheduleInterval.WEEKLY, label: t("settings.weekly") },
           ]}
+          value={settings.scheduleInterval}
+          onChange={(value) => updateSetting("scheduleInterval", value as ScheduleInterval)}
         />
       </div>
 
-      <div className="section">
-        <h3>{t("settings.logRetention")}</h3>
-        <p className="setting-description">{t("settings.logRetentionDesc")}</p>
-        <select
-          data-testid="log-retention-select"
-          className="select-input"
-          value={settings.logRetention}
-          onChange={(e) => updateSetting("logRetention", e.target.value as LogRetention)}
-        >
-          <option value={LogRetention.ONE_HOUR}>{t("settings.oneHour")}</option>
-          <option value={LogRetention.SIX_HOURS}>{t("settings.sixHours")}</option>
-          <option value={LogRetention.TWELVE_HOURS}>{t("settings.twelveHours")}</option>
-          <option value={LogRetention.ONE_DAY}>{t("settings.oneDay")}</option>
-          <option value={LogRetention.THREE_DAYS}>{t("settings.threeDays")}</option>
-          <option value={LogRetention.SEVEN_DAYS}>{t("settings.sevenDays")}</option>
-          <option value={LogRetention.TEN_DAYS}>{t("settings.tenDays")}</option>
-          <option value={LogRetention.THIRTY_DAYS}>{t("settings.thirtyDays")}</option>
-          <option value={LogRetention.FOREVER}>{t("settings.forever")}</option>
-        </select>
-      </div>
-
-      <div className="section">
-        <h3>{t("settings.language")}</h3>
-        <p className="setting-description">{t("settings.languageDesc")}</p>
-        <select
-          data-testid="locale-select"
-          className="select-input"
-          value={settings.locale}
-          onChange={(e) => setLocale(e.target.value as Locale)}
-        >
-          <option value="zh-CN">中文 (简体)</option>
-          <option value="en-US">English</option>
-        </select>
-      </div>
-
-      <div className="section">
-        <h3>{t("settings.themeMode")}</h3>
-        <p className="setting-description">{t("settings.themeModeDesc")}</p>
-        <RadioGroup
-          name="themeMode"
-          value={settings.themeMode}
-          onChange={(value) => {
-            updateSetting("themeMode", value);
-          }}
+      <div className="settings-section">
+        <h3>{t("settings.additionalCleanup")}</h3>
+        <CheckboxGroup
           options={[
-            { value: ThemeMode.AUTO, label: t("settings.followBrowser") },
-            { value: ThemeMode.LIGHT, label: t("settings.light") },
-            { value: ThemeMode.DARK, label: t("settings.dark") },
-            { value: ThemeMode.CUSTOM, label: t("settings.custom") },
+            { value: "clearCache", label: t("settings.clearCache"), checked: settings.clearCache },
+            {
+              value: "clearLocalStorage",
+              label: t("settings.clearLocalStorage"),
+              checked: settings.clearLocalStorage,
+            },
+            {
+              value: "clearIndexedDB",
+              label: t("settings.clearIndexedDB"),
+              checked: settings.clearIndexedDB,
+            },
           ]}
+          onChange={(values) => {
+            updateSetting("clearCache", values.includes("clearCache"));
+            updateSetting("clearLocalStorage", values.includes("clearLocalStorage"));
+            updateSetting("clearIndexedDB", values.includes("clearIndexedDB"));
+          }}
         />
+      </div>
 
-        {showCustomTheme && (
-          <div className="custom-theme-settings">
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.primaryColor")}</label>
+      <div className="settings-section">
+        <h3>{t("settings.startupCleanup")}</h3>
+        <CheckboxGroup
+          options={[
+            {
+              value: "cleanupOnStartup",
+              label: t("settings.cleanupOnStartup"),
+              checked: settings.cleanupOnStartup,
+            },
+            {
+              value: "cleanupExpiredCookies",
+              label: t("settings.cleanupExpiredCookies"),
+              checked: settings.cleanupExpiredCookies,
+            },
+          ]}
+          onChange={(values) => {
+            updateSetting("cleanupOnStartup", values.includes("cleanupOnStartup"));
+            updateSetting("cleanupExpiredCookies", values.includes("cleanupExpiredCookies"));
+          }}
+        />
+      </div>
+
+      <div className="settings-section">
+        <h3>{t("settings.logRetention")}</h3>
+        <p className="settings-description">{t("settings.logRetentionDesc")}</p>
+        <RadioGroup
+          options={[
+            { value: LogRetention.ONE_HOUR, label: t("settings.oneHour") },
+            { value: LogRetention.SIX_HOURS, label: t("settings.sixHours") },
+            { value: LogRetention.TWELVE_HOURS, label: t("settings.twelveHours") },
+            { value: LogRetention.ONE_DAY, label: t("settings.oneDay") },
+            { value: LogRetention.THREE_DAYS, label: t("settings.threeDays") },
+            { value: LogRetention.SEVEN_DAYS, label: t("settings.sevenDays") },
+            { value: LogRetention.TEN_DAYS, label: t("settings.tenDays") },
+            { value: LogRetention.THIRTY_DAYS, label: t("settings.thirtyDays") },
+          ]}
+          value={settings.logRetention}
+          onChange={(value) => updateSetting("logRetention", value as LogRetention)}
+        />
+      </div>
+
+      <div className="settings-section">
+        <h3>{t("settings.themeMode")}</h3>
+        <p className="settings-description">{t("settings.themeModeDesc")}</p>
+        <RadioGroup
+          options={[
+            { value: ThemeMode.AUTO, label: t("settings.themeAuto") },
+            { value: ThemeMode.LIGHT, label: t("settings.themeLight") },
+            { value: ThemeMode.DARK, label: t("settings.themeDark") },
+            { value: ThemeMode.CUSTOM, label: t("settings.customTheme") },
+          ]}
+          value={settings.themeMode}
+          onChange={(value) => updateSetting("themeMode", value as ThemeMode)}
+        />
+      </div>
+
+      {showCustomTheme && (
+        <div className="settings-section custom-theme-section">
+          <h3>{t("settings.customTheme")}</h3>
+          <p className="settings-description">{t("settings.customThemeDesc")}</p>
+          <div className="color-inputs">
+            <div className="color-input">
+              <label>{t("settings.primaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.primary || DEFAULT_CUSTOM_THEME.primary}
+                value={settings.customTheme.primary}
                 onChange={(e) => updateCustomTheme("primary", e.target.value)}
               />
             </div>
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.successColor")}</label>
+            <div className="color-input">
+              <label>{t("settings.successColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.success || DEFAULT_CUSTOM_THEME.success}
+                value={settings.customTheme.success}
                 onChange={(e) => updateCustomTheme("success", e.target.value)}
               />
             </div>
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.warningColor")}</label>
+            <div className="color-input">
+              <label>{t("settings.warningColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.warning || DEFAULT_CUSTOM_THEME.warning}
+                value={settings.customTheme.warning}
                 onChange={(e) => updateCustomTheme("warning", e.target.value)}
               />
             </div>
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.dangerColor")}</label>
+            <div className="color-input">
+              <label>{t("settings.dangerColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.danger || DEFAULT_CUSTOM_THEME.danger}
+                value={settings.customTheme.danger}
                 onChange={(e) => updateCustomTheme("danger", e.target.value)}
               />
             </div>
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.bgPrimary")}</label>
+            <div className="color-input">
+              <label>{t("settings.bgPrimaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.bgPrimary || DEFAULT_CUSTOM_THEME.bgPrimary}
+                value={settings.customTheme.bgPrimary}
                 onChange={(e) => updateCustomTheme("bgPrimary", e.target.value)}
               />
             </div>
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.bgSecondary")}</label>
+            <div className="color-input">
+              <label>{t("settings.bgSecondaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.bgSecondary || DEFAULT_CUSTOM_THEME.bgSecondary}
+                value={settings.customTheme.bgSecondary}
                 onChange={(e) => updateCustomTheme("bgSecondary", e.target.value)}
               />
             </div>
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.textPrimary")}</label>
+            <div className="color-input">
+              <label>{t("settings.textPrimaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.textPrimary || DEFAULT_CUSTOM_THEME.textPrimary}
+                value={settings.customTheme.textPrimary}
                 onChange={(e) => updateCustomTheme("textPrimary", e.target.value)}
               />
             </div>
-            <div className="color-input-group">
-              <label className="color-label">{t("settings.textSecondary")}</label>
+            <div className="color-input">
+              <label>{t("settings.textSecondaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme?.textSecondary || DEFAULT_CUSTOM_THEME.textSecondary}
+                value={settings.customTheme.textSecondary}
                 onChange={(e) => updateCustomTheme("textSecondary", e.target.value)}
               />
             </div>
           </div>
-        )}
-      </div>
+          <button className="reset-theme-btn" onClick={resetCustomTheme}>
+            {t("settings.resetTheme")}
+          </button>
+        </div>
+      )}
 
-      <div className="section">
-        <h3>{t("settings.autoCleanup")}</h3>
-        <p className="setting-description">{t("settings.autoCleanupDesc")}</p>
-        <CheckboxGroup
+      <div className="settings-section">
+        <h3>{t("settings.language")}</h3>
+        <p className="settings-description">{t("settings.languageDesc")}</p>
+        <RadioGroup
           options={[
-            {
-              checked: settings.enableAutoCleanup,
-              label: t("settings.enableAutoCleanup"),
-              onChange: (checked) => updateSetting("enableAutoCleanup", checked),
-            },
-            {
-              checked: settings.cleanupOnTabDiscard,
-              label: t("settings.cleanupOnTabDiscard"),
-              onChange: (checked) => updateSetting("cleanupOnTabDiscard", checked),
-            },
-            {
-              checked: settings.cleanupOnStartup,
-              label: t("settings.cleanupOnStartup"),
-              onChange: (checked) => updateSetting("cleanupOnStartup", checked),
-            },
-            {
-              checked: settings.cleanupExpiredCookies,
-              label: t("settings.cleanupExpiredCookies"),
-              onChange: (checked) => updateSetting("cleanupExpiredCookies", checked),
-            },
+            { value: "zh-CN", label: "简体中文" },
+            { value: "en", label: "English" },
           ]}
+          value={settings.locale}
+          onChange={(value) => {
+            updateSetting("locale", value as Locale);
+            handleLocaleChange(value as Locale);
+          }}
         />
       </div>
 
-      <div className="section">
-        <h3>{t("settings.privacyProtection")}</h3>
-        <p className="setting-description">{t("settings.privacyProtectionDesc")}</p>
+      <div className="settings-section">
+        <h3>{t("settings.showCookieRisk")}</h3>
+        <p className="settings-description">{t("settings.showCookieRiskDesc")}</p>
         <CheckboxGroup
           options={[
             {
-              checked: settings.showCookieRisk,
+              value: "showCookieRisk",
               label: t("settings.showCookieRisk"),
-              onChange: (checked) => updateSetting("showCookieRisk", checked),
+              checked: settings.showCookieRisk,
             },
           ]}
-        />
-      </div>
-
-      <div className="section">
-        <h3>{t("settings.advancedCleanup")}</h3>
-        <p className="setting-description">{t("settings.advancedCleanupDesc")}</p>
-        <CheckboxGroup
-          options={[
-            {
-              checked: settings.clearLocalStorage,
-              label: t("settings.clearLocalStorage"),
-              onChange: (checked) => updateSetting("clearLocalStorage", checked),
-            },
-            {
-              checked: settings.clearIndexedDB,
-              label: t("settings.clearIndexedDB"),
-              onChange: (checked) => updateSetting("clearIndexedDB", checked),
-            },
-            {
-              checked: settings.clearCache,
-              label: t("settings.clearCache"),
-              onChange: (checked) => updateSetting("clearCache", checked),
-            },
-          ]}
+          onChange={(values) => {
+            updateSetting("showCookieRisk", values.includes("showCookieRisk"));
+          }}
         />
       </div>
     </div>

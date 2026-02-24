@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mock, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, fireEvent, cleanup } from "@testing-library/react";
 import IndexPopup from "@/entrypoints/popup/App";
 import * as storageHook from "@/hooks/useStorage";
 
@@ -18,10 +18,10 @@ interface CookieListProps {
   onAddToBlacklist?: (domains: string[]) => void;
 }
 
-let cookieListProps: CookieListProps | null = null;
+let _cookieListProps: CookieListProps | null = null;
 vi.mock("@/components/CookieList", () => ({
   CookieList: (props: CookieListProps) => {
-    cookieListProps = props;
+    _cookieListProps = props;
     return (
       <div data-testid="cookie-list">
         <button
@@ -136,7 +136,7 @@ const mockCookies = [
 describe("IndexPopup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    cookieListProps = null;
+    _cookieListProps = null;
 
     global.chrome = {
       cookies: {
@@ -235,7 +235,6 @@ describe("IndexPopup", () => {
 
   it("should switch between tabs", async () => {
     const { findByRole } = render(<IndexPopup />);
-    // Find the settings tab and click it
     const settingsTab = await findByRole("tab", { name: /设置/ });
     fireEvent.click(settingsTab);
     expect(settingsTab).toHaveAttribute("aria-selected", "true");
