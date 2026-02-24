@@ -86,7 +86,8 @@ vi.mock("@/hooks/useTranslation", () => ({
         "cookieList.deleteSelectedConfirm": "确定要删除选中的 Cookie 吗？",
         "cookieList.deleteSelectedSensitive": "删除敏感 Cookie",
         "cookieList.deleteSelectedMessage": "确定要删除选中的 {count} 个 Cookie 吗？",
-        "cookieList.deleteSelectedSensitiveMessage": "选中的 Cookie 包含敏感 Cookie，确定要删除吗？",
+        "cookieList.deleteSelectedSensitiveMessage":
+          "选中的 Cookie 包含敏感 Cookie，确定要删除吗？",
         "cookieList.functionUnavailable": "功能不可用",
         "cookieList.addedDomainsToWhitelist": "已添加 {count} 个域名到白名单",
         "cookieList.domainsAlreadyInWhitelist": "域名已在白名单中",
@@ -183,7 +184,9 @@ vi.mock("@/components/ConfirmDialogWrapper", () => ({
               >
                 确定
               </button>
-              <button data-testid="confirm-no" onClick={() => setIsOpen(false)}>取消</button>
+              <button data-testid="confirm-no" onClick={() => setIsOpen(false)}>
+                取消
+              </button>
             </div>
           )}
         </>
@@ -336,7 +339,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -354,7 +357,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -376,7 +379,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -393,7 +396,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -417,7 +420,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -445,7 +448,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -480,7 +483,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -508,7 +511,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -524,7 +527,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -555,7 +558,7 @@ describe("CookieList", () => {
 
     // Expand domain to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -584,7 +587,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -615,7 +618,7 @@ describe("CookieList", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -655,7 +658,9 @@ describe("CookieList", () => {
 });
 
 // Wrapper component that provides showConfirm functionality for CookieListContent tests
-const CookieListContentWithConfirm = (props: Omit<React.ComponentProps<typeof CookieListContent>, 'showConfirm'>) => {
+const CookieListContentWithConfirm = (
+  props: Omit<React.ComponentProps<typeof CookieListContent>, "showConfirm">
+) => {
   const [isOpen, setIsOpen] = useState(false);
   const [confirmCallback, setConfirmCallback] = useState<(() => void) | null>(null);
 
@@ -684,7 +689,9 @@ const CookieListContentWithConfirm = (props: Omit<React.ComponentProps<typeof Co
           >
             确定
           </button>
-          <button data-testid="confirm-no" onClick={() => setIsOpen(false)}>取消</button>
+          <button data-testid="confirm-no" onClick={() => setIsOpen(false)}>
+            取消
+          </button>
         </div>
       )}
     </>
@@ -754,7 +761,7 @@ describe("CookieListContent", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -791,7 +798,7 @@ describe("CookieListContent", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
@@ -859,7 +866,7 @@ describe("CookieListContent", () => {
 
     // Expand domain group to see cookies
     const domainButtons = screen.getAllByRole("button");
-    const exampleDomainBtn = domainButtons.find(btn => btn.textContent?.includes("example.com"));
+    const exampleDomainBtn = domainButtons.find((btn) => btn.textContent?.includes("example.com"));
     if (exampleDomainBtn) {
       fireEvent.click(exampleDomainBtn);
     }
