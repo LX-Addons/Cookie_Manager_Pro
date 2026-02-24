@@ -23,7 +23,7 @@ export const Settings = ({ onMessage }: Props) => {
   const updateCustomTheme = (key: keyof CustomTheme, value: string) => {
     setSettings({
       ...settings,
-      customTheme: { ...settings.customTheme, [key]: value },
+      customTheme: { ...(settings.customTheme || DEFAULT_CUSTOM_THEME), [key]: value },
     });
   };
 
@@ -45,6 +45,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>{t("settings.workMode")}</h3>
         <p className="settings-description">{t("settings.workModeDesc")}</p>
         <RadioGroup
+          name="workMode"
           options={[
             { value: ModeType.WHITELIST, label: t("settings.whitelistMode") },
             { value: ModeType.BLACKLIST, label: t("settings.blacklistMode") },
@@ -58,6 +59,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>{t("settings.cookieClearType")}</h3>
         <p className="settings-description">{t("settings.cookieClearTypeDesc")}</p>
         <RadioGroup
+          name="cookieClearType"
           options={[
             { value: CookieClearType.SESSION, label: t("settings.clearSessionOnly") },
             { value: CookieClearType.PERSISTENT, label: t("settings.clearPersistentOnly") },
@@ -72,6 +74,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>{t("settings.scheduledCleanup")}</h3>
         <p className="settings-description">{t("settings.scheduledCleanupDesc")}</p>
         <RadioGroup
+          name="scheduleInterval"
           options={[
             { value: ScheduleInterval.DISABLED, label: t("settings.disabled") },
             { value: ScheduleInterval.HOURLY, label: t("settings.hourly") },
@@ -133,6 +136,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>{t("settings.logRetention")}</h3>
         <p className="settings-description">{t("settings.logRetentionDesc")}</p>
         <RadioGroup
+          name="logRetention"
           options={[
             { value: LogRetention.ONE_HOUR, label: t("settings.oneHour") },
             { value: LogRetention.SIX_HOURS, label: t("settings.sixHours") },
@@ -152,6 +156,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>{t("settings.themeMode")}</h3>
         <p className="settings-description">{t("settings.themeModeDesc")}</p>
         <RadioGroup
+          name="themeMode"
           options={[
             { value: ThemeMode.AUTO, label: t("settings.themeAuto") },
             { value: ThemeMode.LIGHT, label: t("settings.themeLight") },
@@ -172,7 +177,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.primaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.primary}
+                value={settings.customTheme?.primary ?? DEFAULT_CUSTOM_THEME.primary}
                 onChange={(e) => updateCustomTheme("primary", e.target.value)}
               />
             </div>
@@ -180,7 +185,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.successColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.success}
+                value={settings.customTheme?.success ?? DEFAULT_CUSTOM_THEME.success}
                 onChange={(e) => updateCustomTheme("success", e.target.value)}
               />
             </div>
@@ -188,7 +193,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.warningColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.warning}
+                value={settings.customTheme?.warning ?? DEFAULT_CUSTOM_THEME.warning}
                 onChange={(e) => updateCustomTheme("warning", e.target.value)}
               />
             </div>
@@ -196,7 +201,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.dangerColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.danger}
+                value={settings.customTheme?.danger ?? DEFAULT_CUSTOM_THEME.danger}
                 onChange={(e) => updateCustomTheme("danger", e.target.value)}
               />
             </div>
@@ -204,7 +209,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.bgPrimaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.bgPrimary}
+                value={settings.customTheme?.bgPrimary ?? DEFAULT_CUSTOM_THEME.bgPrimary}
                 onChange={(e) => updateCustomTheme("bgPrimary", e.target.value)}
               />
             </div>
@@ -212,7 +217,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.bgSecondaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.bgSecondary}
+                value={settings.customTheme?.bgSecondary ?? DEFAULT_CUSTOM_THEME.bgSecondary}
                 onChange={(e) => updateCustomTheme("bgSecondary", e.target.value)}
               />
             </div>
@@ -220,7 +225,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.textPrimaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.textPrimary}
+                value={settings.customTheme?.textPrimary ?? DEFAULT_CUSTOM_THEME.textPrimary}
                 onChange={(e) => updateCustomTheme("textPrimary", e.target.value)}
               />
             </div>
@@ -228,7 +233,7 @@ export const Settings = ({ onMessage }: Props) => {
               <label>{t("settings.textSecondaryColor")}</label>
               <input
                 type="color"
-                value={settings.customTheme.textSecondary}
+                value={settings.customTheme?.textSecondary ?? DEFAULT_CUSTOM_THEME.textSecondary}
                 onChange={(e) => updateCustomTheme("textSecondary", e.target.value)}
               />
             </div>
@@ -243,6 +248,7 @@ export const Settings = ({ onMessage }: Props) => {
         <h3>{t("settings.language")}</h3>
         <p className="settings-description">{t("settings.languageDesc")}</p>
         <RadioGroup
+          name="locale"
           options={[
             { value: "zh-CN", label: "简体中文" },
             { value: "en", label: "English" },

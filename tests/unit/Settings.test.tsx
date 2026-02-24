@@ -22,7 +22,7 @@ let mockSettings = {
   showCookieRisk: true,
 };
 
-let useStorageMock: (key: string, defaultValue: unknown) => [unknown, (value: unknown) => void];
+let useStorageMock: (key: string, defaultValue: unknown) => unknown[];
 
 vi.mock("@/hooks/useStorage", () => ({
   useStorage: vi.fn((key: string, defaultValue: unknown) => {
