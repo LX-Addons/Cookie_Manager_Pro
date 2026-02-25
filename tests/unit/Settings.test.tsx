@@ -50,16 +50,22 @@ vi.mock("@/hooks/useTranslation", () => ({
         "settings.hourly": "每小时",
         "settings.daily": "每天",
         "settings.weekly": "每周",
+        "settings.advancedCleanup": "高级清理",
+        "settings.advancedCleanupDesc": "除了 Cookie 外，还可以清理其他可能存储您数据的浏览器存储",
         "settings.clearCache": "清除缓存",
         "settings.clearCacheDesc": "在清理 Cookie 时同时清除浏览器缓存数据",
         "settings.clearLocalStorage": "清除LocalStorage",
         "settings.clearLocalStorageDesc": "在清理 Cookie 时同时清除本地存储数据",
         "settings.clearIndexedDB": "清除IndexedDB",
         "settings.clearIndexedDBDesc": "在清理 Cookie 时同时清除 IndexedDB 数据库",
+        "settings.autoCleanup": "自动清理",
+        "settings.autoCleanupDesc": "配置不同场景下的自动清理行为，减少手动操作的繁琐",
         "settings.cleanupOnStartup": "启动时清理",
         "settings.cleanupOnStartupDesc": "浏览器启动时自动执行一次 Cookie 清理",
         "settings.cleanupExpiredCookies": "清理过期Cookie",
         "settings.cleanupExpiredCookiesDesc": "自动识别并清理已过期的 Cookie",
+        "settings.privacyProtection": "隐私保护",
+        "settings.privacyProtectionDesc": "增强您的在线隐私保护，识别并警示潜在的追踪行为",
         "settings.logRetention": "日志保留时间",
         "settings.logRetentionDesc": "设置清理日志的保留时间，超过此时间的日志将被自动删除",
         "settings.oneHour": "1小时",
@@ -72,10 +78,10 @@ vi.mock("@/hooks/useTranslation", () => ({
         "settings.thirtyDays": "30天",
         "settings.themeMode": "主题模式",
         "settings.themeModeDesc": "选择您喜欢的界面主题风格",
-        "settings.themeAuto": "跟随系统",
-        "settings.themeLight": "浅色主题",
-        "settings.themeDark": "深色主题",
-        "settings.customTheme": "自定义主题",
+        "settings.followBrowser": "跟随系统",
+        "settings.light": "浅色主题",
+        "settings.dark": "深色主题",
+        "settings.custom": "自定义主题",
         "settings.customThemeDesc": "自定义扩展的主题颜色",
         "settings.primaryColor": "主色调",
         "settings.successColor": "成功色",
@@ -316,11 +322,11 @@ describe("Settings", () => {
   it("should handle show cookie risk toggle", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const riskToggle = screen.getByLabelText("显示Cookie风险等级");
-    fireEvent.click(riskToggle);
+    const riskToggles = screen.getAllByLabelText("显示Cookie风险等级");
+    fireEvent.click(riskToggles[0]);
 
     // CheckboxGroup uses unified onChange API, verify the checkbox is clickable
-    expect(riskToggle).toBeTruthy();
+    expect(riskToggles[0]).toBeTruthy();
   });
 
   it("should render with auto theme mode", () => {

@@ -87,7 +87,8 @@ export const Settings = ({ onMessage }: Props) => {
       </div>
 
       <div className="settings-section">
-        <h3>{t("settings.additionalCleanup")}</h3>
+        <h3>{t("settings.advancedCleanup")}</h3>
+        <p className="settings-description">{t("settings.advancedCleanupDesc")}</p>
         <CheckboxGroup
           options={[
             { value: "clearCache", label: t("settings.clearCache"), checked: settings.clearCache },
@@ -111,7 +112,8 @@ export const Settings = ({ onMessage }: Props) => {
       </div>
 
       <div className="settings-section">
-        <h3>{t("settings.startupCleanup")}</h3>
+        <h3>{t("settings.autoCleanup")}</h3>
+        <p className="settings-description">{t("settings.autoCleanupDesc")}</p>
         <CheckboxGroup
           options={[
             {
@@ -153,15 +155,32 @@ export const Settings = ({ onMessage }: Props) => {
       </div>
 
       <div className="settings-section">
+        <h3>{t("settings.privacyProtection")}</h3>
+        <p className="settings-description">{t("settings.privacyProtectionDesc")}</p>
+        <CheckboxGroup
+          options={[
+            {
+              value: "showCookieRisk",
+              label: t("settings.showCookieRisk"),
+              checked: settings.showCookieRisk,
+            },
+          ]}
+          onChange={(values) => {
+            updateSetting("showCookieRisk", values.includes("showCookieRisk"));
+          }}
+        />
+      </div>
+
+      <div className="settings-section">
         <h3>{t("settings.themeMode")}</h3>
         <p className="settings-description">{t("settings.themeModeDesc")}</p>
         <RadioGroup
           name="themeMode"
           options={[
-            { value: ThemeMode.AUTO, label: t("settings.themeAuto") },
-            { value: ThemeMode.LIGHT, label: t("settings.themeLight") },
-            { value: ThemeMode.DARK, label: t("settings.themeDark") },
-            { value: ThemeMode.CUSTOM, label: t("settings.customTheme") },
+            { value: ThemeMode.AUTO, label: t("settings.followBrowser") },
+            { value: ThemeMode.LIGHT, label: t("settings.light") },
+            { value: ThemeMode.DARK, label: t("settings.dark") },
+            { value: ThemeMode.CUSTOM, label: t("settings.custom") },
           ]}
           value={settings.themeMode}
           onChange={(value) => updateSetting("themeMode", value as ThemeMode)}
