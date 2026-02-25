@@ -188,7 +188,7 @@ export const Settings = ({ onMessage }: Props) => {
       </div>
 
       {showCustomTheme && (
-        <div className="settings-section custom-theme-section">
+        <div className="settings-section custom-theme-settings">
           <h3>{t("settings.customTheme")}</h3>
           <p className="settings-description">{t("settings.customThemeDesc")}</p>
           <div className="color-inputs">
