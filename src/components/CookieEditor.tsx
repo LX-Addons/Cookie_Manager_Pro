@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Cookie, SameSite } from "~types";
-import { useTranslation } from "~hooks/useTranslation";
+import type { Cookie, SameSite } from "@/types";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {
   isOpen: boolean;
@@ -49,6 +49,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
       role="button"
       tabIndex={0}
       onKeyDown={handleOverlayKeyDown}
+      data-testid="cookie-editor"
     >
       <div
         className="confirm-dialog cookie-editor-dialog"
@@ -165,10 +166,15 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
             </label>
           </div>
           <div className="confirm-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+              data-testid="cancel-editor"
+            >
               {t("common.cancel")}
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn btn-primary" data-testid="save-editor">
               {t("common.save")}
             </button>
           </div>

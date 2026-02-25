@@ -18,7 +18,7 @@ on:
         default: false
         type: boolean
       clear_caches:
-        description: "清除旧的 npm 和 Plasmo 缓存后再构建"
+        description: "清除旧的 npm 和 WXT 缓存后再构建"
         required: false
         default: false
         type: boolean
@@ -77,7 +77,7 @@ jobs:
             const branchPrefix = '${{ github.ref_name }}'.replace(/[^a-zA-Z0-9-]/g, '-');
             const prefixes = [
               '${{ runner.os }}-' + branchPrefix + '-node-',
-              '${{ runner.os }}-' + branchPrefix + '-plasmo-'
+              '${{ runner.os }}-' + branchPrefix + '-wxt-'
             ];
             let cachesCleared = 0;
 
@@ -318,7 +318,7 @@ jobs:
           EXIT_CODE=0
 
           echo "#### eval 使用检查" >> $GITHUB_STEP_SUMMARY
-          if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
+          if grep -r "eval(" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".wxt"; then
             echo "❌ 发现 eval() 使用 - 潜在安全风险" >> $GITHUB_STEP_SUMMARY
             EXIT_CODE=1
           else
@@ -326,7 +326,7 @@ jobs:
           fi
 
           echo "#### dangerouslySetInnerHTML 检查" >> $GITHUB_STEP_SUMMARY
-          if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".plasmo"; then
+          if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | grep -v node_modules | grep -v ".wxt"; then
             echo "⚠️ 发现 dangerouslySetInnerHTML 使用 - XSS 风险" >> $GITHUB_STEP_SUMMARY
           else
             echo "✅ 未发现 dangerouslySetInnerHTML 使用" >> $GITHUB_STEP_SUMMARY
@@ -368,17 +368,31 @@ jobs:
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline
 
-      - name: 缓存 Plasmo 构建缓存
+      - name: 缓存 WXT 构建缓存
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
         with:
-          path: .plasmo
-          key: ${{ runner.os }}-${{ github.ref_name }}-plasmo-${{ hashFiles('**/package-lock.json', 'src/**/*') }}
+          path: .wxt
+          key: ${{ runner.os }}-${{ github.ref_name }}-wxt-${{ hashFiles('**/package-lock.json', 'entrypoints/**/*', 'components/**/*', 'hooks/**/*', 'lib/**/*', 'i18n/**/*', 'utils/**/*', 'types/**/*', 'wxt.config.ts') }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-plasmo-
-            ${{ runner.os }}-plasmo-
+            ${{ runner.os }}-${{ github.ref_name }}-wxt-
+            ${{ runner.os }}-wxt-
 
       - name: 构建扩展
-        run: npm run build
+        run: |
+          set -e
+          echo "🔨 开始构建..."
+          npm run build 2>&1
+          echo "✅ 构建命令完成"
+          
+          echo "📁 构建后检查 .output/ 目录:"
+          if [ -d ".output" ]; then
+            ls -la .output/
+          else
+            echo "❌ .output/ 目录不存在"
+            echo "📁 当前目录内容:"
+            ls -la
+            exit 1
+          fi
 
       - name: 获取版本信息
         id: version
@@ -390,22 +404,29 @@ jobs:
 
       - name: 检查扩展体积
         run: |
-          BUILD_DIR="build/chrome-mv3-prod"
-          if [ -d "$BUILD_DIR" ]; then
-            SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
-            SIZE_MB=$((SIZE_KB / 1024))
-            echo "📊 扩展体积: ${SIZE_MB}MB (${SIZE_KB}KB)"
-            
-            if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
-              echo "❌ 扩展体积 (${SIZE_MB}MB) 超出限制 (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
-              exit 1
-            fi
-            echo "✅ 扩展体积符合限制"
+          BUILD_DIR=".output/chrome-mv3"
+          if [ ! -d "$BUILD_DIR" ]; then
+            echo "❌ 构建目录不存在: $BUILD_DIR"
+            echo "📁 当前目录内容:"
+            ls -la
+            echo "📁 .output/ 目录内容:"
+            ls -la .output/ 2>/dev/null || echo ".output/ 目录不存在"
+            exit 1
           fi
+          
+          SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
+          SIZE_MB=$((SIZE_KB / 1024))
+          echo "📊 扩展体积: ${SIZE_MB}MB (${SIZE_KB}KB)"
+          
+          if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
+            echo "❌ 扩展体积 (${SIZE_MB}MB) 超出限制 (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
+            exit 1
+          fi
+          echo "✅ 扩展体积符合限制"
 
       - name: 验证构建产物
         run: |
-          BUILD_DIR="build/chrome-mv3-prod"
+          BUILD_DIR=".output/chrome-mv3"
 
           if [ ! -d "$BUILD_DIR" ]; then
             echo "❌ 构建目录不存在: $BUILD_DIR"
@@ -431,27 +452,46 @@ jobs:
           fi
 
       - name: 打包扩展
-        run: npm run package
-
-      - name: 重命名构建产物
         run: |
-          VERSION=${{ steps.version.outputs.version }}
-          NAME=${{ steps.version.outputs.name }}
+          echo "📁 打包前 .output/ 目录内容:"
+          ls -la .output/
+          
+          npm run zip
+          
+          echo "📁 打包后 .output/ 目录内容:"
+          ls -la .output/
 
-          if [ -d "build/chrome-mv3-prod" ]; then
-            mv "build/chrome-mv3-prod" "build/${NAME}-${VERSION}-chrome"
+      - name: 验证构建产物
+        run: |
+          echo "📁 检查 .output/ 目录:"
+          ls -la .output/ || echo "目录不存在"
+          
+          if [ ! -d ".output" ]; then
+            echo "❌ .output/ 目录不存在"
+            exit 1
           fi
-
-          if [ -f "build/chrome-mv3-prod.zip" ]; then
-            mv "build/chrome-mv3-prod.zip" "build/${NAME}-${VERSION}-chrome.zip"
+          
+          if [ ! -d ".output/chrome-mv3" ]; then
+            echo "❌ .output/chrome-mv3/ 目录不存在"
+            echo "📁 .output/ 目录内容:"
+            ls -la .output/
+            exit 1
           fi
+          
+          if [ -z "$(ls -A .output/chrome-mv3/)" ]; then
+            echo "❌ .output/chrome-mv3/ 目录为空"
+            exit 1
+          fi
+          
+          echo "✅ 构建产物验证通过"
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@v4
         with:
-          name: extension-${{ steps.version.outputs.version }}
-          path: build/
+          name: extension-build
+          path: .output/chrome-mv3/
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
+          if-no-files-found: error
 
       - name: 输出构建摘要
         run: |
@@ -494,23 +534,46 @@ jobs:
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline
 
+      - name: 列出可用 Artifacts
+        run: |
+          echo "📦 尝试下载 artifact: extension-build"
+          echo "🔍 工作流运行 ID: ${{ github.run_id }}"
+
       - name: 下载构建产物
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@v4
         with:
-          pattern: extension-*
-          path: build/
-          merge-multiple: true
+          name: extension-build
+          path: .output/
 
       - name: 准备测试扩展
         run: |
-          VERSION=$(jq -r '.version' package.json)
-          NAME=$(jq -r '.name' package.json)
+          echo "📁 当前目录内容:"
+          ls -la
+          
+          echo "📁 .output/ 目录内容:"
+          ls -la .output/ || echo "目录为空或不存在"
 
-          if [ -d "build/${NAME}-${VERSION}-chrome" ]; then
-            mv "build/${NAME}-${VERSION}-chrome" "build/chrome-mv3-prod"
+          # 检查下载后的目录结构
+          if [ -d ".output" ] && [ -f ".output/manifest.json" ]; then
+            echo "✅ 找到 manifest.json 在 .output/ 根目录"
+            SOURCE_DIR=".output"
+          elif [ -d ".output/chrome-mv3" ]; then
+            echo "✅ 找到构建目录: .output/chrome-mv3"
+            SOURCE_DIR=".output/chrome-mv3"
+          else
+            echo "❌ 未找到构建产物，检查所有目录..."
+            find . -name "manifest.json" -type f 2>/dev/null | head -5
+            echo "📁 当前目录完整内容:"
+            ls -laR
+            exit 1
           fi
 
-          ls -la build/
+          # E2E 测试期望的目录结构是 build/chrome-mv3-prod
+          mkdir -p build/chrome-mv3-prod
+          cp -r "$SOURCE_DIR"/* build/chrome-mv3-prod/
+
+          echo "📁 最终 build/chrome-mv3-prod/ 目录内容:"
+          ls -la build/chrome-mv3-prod/
 
       - name: 安装 Playwright 浏览器
         run: npx playwright install --with-deps chromium
@@ -520,7 +583,7 @@ jobs:
 
       - name: 上传 Playwright 报告
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: playwright-report/
@@ -592,7 +655,7 @@ jobs:
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
             body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js 18/20 多版本测试 |\n`;
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | 密钥泄露 + 依赖审计 |\n`;
-            body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | Plasmo 生产构建 |\n`;
+            body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n`;
             body += `| 🎭 | **E2E 测试** | ${statusEmoji(e2eResult)} | Playwright 浏览器测试 |\n\n`;
 
             body += `### 🏷️ 状态徽章\n\n`;
@@ -688,10 +751,10 @@ jobs:
           echo "name=$NAME" >> $GITHUB_OUTPUT
 
       - name: 下载构建产物
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@v4
         with:
-          pattern: extension-*
-          path: build/
+          name: extension-build
+          path: .output/
           merge-multiple: true
 
       - name: 生成更新日志
@@ -731,7 +794,7 @@ jobs:
           name: 发布 v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.notes }}
           files: |
-            build/*.zip
+            .output/*.zip
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           generate_release_notes: false
@@ -746,7 +809,7 @@ jobs:
           echo "| **类型** | ${{ github.ref == 'refs/heads/main' && '正式版' || '预发布版' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📦 发布资源:" >> $GITHUB_STEP_SUMMARY
-          ls -la build/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
+          ls -la .output/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
 
   dependabot-notify:
     name: Dependabot通知

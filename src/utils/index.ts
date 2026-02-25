@@ -1,9 +1,9 @@
-import { CookieClearType, CookieRisk } from "./types";
+import { CookieClearType, CookieRisk } from "@/types";
 import {
   TRACKING_COOKIE_KEYWORDS,
   THIRD_PARTY_TRACKERS,
   SENSITIVE_COOKIE_KEYWORDS,
-} from "./constants";
+} from "@/lib/constants";
 
 export const normalizeDomain = (domain: string): string => {
   return domain.replace(/^\./, "").toLowerCase();
@@ -372,8 +372,9 @@ export const formatLogTime = (timestamp: number, _t?: (key: string) => string): 
 };
 
 export const maskCookieValue = (value: string, mask: string): string => {
+  if (!value || value.length === 0) return mask;
   if (value.length <= 8) return mask;
-  return value.substring(0, 4) + mask.substring(4);
+  return value.slice(0, 4) + mask.substring(4);
 };
 
 export const getCookieKey = (name: string, domain: string): string => {

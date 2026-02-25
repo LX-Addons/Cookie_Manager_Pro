@@ -254,7 +254,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-#__plasmo {
+#root {
   width: 380px;
   height: 520px;
   min-width: 380px;
@@ -1180,7 +1180,7 @@ header h1 {
   text-align: right;
   word-break: break-all;
   flex: 1;
-  font-family: "SF Mono", "Monaco", "Consolas", "Liberation Mono", monospace;
+  font-family: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
   font-size: var(--font-size-xs);
 }
 
