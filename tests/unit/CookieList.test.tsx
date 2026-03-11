@@ -15,7 +15,9 @@ const hasDomainInText = (textContent: string | null | undefined, domain: string)
   if (!textContent) return false;
   // 使用正则表达式匹配域名，确保域名是独立的词或出现在特定位置
   // 匹配模式：域名后面可以跟空格、括号或字符串结束
-  const domainPattern = new RegExp(`\\b${domain.replace(/\./g, "\\.")}\\b`);
+  // 先转义所有正则表达式特殊字符，然后再构建正则
+  const escapedDomain = domain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const domainPattern = new RegExp(`\\b${escapedDomain}\\b`);
   return domainPattern.test(textContent);
 };
 
