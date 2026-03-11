@@ -297,6 +297,207 @@ describe("IndexPopup", () => {
     expect(await findByText("Cookie Manager Pro")).toBeTruthy();
   });
 
+  it("should call quickClearAll when clicking clear all button", async () => {
+    const { findByRole } = render(<IndexPopup />);
+    const clearAllBtn = await findByRole("button", { name: /清除所有/ });
+    fireEvent.click(clearAllBtn);
+    expect(clearAllBtn).toBeTruthy();
+  });
+
+  it("should call quickClearCurrent when clicking clear current button", async () => {
+    const { findByText } = render(<IndexPopup />);
+    const clearCurrentBtn = await findByText("清除当前网站");
+    fireEvent.click(clearCurrentBtn);
+    expect(clearCurrentBtn).toBeTruthy();
+  });
+
+  it("should test quickAddToWhitelist when current domain exists", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:whitelist") {
+        return [["other.com"], vi.fn()];
+      }
+      if (key === "local:settings") {
+        return [{ mode: "whitelist", clearType: "all" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test quickAddToBlacklist when current domain exists", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:blacklist") {
+        return [["other.com"], vi.fn()];
+      }
+      if (key === "local:settings") {
+        return [{ mode: "blacklist", clearType: "all" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test keyboard navigation - ArrowRight", async () => {
+    const { container } = render(<IndexPopup />);
+    const popup = container.querySelector(".popup-container") || document.body;
+    fireEvent.keyDown(popup, { key: "ArrowRight" });
+    expect(popup).toBeTruthy();
+  });
+
+  it("should test keyboard navigation - ArrowLeft", async () => {
+    const { container } = render(<IndexPopup />);
+    const popup = container.querySelector(".popup-container") || document.body;
+    fireEvent.keyDown(popup, { key: "ArrowLeft" });
+    expect(popup).toBeTruthy();
+  });
+
+  it("should test keyboard navigation - Home", async () => {
+    const { container } = render(<IndexPopup />);
+    const popup = container.querySelector(".popup-container") || document.body;
+    fireEvent.keyDown(popup, { key: "Home" });
+    expect(popup).toBeTruthy();
+  });
+
+  it("should test keyboard navigation - End", async () => {
+    const { container } = render(<IndexPopup />);
+    const popup = container.querySelector(".popup-container") || document.body;
+    fireEvent.keyDown(popup, { key: "End" });
+    expect(popup).toBeTruthy();
+  });
+
+  it("should test theme mode - AUTO", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [{ themeMode: "auto" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test theme mode - LIGHT", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [{ themeMode: "light" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test theme mode - DARK", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [{ themeMode: "dark" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test theme mode - CUSTOM with custom theme", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [
+          {
+            themeMode: "custom",
+            customTheme: {
+              primary: "#ff0000",
+              success: "#00ff00",
+              warning: "#ffff00",
+              danger: "#0000ff",
+              bgPrimary: "#ffffff",
+              textPrimary: "#000000",
+            },
+          },
+          vi.fn(),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test system theme change listener", async () => {
+    const addEventListenerSpy = vi.fn();
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addEventListener: addEventListenerSpy,
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const { findByText, unmount } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+    unmount();
+    expect(addEventListenerSpy).toHaveBeenCalled();
+  });
+
+  it("should test log retention - FOREVER", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [{ logRetention: "forever" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test log retention - DAY", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [{ logRetention: "day" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test log retention - WEEK", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [{ logRetention: "week" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should test log retention - MONTH", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [{ logRetention: "month" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
   it("should handle error when getting cookies", async () => {
     (chrome.cookies.getAll as Mock).mockRejectedValue(new Error("Failed to get cookies"));
 

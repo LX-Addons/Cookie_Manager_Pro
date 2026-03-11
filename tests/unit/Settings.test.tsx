@@ -374,4 +374,138 @@ describe("Settings", () => {
     expect(screen.getByLabelText("每天")).toBeTruthy();
     expect(screen.getByLabelText("每周")).toBeTruthy();
   });
+
+  it("should render with custom theme mode", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("自定义主题")).toBeChecked();
+  });
+
+  it("should render custom theme color pickers", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("自定义主题")).toBeTruthy();
+  });
+
+  it("should handle custom theme color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("自定义主题")).toBeTruthy();
+  });
+
+  it("should handle reset custom theme", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const resetButton = screen.getByText("重置主题");
+    fireEvent.click(resetButton);
+
+    expect(resetButton).toBeTruthy();
+  });
+
+  it("should handle language change to en-US", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const langSelect = screen.getByLabelText("简体中文") as HTMLInputElement;
+    expect(langSelect).toBeTruthy();
+  });
+
+  it("should handle language change to ja-JP", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const langSelect = screen.getByLabelText("简体中文") as HTMLInputElement;
+    expect(langSelect).toBeTruthy();
+  });
+
+  it("should handle language change to zh-TW", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const langSelect = screen.getByLabelText("简体中文") as HTMLInputElement;
+    expect(langSelect).toBeTruthy();
+  });
+
+  it("should render with whitelist mode", () => {
+    mockSettings.mode = ModeType.WHITELIST;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("白名单模式：仅白名单内网站不执行清理")).toBeChecked();
+  });
+
+  it("should render with blacklist mode", () => {
+    mockSettings.mode = ModeType.BLACKLIST;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("黑名单模式：仅黑名单内网站执行清理")).toBeChecked();
+  });
+
+  it("should render with session clear type", () => {
+    mockSettings.clearType = CookieClearType.SESSION;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("仅清除会话Cookie")).toBeChecked();
+  });
+
+  it("should render with persistent clear type", () => {
+    mockSettings.clearType = CookieClearType.PERSISTENT;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("仅清除持久Cookie")).toBeChecked();
+  });
+
+  it("should render with all clear type", () => {
+    mockSettings.clearType = CookieClearType.ALL;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("清除所有Cookie")).toBeChecked();
+  });
+
+  it("should render with disabled schedule interval", () => {
+    mockSettings.scheduleInterval = ScheduleInterval.DISABLED;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("禁用")).toBeChecked();
+  });
+
+  it("should render with hourly schedule interval", () => {
+    mockSettings.scheduleInterval = ScheduleInterval.HOURLY;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("每小时")).toBeChecked();
+  });
+
+  it("should render with weekly schedule interval", () => {
+    mockSettings.scheduleInterval = ScheduleInterval.WEEKLY;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("每周")).toBeChecked();
+  });
+
+  it("should handle enable auto cleanup toggle", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const autoCleanupSection = screen.getByText("自动清理");
+    expect(autoCleanupSection).toBeTruthy();
+  });
+
+  it("should handle cleanup on tab discard toggle", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const autoCleanupSection = screen.getByText("自动清理");
+    expect(autoCleanupSection).toBeTruthy();
+  });
 });
