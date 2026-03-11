@@ -383,7 +383,7 @@ jobs:
           echo "🔨 开始构建..."
           npm run build 2>&1
           echo "✅ 构建命令完成"
-          
+
           echo "📁 构建后检查 .output/ 目录:"
           if [ -d ".output" ]; then
             ls -la .output/
@@ -413,11 +413,11 @@ jobs:
             ls -la .output/ 2>/dev/null || echo ".output/ 目录不存在"
             exit 1
           fi
-          
+
           SIZE_KB=$(du -sk "$BUILD_DIR" | cut -f1)
           SIZE_MB=$((SIZE_KB / 1024))
           echo "📊 扩展体积: ${SIZE_MB}MB (${SIZE_KB}KB)"
-          
+
           if [ "$SIZE_MB" -gt "${{ env.EXTENSION_SIZE_LIMIT_MB }}" ]; then
             echo "❌ 扩展体积 (${SIZE_MB}MB) 超出限制 (${{ env.EXTENSION_SIZE_LIMIT_MB }}MB)"
             exit 1
@@ -455,9 +455,9 @@ jobs:
         run: |
           echo "📁 打包前 .output/ 目录内容:"
           ls -la .output/
-          
+
           npm run zip
-          
+
           echo "📁 打包后 .output/ 目录内容:"
           ls -la .output/
 
@@ -465,24 +465,24 @@ jobs:
         run: |
           echo "📁 检查 .output/ 目录:"
           ls -la .output/ || echo "目录不存在"
-          
+
           if [ ! -d ".output" ]; then
             echo "❌ .output/ 目录不存在"
             exit 1
           fi
-          
+
           if [ ! -d ".output/chrome-mv3" ]; then
             echo "❌ .output/chrome-mv3/ 目录不存在"
             echo "📁 .output/ 目录内容:"
             ls -la .output/
             exit 1
           fi
-          
+
           if [ -z "$(ls -A .output/chrome-mv3/)" ]; then
             echo "❌ .output/chrome-mv3/ 目录为空"
             exit 1
           fi
-          
+
           echo "✅ 构建产物验证通过"
 
       - name: 上传构建产物
@@ -549,7 +549,7 @@ jobs:
         run: |
           echo "📁 当前目录内容:"
           ls -la
-          
+
           echo "📁 .output/ 目录内容:"
           ls -la .output/ || echo "目录为空或不存在"
 

@@ -102,7 +102,10 @@ function IndexPopup() {
         setActiveTab(tabs[0].id);
       } else if (e.key === "End") {
         e.preventDefault();
-        setActiveTab(tabs.at(-1)!.id);
+        const lastTab = tabs.at(-1);
+        if (lastTab) {
+          setActiveTab(lastTab.id);
+        }
       }
     },
     [activeTab, tabs]
@@ -603,7 +606,8 @@ export default IndexPopup;
 // In test environment, vitest sets import.meta.env.TEST to true
 const isTestEnvironment =
   import.meta.env?.TEST === true ||
-  (typeof globalThis !== "undefined" && (globalThis as typeof globalThis & { __VITEST__?: boolean }).__VITEST__);
+  (typeof globalThis !== "undefined" &&
+    (globalThis as typeof globalThis & { __VITEST__?: boolean }).__VITEST__);
 
 if (!isTestEnvironment) {
   const rootElement = document.getElementById("root");

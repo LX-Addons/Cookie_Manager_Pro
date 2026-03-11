@@ -105,13 +105,12 @@ const determineRiskLevel = (
   isTracking: boolean,
   isThirdParty: boolean,
   isHttpOnly: boolean,
-  isSecure: boolean,
-  isDomainPrefixed: boolean
+  isSecure: boolean
 ): "low" | "medium" | "high" => {
   if (isTracking) return "high";
-  
+
   if (!isHttpOnly || !isSecure || isThirdParty) return "medium";
-  
+
   return "low";
 };
 
@@ -125,15 +124,8 @@ export const assessCookieRisk = (
   const isThirdParty = isThirdPartyCookie(cookie.domain, currentDomain);
   const isHttpOnly = cookie.httpOnly;
   const isSecure = cookie.secure ?? false;
-  const isDomainPrefixed = cookie.domain.startsWith(".");
 
-  const riskLevel = determineRiskLevel(
-    isTracking,
-    isThirdParty,
-    isHttpOnly,
-    isSecure,
-    isDomainPrefixed
-  );
+  const riskLevel = determineRiskLevel(isTracking, isThirdParty, isHttpOnly, isSecure);
 
   const reasons: string[] = [];
   if (isTracking) {
@@ -145,7 +137,7 @@ export const assessCookieRisk = (
   if (!isHttpOnly) {
     reasons.push(getReason("notHttpOnly"));
   }
-  if (!isSecure && isDomainPrefixed) {
+  if (!isSecure && cookie.domain.startsWith(".")) {
     reasons.push(getReason("notSecure"));
   }
 
