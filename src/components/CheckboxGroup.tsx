@@ -30,7 +30,7 @@ export const CheckboxGroup = memo(({ options, onChange }: Props) => {
 
   if (isUnifiedApi && onChange) {
     // Unified API mode
-    const unifiedOptions = options as OptionWithValue[];
+    const unifiedOptions = options;
 
     const handleChange = (value: string, checked: boolean) => {
       const currentValues = unifiedOptions.filter((opt) => opt.checked).map((opt) => opt.value);
@@ -43,7 +43,7 @@ export const CheckboxGroup = memo(({ options, onChange }: Props) => {
     };
 
     return (
-      <div className="checkbox-group" role="group">
+      <fieldset className="checkbox-group">
         {unifiedOptions.map((option) => (
           <label key={option.value} className="checkbox-label">
             <input
@@ -54,15 +54,15 @@ export const CheckboxGroup = memo(({ options, onChange }: Props) => {
             <span>{option.label}</span>
           </label>
         ))}
-      </div>
+      </fieldset>
     );
   }
 
   // Individual onChange API mode
-  const individualOptions = options as OptionWithOnChange[];
+  const individualOptions = options;
 
   return (
-    <div className="checkbox-group" role="group">
+    <fieldset className="checkbox-group">
       {individualOptions.map((option) => (
         <label key={option.label} className="checkbox-label">
           <input
@@ -73,7 +73,7 @@ export const CheckboxGroup = memo(({ options, onChange }: Props) => {
           <span>{option.label}</span>
         </label>
       ))}
-    </div>
+    </fieldset>
   );
 });
 

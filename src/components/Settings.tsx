@@ -66,7 +66,7 @@ export const Settings = ({ onMessage }: Props) => {
             { value: CookieClearType.ALL, label: t("settings.clearAll") },
           ]}
           value={settings.clearType}
-          onChange={(value) => updateSetting("clearType", value as CookieClearType)}
+          onChange={(value) => updateSetting("clearType", value)}
         />
       </div>
 
@@ -82,7 +82,7 @@ export const Settings = ({ onMessage }: Props) => {
             { value: ScheduleInterval.WEEKLY, label: t("settings.weekly") },
           ]}
           value={settings.scheduleInterval}
-          onChange={(value) => updateSetting("scheduleInterval", value as ScheduleInterval)}
+          onChange={(value) => updateSetting("scheduleInterval", value)}
         />
       </div>
 
@@ -150,7 +150,7 @@ export const Settings = ({ onMessage }: Props) => {
             { value: LogRetention.THIRTY_DAYS, label: t("settings.thirtyDays") },
           ]}
           value={settings.logRetention}
-          onChange={(value) => updateSetting("logRetention", value as LogRetention)}
+          onChange={(value) => updateSetting("logRetention", value)}
         />
       </div>
 
@@ -183,7 +183,7 @@ export const Settings = ({ onMessage }: Props) => {
             { value: ThemeMode.CUSTOM, label: t("settings.custom") },
           ]}
           value={settings.themeMode}
-          onChange={(value) => updateSetting("themeMode", value as ThemeMode)}
+          onChange={(value) => updateSetting("themeMode", value)}
         />
       </div>
 

@@ -48,8 +48,8 @@ function IndexPopup() {
   });
   const [currentCookies, setCurrentCookies] = useState<Cookie[]>([]);
   const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    if (typeof globalThis !== "undefined") {
+      return globalThis.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     return "light";
   });
@@ -102,7 +102,7 @@ function IndexPopup() {
         setActiveTab(tabs[0].id);
       } else if (e.key === "End") {
         e.preventDefault();
-        setActiveTab(tabs[tabs.length - 1].id);
+        setActiveTab(tabs.at(-1)!.id);
       }
     },
     [activeTab, tabs]
@@ -342,7 +342,7 @@ function IndexPopup() {
   }, [updateStats]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
 
     const handler = (e: MediaQueryListEvent) => {
       setSystemTheme(e.matches ? "dark" : "light");
@@ -603,7 +603,7 @@ export default IndexPopup;
 // In test environment, vitest sets import.meta.env.TEST to true
 const isTestEnvironment =
   import.meta.env?.TEST === true ||
-  (typeof window !== "undefined" && (window as Window & { __VITEST__?: boolean }).__VITEST__);
+  (typeof globalThis !== "undefined" && (globalThis as typeof globalThis & { __VITEST__?: boolean }).__VITEST__);
 
 if (!isTestEnvironment) {
   const rootElement = document.getElementById("root");

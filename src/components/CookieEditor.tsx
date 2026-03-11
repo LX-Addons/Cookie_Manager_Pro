@@ -46,17 +46,15 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
     <div
       className="confirm-overlay"
       onClick={onClose}
-      role="button"
       tabIndex={0}
       onKeyDown={handleOverlayKeyDown}
       data-testid="cookie-editor"
     >
-      <div
+      <dialog
         className="confirm-dialog cookie-editor-dialog"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleDialogKeyDown}
-        role="dialog"
-        aria-modal="true"
+        open
       >
         <h3 className="confirm-title">
           {cookie ? t("cookieEditor.editCookie") : t("cookieEditor.createCookie")}
@@ -179,7 +177,7 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
             </button>
           </div>
         </form>
-      </div>
+      </dialog>
     </div>
   );
 };
