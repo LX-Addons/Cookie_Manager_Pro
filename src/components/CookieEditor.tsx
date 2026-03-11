@@ -45,8 +45,20 @@ const CookieEditorContent = ({ cookie, onClose, onSave }: Omit<Props, "isOpen">)
     e.stopPropagation();
   };
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="confirm-overlay" onClick={onClose} data-testid="cookie-editor">
+    <div
+      className="confirm-overlay"
+      onClick={handleOverlayClick}
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
+      role="presentation"
+      data-testid="cookie-editor"
+    >
       <dialog
         className="confirm-dialog cookie-editor-dialog"
         onClick={(e) => e.stopPropagation()}

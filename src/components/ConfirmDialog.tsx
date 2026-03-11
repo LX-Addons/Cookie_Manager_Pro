@@ -52,7 +52,12 @@ export function ConfirmDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="confirm-overlay" onClick={handleOverlayClick}>
+    <div
+      className="confirm-overlay"
+      onClick={handleOverlayClick}
+      onKeyDown={(e) => e.key === "Escape" && onCancel()}
+      role="presentation"
+    >
       <dialog className="confirm-dialog" open>
         <h3 id="confirm-title" className={`confirm-title ${variant === "danger" ? "danger" : ""}`}>
           {title}

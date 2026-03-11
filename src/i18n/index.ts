@@ -48,7 +48,7 @@ export function t(path: string, params?: Record<string, string | number>): strin
   }
 
   if (params) {
-    return value.replace(/\{(\w+)\}/g, (_, key) => {
+    return value.replaceAll(/\{(\w+)\}/g, (_, key) => {
       return params[key]?.toString() || `{${key}}`;
     });
   }
