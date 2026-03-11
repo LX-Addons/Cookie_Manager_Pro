@@ -39,6 +39,7 @@ const globals = {
   "ShadowRootContentScriptUi": true,
   "ShadowRootContentScriptUiOptions": true,
   "ShowConfirmFn": true,
+  "State": true,
   "StopAutoMount": true,
   "StorageArea": true,
   "StorageAreaChanges": true,
