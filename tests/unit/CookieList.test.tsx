@@ -211,6 +211,39 @@ vi.mock("@/components/ConfirmDialogWrapper", () => ({
   },
 }));
 
+describe("hasDomainInText", () => {
+  it("should return false for null textContent", () => {
+    expect(hasDomainInText(null, "example.com")).toBe(false);
+  });
+
+  it("should return false for undefined textContent", () => {
+    expect(hasDomainInText(undefined, "example.com")).toBe(false);
+  });
+
+  it("should return false for empty string textContent", () => {
+    expect(hasDomainInText("", "example.com")).toBe(false);
+  });
+
+  it("should return true when domain is found in text", () => {
+    expect(hasDomainInText("🌐 example.com (2)", "example.com")).toBe(true);
+  });
+
+  it("should return false when domain is not found in text", () => {
+    expect(hasDomainInText("🌐 test.com (2)", "example.com")).toBe(false);
+  });
+
+  it("should handle domain with special regex characters", () => {
+    expect(hasDomainInText("🌐 test.com (2)", "test.com")).toBe(true);
+  });
+
+  it("should not match partial domain names", () => {
+    // 测试子域名不应该匹配父域名
+    expect(hasDomainInText("🌐 sub.example.com (2)", "example.com")).toBe(true); // 子域名包含父域名
+    expect(hasDomainInText("🌐 evil.com (2)", "example.com")).toBe(false); // 完全不同的域名
+    expect(hasDomainInText("🌐 example.org (2)", "example.com")).toBe(false); // 不同 TLD
+  });
+});
+
 describe("CookieList", () => {
   const mockOnUpdate = vi.fn();
   const mockOnMessage = vi.fn();

@@ -54,6 +54,7 @@ function IndexPopup() {
     return "light";
   });
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logIdCounterRef = useRef<number>(0);
 
   const { confirmState, showConfirm, closeConfirm, handleConfirm } = useConfirmDialog();
 
@@ -161,8 +162,10 @@ function IndexPopup() {
       action: "clear" | "edit" | "delete" | "import" | "export" = "clear",
       details?: string
     ) => {
+      // 使用递增计数器生成唯一ID，避免使用 Math.random()
+      logIdCounterRef.current += 1;
       const newLog: ClearLogEntry = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `${Date.now()}-${logIdCounterRef.current}`,
         domain,
         cookieType,
         count,
