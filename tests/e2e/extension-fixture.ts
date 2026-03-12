@@ -2,6 +2,7 @@ import { test as base, chromium, type BrowserContext, type Page } from "@playwri
 import path from "path";
 import { fileURLToPath } from "url";
 import os from "os";
+import { randomUUID } from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +17,7 @@ export const test = base.extend<{
     async ({}, use) => {
       const userDataDir = path.join(
         os.tmpdir(),
-        `playwright-extension-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        `playwright-extension-${Date.now()}-${randomUUID()}`
       );
       const context = await chromium.launchPersistentContext(userDataDir, {
         headless: false,
