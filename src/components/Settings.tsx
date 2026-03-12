@@ -299,7 +299,7 @@ export const Settings = ({ onMessage }: Props) => {
           name="locale"
           options={[
             { value: "zh-CN", label: "简体中文" },
-            { value: "en", label: "English" },
+            { value: "en-US", label: "English" },
           ]}
           value={settings.locale}
           onChange={(value) => {
