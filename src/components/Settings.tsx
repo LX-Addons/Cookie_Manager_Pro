@@ -280,23 +280,6 @@ export const Settings = ({ onMessage }: Props) => {
           }}
         />
       </div>
-
-      <div className="settings-section">
-        <h3>{t("settings.showCookieRisk")}</h3>
-        <p className="setting-description">{t("settings.showCookieRiskDesc")}</p>
-        <CheckboxGroup
-          options={[
-            {
-              value: "showCookieRisk",
-              label: t("settings.showCookieRisk"),
-              checked: settings.showCookieRisk,
-            },
-          ]}
-          onChange={(values) => {
-            updateSetting("showCookieRisk", values.includes("showCookieRisk"));
-          }}
-        />
-      </div>
     </div>
   );
 };
