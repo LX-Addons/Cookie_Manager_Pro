@@ -3,6 +3,42 @@ import { storage } from "wxt/utils/storage";
 
 type StorageKey = `local:${string}` | `session:${string}` | `sync:${string}` | `managed:${string}`;
 
+const deepMerge = <T>(defaultValue: T, storedValue: T): T => {
+  if (
+    typeof defaultValue !== "object" ||
+    defaultValue === null ||
+    Array.isArray(defaultValue) ||
+    typeof storedValue !== "object" ||
+    storedValue === null ||
+    Array.isArray(storedValue)
+  ) {
+    return storedValue;
+  }
+
+  const result = { ...defaultValue } as Record<string, unknown>;
+  const stored = storedValue as Record<string, unknown>;
+  const defaults = defaultValue as Record<string, unknown>;
+
+  for (const key of Object.keys(stored)) {
+    if (stored[key] !== undefined) {
+      if (
+        typeof stored[key] === "object" &&
+        stored[key] !== null &&
+        !Array.isArray(stored[key]) &&
+        typeof defaults[key] === "object" &&
+        defaults[key] !== null &&
+        !Array.isArray(defaults[key])
+      ) {
+        result[key] = deepMerge(defaults[key], stored[key]);
+      } else {
+        result[key] = stored[key];
+      }
+    }
+  }
+
+  return result as T;
+};
+
 /**
  * A React hook for managing WXT extension storage with automatic sync.
  *
@@ -35,21 +71,12 @@ export function useStorage<T>(key: StorageKey, defaultValue: T) {
     const load = async () => {
       const stored = await storage.getItem<T>(key);
       if (stored !== null && stored !== undefined) {
-        // For record objects, merge with default value to ensure new fields have default values
-        // For arrays and primitives, use stored value directly
         const mergedValue =
           typeof stored === "object" &&
           !Array.isArray(stored) &&
           typeof defaultValue === "object" &&
           !Array.isArray(defaultValue)
-            ? ({
-                ...defaultValue,
-                ...Object.fromEntries(
-                  Object.entries(stored as Record<string, unknown>).filter(
-                    ([, v]) => v !== undefined
-                  )
-                ),
-              } as T)
+            ? deepMerge(defaultValue, stored)
             : stored;
         setValue(mergedValue);
       }
@@ -58,21 +85,12 @@ export function useStorage<T>(key: StorageKey, defaultValue: T) {
 
     const unwatch = storage.watch<T>(key, (newValue) => {
       if (newValue !== null && newValue !== undefined) {
-        // For record objects, merge with default value to ensure new fields have default values
-        // For arrays and primitives, use new value directly
         const mergedValue =
           typeof newValue === "object" &&
           !Array.isArray(newValue) &&
           typeof defaultValue === "object" &&
           !Array.isArray(defaultValue)
-            ? ({
-                ...defaultValue,
-                ...Object.fromEntries(
-                  Object.entries(newValue as Record<string, unknown>).filter(
-                    ([, v]) => v !== undefined
-                  )
-                ),
-              } as T)
+            ? deepMerge(defaultValue, newValue)
             : newValue;
         setValue(mergedValue);
       }

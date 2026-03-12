@@ -92,6 +92,49 @@ const cleanupOpenTabsOnStartup = async (settings: Settings) => {
   }
 };
 
+const handleTabDiscard = async (tab: chrome.tabs.Tab, settings: Settings) => {
+  if (!settings.cleanupOnTabDiscard || !tab.url) return;
+
+  try {
+    const url = new URL(tab.url);
+    await performCleanup({
+      domain: url.hostname,
+      ...getCleanupOptions(settings),
+    });
+  } catch (e) {
+    console.error("Failed to cleanup on tab discard:", e);
+  }
+};
+
+const handleTabNavigate = async (
+  tabId: number,
+  changeInfo: chrome.tabs.TabChangeInfo,
+  settings: Settings
+) => {
+  if (!changeInfo.url) return;
+
+  const previousUrl = tabUrlMap.get(tabId);
+  tabUrlMap.set(tabId, changeInfo.url);
+
+  if (!settings.cleanupOnNavigate || !previousUrl || previousUrl === changeInfo.url) {
+    return;
+  }
+
+  try {
+    const previousHostname = new URL(previousUrl).hostname;
+    const currentHostname = new URL(changeInfo.url).hostname;
+
+    if (previousHostname !== currentHostname) {
+      await performCleanup({
+        domain: previousHostname,
+        ...getCleanupOptions(settings),
+      });
+    }
+  } catch (e) {
+    console.error("Failed to cleanup on navigation:", e);
+  }
+};
+
 const handleTabUpdated = async (
   tabId: number,
   changeInfo: chrome.tabs.TabChangeInfo,
@@ -100,41 +143,30 @@ const handleTabUpdated = async (
   const settings = await storage.getItem<Settings>(SETTINGS_KEY);
   if (!settings?.enableAutoCleanup) return;
 
-  if (settings.cleanupOnTabDiscard && changeInfo.discarded && tab.url) {
-    try {
-      const url = new URL(tab.url);
-      await performCleanup({
-        domain: url.hostname,
-        ...getCleanupOptions(settings),
-      });
-    } catch (e) {
-      console.error("Failed to cleanup on tab discard:", e);
-    }
+  if (changeInfo.discarded) {
+    await handleTabDiscard(tab, settings);
   }
 
-  if (settings.cleanupOnNavigate && changeInfo.url && tab.url) {
-    const previousUrl = tabUrlMap.get(tabId);
-    if (previousUrl && previousUrl !== changeInfo.url) {
-      try {
-        const previousHostname = new URL(previousUrl).hostname;
-        const currentHostname = new URL(changeInfo.url).hostname;
-
-        if (previousHostname !== currentHostname) {
-          await performCleanup({
-            domain: previousHostname,
-            ...getCleanupOptions(settings),
-          });
-        }
-      } catch (e) {
-        console.error("Failed to cleanup on navigation:", e);
-      }
-    }
-    tabUrlMap.set(tabId, changeInfo.url);
+  if (changeInfo.url) {
+    await handleTabNavigate(tabId, changeInfo, settings);
   }
 
   if (tab.url && !tabUrlMap.has(tabId)) {
     tabUrlMap.set(tabId, tab.url);
   }
+};
+
+const saveDomainForCleanup = async (hostname: string) => {
+  const domainsToClean = (await storage.getItem<string[]>("local:cleanupOnStartup")) || [];
+  domainsToClean.push(hostname);
+  await storage.setItem("local:cleanupOnStartup", Array.from(new Set(domainsToClean)));
+};
+
+const cleanupClosedTab = async (hostname: string, settings: Settings) => {
+  await performCleanup({
+    domain: hostname,
+    ...getCleanupOptions(settings),
+  });
 };
 
 const handleTabRemoved = async (tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) => {
@@ -147,19 +179,10 @@ const handleTabRemoved = async (tabId: number, removeInfo: chrome.tabs.TabRemove
   try {
     const url = new URL(closedUrl);
 
-    if (removeInfo.isWindowClosing) {
-      if (settings.cleanupOnBrowserClose) {
-        const domainsToClean = (await storage.getItem<string[]>("local:cleanupOnStartup")) || [];
-        domainsToClean.push(url.hostname);
-        await storage.setItem("local:cleanupOnStartup", Array.from(new Set(domainsToClean)));
-      }
-    } else {
-      if (settings.cleanupOnTabClose) {
-        await performCleanup({
-          domain: url.hostname,
-          ...getCleanupOptions(settings),
-        });
-      }
+    if (removeInfo.isWindowClosing && settings.cleanupOnBrowserClose) {
+      await saveDomainForCleanup(url.hostname);
+    } else if (!removeInfo.isWindowClosing && settings.cleanupOnTabClose) {
+      await cleanupClosedTab(url.hostname, settings);
     }
   } catch (e) {
     console.error("Failed to cleanup on tab close:", e);
@@ -193,24 +216,27 @@ const handleStartup = async () => {
   }
 };
 
+const initializeStorage = async () => {
+  const whitelist = await storage.getItem(WHITELIST_KEY);
+  const blacklist = await storage.getItem(BLACKLIST_KEY);
+  const settings = await storage.getItem(SETTINGS_KEY);
+
+  if (whitelist === undefined) {
+    await storage.setItem(WHITELIST_KEY, []);
+  }
+
+  if (blacklist === undefined) {
+    await storage.setItem(BLACKLIST_KEY, []);
+  }
+
+  if (settings === undefined) {
+    await storage.setItem(SETTINGS_KEY, DEFAULT_SETTINGS);
+  }
+};
+
 export default defineBackground(() => {
   chrome.runtime.onInstalled.addListener(async () => {
-    const whitelist = await storage.getItem(WHITELIST_KEY);
-    const blacklist = await storage.getItem(BLACKLIST_KEY);
-    const settings = await storage.getItem(SETTINGS_KEY);
-
-    if (whitelist === undefined) {
-      await storage.setItem(WHITELIST_KEY, []);
-    }
-
-    if (blacklist === undefined) {
-      await storage.setItem(BLACKLIST_KEY, []);
-    }
-
-    if (settings === undefined) {
-      await storage.setItem(SETTINGS_KEY, DEFAULT_SETTINGS);
-    }
-
+    await initializeStorage();
     await chrome.alarms.create("scheduled-cleanup", {
       periodInMinutes: ALARM_INTERVAL_MINUTES,
     });
