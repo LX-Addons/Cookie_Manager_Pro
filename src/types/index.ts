@@ -85,6 +85,9 @@ export interface Settings {
   cleanupOnTabDiscard: boolean;
   cleanupOnStartup: boolean;
   cleanupExpiredCookies: boolean;
+  cleanupOnTabClose: boolean;
+  cleanupOnBrowserClose: boolean;
+  cleanupOnNavigate: boolean;
   customTheme?: CustomTheme;
   scheduleInterval: ScheduleInterval;
   lastScheduledCleanup?: number;

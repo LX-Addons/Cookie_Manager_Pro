@@ -118,6 +118,21 @@ export const Settings = ({ onMessage }: Props) => {
         <CheckboxGroup
           options={[
             {
+              value: "cleanupOnTabClose",
+              label: t("settings.cleanupOnTabClose"),
+              checked: settings.cleanupOnTabClose,
+            },
+            {
+              value: "cleanupOnBrowserClose",
+              label: t("settings.cleanupOnBrowserClose"),
+              checked: settings.cleanupOnBrowserClose,
+            },
+            {
+              value: "cleanupOnNavigate",
+              label: t("settings.cleanupOnNavigate"),
+              checked: settings.cleanupOnNavigate,
+            },
+            {
               value: "cleanupOnStartup",
               label: t("settings.cleanupOnStartup"),
               checked: settings.cleanupOnStartup,
@@ -129,6 +144,9 @@ export const Settings = ({ onMessage }: Props) => {
             },
           ]}
           onChange={(values) => {
+            updateSetting("cleanupOnTabClose", values.includes("cleanupOnTabClose"));
+            updateSetting("cleanupOnBrowserClose", values.includes("cleanupOnBrowserClose"));
+            updateSetting("cleanupOnNavigate", values.includes("cleanupOnNavigate"));
             updateSetting("cleanupOnStartup", values.includes("cleanupOnStartup"));
             updateSetting("cleanupExpiredCookies", values.includes("cleanupExpiredCookies"));
           }}
