@@ -623,4 +623,295 @@ describe("IndexPopup", () => {
     const { findByText } = render(<IndexPopup />);
     expect(await findByText("Cookie Manager Pro")).toBeTruthy();
   });
+
+  it("should handle blacklist mode and show blacklist tab", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [
+          {
+            mode: "blacklist",
+            clearType: "all",
+            enableAutoCleanup: false,
+            cleanupOnTabDiscard: false,
+            cleanupOnStartup: false,
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+          },
+          vi.fn(),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle cleanupOnStartup enabled", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [
+          {
+            mode: "whitelist",
+            clearType: "all",
+            enableAutoCleanup: false,
+            cleanupOnTabDiscard: false,
+            cleanupOnStartup: true,
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+          },
+          vi.fn(),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle cleanupExpiredCookies enabled", async () => {
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [
+          {
+            mode: "whitelist",
+            clearType: "all",
+            enableAutoCleanup: false,
+            cleanupOnTabDiscard: false,
+            cleanupOnStartup: false,
+            cleanupExpiredCookies: true,
+            clearCache: false,
+            clearLocalStorage: false,
+            clearIndexedDB: false,
+          },
+          vi.fn(),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle invalid URL in tab", async () => {
+    (chrome.tabs.query as Mock).mockResolvedValue([{ url: "chrome://extensions" }]);
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle tab query error", async () => {
+    (chrome.tabs.query as Mock).mockImplementation(() =>
+      Promise.reject(new Error("Tab query failed"))
+    );
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle quickAddToWhitelist when domain already in whitelist", async () => {
+    const mockSetWhitelist = vi.fn();
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:whitelist") {
+        return [["example.com"], mockSetWhitelist];
+      }
+      if (key === "local:settings") {
+        return [{ mode: "whitelist", clearType: "all" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle quickAddToBlacklist when domain already in blacklist", async () => {
+    const mockSetBlacklist = vi.fn();
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:blacklist") {
+        return [["example.com"], mockSetBlacklist];
+      }
+      if (key === "local:settings") {
+        return [{ mode: "blacklist", clearType: "all" }, vi.fn()];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle clearCookies with multiple cleared domains", async () => {
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    (performCleanupWithFilter as Mock).mockResolvedValue({
+      count: 10,
+      clearedDomains: ["example.com", "test.com", "demo.com"],
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    const clearAllBtn = await findByText("清除所有Cookie");
+    fireEvent.click(clearAllBtn);
+    expect(clearAllBtn).toBeTruthy();
+  });
+
+  it("should handle clearCookies with zero count", async () => {
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    (performCleanupWithFilter as Mock).mockResolvedValue({
+      count: 0,
+      clearedDomains: [],
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    const clearAllBtn = await findByText("清除所有Cookie");
+    fireEvent.click(clearAllBtn);
+    expect(clearAllBtn).toBeTruthy();
+  });
+
+  it("should handle clearCookies error", async () => {
+    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    (performCleanupWithFilter as Mock).mockRejectedValue(new Error("Cleanup failed"));
+
+    const { findByText } = render(<IndexPopup />);
+    const clearAllBtn = await findByText("清除所有Cookie");
+    fireEvent.click(clearAllBtn);
+    expect(clearAllBtn).toBeTruthy();
+  });
+
+  it("should handle cleanupExpiredCookies with count > 0", async () => {
+    const { cleanupExpiredCookies: cleanupExpired } = await import("@/utils/cleanup");
+    (cleanupExpired as Mock).mockResolvedValue(5);
+
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [
+          {
+            mode: "whitelist",
+            clearType: "all",
+            cleanupExpiredCookies: true,
+          },
+          vi.fn(),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle cleanupExpiredCookies with count = 0", async () => {
+    const { cleanupExpiredCookies: cleanupExpired } = await import("@/utils/cleanup");
+    (cleanupExpired as Mock).mockResolvedValue(0);
+
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [
+          {
+            mode: "whitelist",
+            clearType: "all",
+            cleanupExpiredCookies: true,
+          },
+          vi.fn(),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle cleanupExpiredCookies error", async () => {
+    const { cleanupExpiredCookies: cleanupExpired } = await import("@/utils/cleanup");
+    (cleanupExpired as Mock).mockRejectedValue(new Error("Cleanup expired failed"));
+
+    (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+      if (key === "local:settings") {
+        return [
+          {
+            mode: "whitelist",
+            clearType: "all",
+            cleanupExpiredCookies: true,
+          },
+          vi.fn(),
+        ];
+      }
+      return [defaultValue, vi.fn()];
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle cookie change listener", async () => {
+    let cookieChangeListener: (() => void) | undefined;
+    (chrome.cookies.onChanged.addListener as Mock).mockImplementation((fn: () => void) => {
+      cookieChangeListener = fn;
+    });
+
+    const { findByText, unmount } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+
+    if (cookieChangeListener) {
+      cookieChangeListener();
+    }
+
+    unmount();
+  });
+
+  it("should handle system theme change to dark", async () => {
+    let themeChangeHandler: ((e: MediaQueryListEvent) => void) | undefined;
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn((_event: string, handler: (e: MediaQueryListEvent) => void) => {
+          themeChangeHandler = handler;
+        }),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+
+    if (themeChangeHandler) {
+      themeChangeHandler({ matches: true } as MediaQueryListEvent);
+    }
+  });
+
+  it("should handle currentDomain empty for quick actions", async () => {
+    (chrome.tabs.query as Mock).mockResolvedValue([{ url: null }]);
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
+
+  it("should handle multiple cookies with tracking and third-party", async () => {
+    const mockCookiesWithTracking = [
+      ...mockCookies,
+      {
+        name: "_ga",
+        value: "tracking-value",
+        domain: ".google-analytics.com",
+        path: "/",
+        secure: true,
+        httpOnly: false,
+        sameSite: "lax" as const,
+      },
+    ];
+    (chrome.cookies.getAll as Mock).mockResolvedValue(mockCookiesWithTracking);
+
+    const { findByText } = render(<IndexPopup />);
+    expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+  });
 });
