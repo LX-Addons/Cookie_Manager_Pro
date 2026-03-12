@@ -18,7 +18,11 @@ export const Settings = ({ onMessage }: Props) => {
   const showCustomTheme = settings.themeMode === ThemeMode.CUSTOM;
 
   const updateSetting = <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => {
-    setSettings({ ...settings, [key]: value });
+    // Remove undefined values from settings object before updating
+    const cleanSettings = Object.fromEntries(
+      Object.entries(settings).filter(([, v]) => v !== undefined)
+    ) as SettingsType;
+    setSettings({ ...cleanSettings, [key]: value });
   };
 
   const updateCustomTheme = (key: keyof CustomTheme, value: string) => {
