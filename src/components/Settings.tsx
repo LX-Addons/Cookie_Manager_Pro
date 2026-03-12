@@ -4,6 +4,7 @@ import type { Settings as SettingsType, CustomTheme, Locale } from "@/types";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "@/types";
 import { RadioGroup } from "@/components/RadioGroup";
 import { CheckboxGroup } from "@/components/CheckboxGroup";
+import { Select } from "@/components/Select";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {
@@ -137,8 +138,10 @@ export const Settings = ({ onMessage }: Props) => {
       <div className="settings-section">
         <h3>{t("settings.logRetention")}</h3>
         <p className="setting-description">{t("settings.logRetentionDesc")}</p>
-        <RadioGroup
+        <Select
           name="logRetention"
+          value={settings.logRetention}
+          onChange={(value) => updateSetting("logRetention", value)}
           options={[
             { value: LogRetention.ONE_HOUR, label: t("settings.oneHour") },
             { value: LogRetention.SIX_HOURS, label: t("settings.sixHours") },
@@ -149,8 +152,6 @@ export const Settings = ({ onMessage }: Props) => {
             { value: LogRetention.TEN_DAYS, label: t("settings.tenDays") },
             { value: LogRetention.THIRTY_DAYS, label: t("settings.thirtyDays") },
           ]}
-          value={settings.logRetention}
-          onChange={(value) => updateSetting("logRetention", value)}
         />
       </div>
 
