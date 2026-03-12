@@ -90,4 +90,67 @@ describe("CheckboxGroup", () => {
     expect(mockOnChange1).toHaveBeenCalledWith(true);
     expect(mockOnChange2).not.toHaveBeenCalled();
   });
+
+  // Unified API mode tests
+  describe("Unified API mode", () => {
+    it("should render checkboxes with unified API", () => {
+      const mockOnChange = vi.fn();
+      const options = [
+        { value: "option1", label: "Option 1", checked: false },
+        { value: "option2", label: "Option 2", checked: true },
+      ];
+
+      render(<CheckboxGroup options={options} onChange={mockOnChange} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      expect(checkboxes.length).toBe(2);
+      expect((checkboxes[0] as HTMLInputElement).checked).toBe(false);
+      expect((checkboxes[1] as HTMLInputElement).checked).toBe(true);
+    });
+
+    it("should call onChange with correct values when checking unchecked box", () => {
+      const mockOnChange = vi.fn();
+      const options = [
+        { value: "option1", label: "Option 1", checked: false },
+        { value: "option2", label: "Option 2", checked: false },
+      ];
+
+      render(<CheckboxGroup options={options} onChange={mockOnChange} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      fireEvent.click(checkboxes[0]);
+
+      expect(mockOnChange).toHaveBeenCalledWith(["option1"]);
+    });
+
+    it("should call onChange with correct values when unchecking checked box", () => {
+      const mockOnChange = vi.fn();
+      const options = [
+        { value: "option1", label: "Option 1", checked: true },
+        { value: "option2", label: "Option 2", checked: false },
+      ];
+
+      render(<CheckboxGroup options={options} onChange={mockOnChange} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      fireEvent.click(checkboxes[0]);
+
+      expect(mockOnChange).toHaveBeenCalledWith([]);
+    });
+
+    it("should call onChange with multiple values when multiple boxes are checked", () => {
+      const mockOnChange = vi.fn();
+      const options = [
+        { value: "option1", label: "Option 1", checked: true },
+        { value: "option2", label: "Option 2", checked: false },
+      ];
+
+      render(<CheckboxGroup options={options} onChange={mockOnChange} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      fireEvent.click(checkboxes[1]);
+
+      expect(mockOnChange).toHaveBeenCalledWith(["option1", "option2"]);
+    });
+  });
 });

@@ -18,7 +18,14 @@ export function useStorage<T>(key: StorageKey, defaultValue: T) {
           !Array.isArray(stored) &&
           typeof defaultValue === "object" &&
           !Array.isArray(defaultValue)
-            ? ({ ...defaultValue, ...stored } as T)
+            ? ({
+                ...defaultValue,
+                ...Object.fromEntries(
+                  Object.entries(stored as Record<string, unknown>).filter(
+                    ([, v]) => v !== undefined
+                  )
+                ),
+              } as T)
             : stored;
         setValue(mergedValue);
       }
@@ -34,7 +41,14 @@ export function useStorage<T>(key: StorageKey, defaultValue: T) {
           !Array.isArray(newValue) &&
           typeof defaultValue === "object" &&
           !Array.isArray(defaultValue)
-            ? ({ ...defaultValue, ...newValue } as T)
+            ? ({
+                ...defaultValue,
+                ...Object.fromEntries(
+                  Object.entries(newValue as Record<string, unknown>).filter(
+                    ([, v]) => v !== undefined
+                  )
+                ),
+              } as T)
             : newValue;
         setValue(mergedValue);
       }
