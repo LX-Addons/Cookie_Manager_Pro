@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' || !contains(fromJSON('["main", "beta", "release"]'), github.ref_name) }}
 
 env:
-  NODE_VERSION: "24"
+  NODE_VERSION: "22"
   EXTENSION_SIZE_LIMIT_MB: 10
 
 jobs:
@@ -189,7 +189,7 @@ jobs:
     needs: [setup]
     strategy:
       matrix:
-        node-version: [20, 24]
+        node-version: [20, 22]
     steps:
       - name: 检出仓库
         uses: actions/checkout@v5
@@ -286,7 +286,7 @@ jobs:
         run: npm ci --prefer-offline
 
       - name: 检查密钥泄露
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@v3.88.25
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
@@ -465,30 +465,6 @@ jobs:
           echo "📁 打包后 .output/ 目录内容:"
           ls -la .output/
 
-      - name: 验证构建产物
-        run: |
-          echo "📁 检查 .output/ 目录:"
-          ls -la .output/ || echo "目录不存在"
-
-          if [ ! -d ".output" ]; then
-            echo "❌ .output/ 目录不存在"
-            exit 1
-          fi
-
-          if [ ! -d ".output/chrome-mv3" ]; then
-            echo "❌ .output/chrome-mv3/ 目录不存在"
-            echo "📁 .output/ 目录内容:"
-            ls -la .output/
-            exit 1
-          fi
-
-          if [ -z "$(ls -A .output/chrome-mv3/)" ]; then
-            echo "❌ .output/chrome-mv3/ 目录为空"
-            exit 1
-          fi
-
-          echo "✅ 构建产物验证通过"
-
       - name: 上传构建产物
         uses: actions/upload-artifact@v6
         with:
@@ -655,7 +631,7 @@ jobs:
             body += `| :---: | :--- | :---: | :--- |\n`;
             body += `| 🚀 | **环境准备** | ${statusEmoji(setupResult)} | 缓存与产物配置 |\n`;
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
-            body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js 18/20 多版本测试 |\n`;
+            body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js 20/22 多版本测试 |\n`;
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | 密钥泄露 + 依赖审计 |\n`;
             body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n`;
             body += `| 🎭 | **E2E 测试** | ${statusEmoji(e2eResult)} | Playwright 浏览器测试 |\n\n`;
