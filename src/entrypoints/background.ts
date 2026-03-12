@@ -49,14 +49,16 @@ const getCleanupOptions = (settings: Settings) => ({
   clearIndexedDB: settings.clearIndexedDB,
 });
 
-const cleanupDomain = async (domain: string, settings: Settings) => {
+const cleanupDomain = async (domain: string, settings: Settings): Promise<boolean> => {
   try {
     await performCleanup({
       domain,
       ...getCleanupOptions(settings),
     });
+    return true;
   } catch (e) {
     console.error(`Failed to cleanup domain ${domain}:`, e);
+    return false;
   }
 };
 
@@ -64,11 +66,16 @@ const cleanupDomainsOnStartup = async (settings: Settings) => {
   const domainsToClean = await storage.getItem<string[]>("local:cleanupOnStartup");
   if (!domainsToClean || domainsToClean.length === 0) return;
 
+  const failedDomains: string[] = [];
+
   for (const domain of domainsToClean) {
-    await cleanupDomain(domain, settings);
+    const success = await cleanupDomain(domain, settings);
+    if (!success) {
+      failedDomains.push(domain);
+    }
   }
 
-  await storage.setItem("local:cleanupOnStartup", []);
+  await storage.setItem("local:cleanupOnStartup", failedDomains);
 };
 
 const cleanupTab = async (tab: { url?: string; id?: number }, settings: Settings) => {
@@ -156,10 +163,16 @@ const handleTabUpdated = async (
   }
 };
 
+let saveQueue = Promise.resolve();
+
 const saveDomainForCleanup = async (hostname: string) => {
-  const domainsToClean = (await storage.getItem<string[]>("local:cleanupOnStartup")) || [];
-  domainsToClean.push(hostname);
-  await storage.setItem("local:cleanupOnStartup", Array.from(new Set(domainsToClean)));
+  saveQueue = saveQueue.then(async () => {
+    const domainsToClean = (await storage.getItem<string[]>("local:cleanupOnStartup")) || [];
+    domainsToClean.push(hostname);
+    await storage.setItem("local:cleanupOnStartup", Array.from(new Set(domainsToClean)));
+  });
+
+  return saveQueue;
 };
 
 const cleanupClosedTab = async (hostname: string, settings: Settings) => {
