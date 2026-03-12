@@ -370,23 +370,27 @@ function IndexPopup() {
 
   useEffect(() => {
     async function init() {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.url) {
-        try {
-          const url = new URL(tab.url);
-          setCurrentDomain(url.hostname);
-        } catch {
-          setCurrentDomain("");
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.url) {
+          try {
+            const url = new URL(tab.url);
+            setCurrentDomain(url.hostname);
+          } catch {
+            setCurrentDomain("");
+          }
         }
-      }
-      updateStats();
+        updateStats();
 
-      if (settings.cleanupOnStartup) {
-        await cleanupStartup();
-      }
+        if (settings.cleanupOnStartup) {
+          await cleanupStartup();
+        }
 
-      if (settings.cleanupExpiredCookies) {
-        await cleanupExpiredCookies();
+        if (settings.cleanupExpiredCookies) {
+          await cleanupExpiredCookies();
+        }
+      } catch {
+        setCurrentDomain("");
       }
     }
     init();

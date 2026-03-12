@@ -705,12 +705,17 @@ describe("IndexPopup", () => {
   });
 
   it("should handle tab query error", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     (chrome.tabs.query as Mock).mockImplementation(() =>
       Promise.reject(new Error("Tab query failed"))
     );
 
-    const { findByText } = render(<IndexPopup />);
+    const { findByText, unmount } = render(<IndexPopup />);
     expect(await findByText("Cookie Manager Pro")).toBeTruthy();
+
+    unmount();
+    consoleErrorSpy.mockRestore();
   });
 
   it("should handle quickAddToWhitelist when domain already in whitelist", async () => {
