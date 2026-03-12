@@ -4,13 +4,6 @@ import { storage } from "wxt/utils/storage";
 // Define the valid storage key types
 type StorageKey = `local:${string}` | `session:${string}` | `sync:${string}` | `managed:${string}`;
 
-// Helper type to check if T is a record object (not array or primitive)
-type IsRecord<T> = T extends Record<string, unknown>
-  ? T extends unknown[]
-    ? false
-    : true
-  : false;
-
 export function useStorage<T>(key: StorageKey, defaultValue: T) {
   const [value, setValue] = useState<T>(defaultValue);
 
