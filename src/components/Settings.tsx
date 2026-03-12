@@ -43,7 +43,7 @@ export const Settings = ({ onMessage }: Props) => {
     <div className="settings-container">
       <div className="settings-section">
         <h3>{t("settings.workMode")}</h3>
-        <p className="settings-description">{t("settings.workModeDesc")}</p>
+        <p className="setting-description">{t("settings.workModeDesc")}</p>
         <RadioGroup
           name="workMode"
           options={[
@@ -57,7 +57,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.cookieClearType")}</h3>
-        <p className="settings-description">{t("settings.cookieClearTypeDesc")}</p>
+        <p className="setting-description">{t("settings.cookieClearTypeDesc")}</p>
         <RadioGroup
           name="cookieClearType"
           options={[
@@ -72,7 +72,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.scheduledCleanup")}</h3>
-        <p className="settings-description">{t("settings.scheduledCleanupDesc")}</p>
+        <p className="setting-description">{t("settings.scheduledCleanupDesc")}</p>
         <RadioGroup
           name="scheduleInterval"
           options={[
@@ -88,7 +88,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.advancedCleanup")}</h3>
-        <p className="settings-description">{t("settings.advancedCleanupDesc")}</p>
+        <p className="setting-description">{t("settings.advancedCleanupDesc")}</p>
         <CheckboxGroup
           options={[
             { value: "clearCache", label: t("settings.clearCache"), checked: settings.clearCache },
@@ -113,7 +113,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.autoCleanup")}</h3>
-        <p className="settings-description">{t("settings.autoCleanupDesc")}</p>
+        <p className="setting-description">{t("settings.autoCleanupDesc")}</p>
         <CheckboxGroup
           options={[
             {
@@ -136,7 +136,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.logRetention")}</h3>
-        <p className="settings-description">{t("settings.logRetentionDesc")}</p>
+        <p className="setting-description">{t("settings.logRetentionDesc")}</p>
         <RadioGroup
           name="logRetention"
           options={[
@@ -156,7 +156,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.privacyProtection")}</h3>
-        <p className="settings-description">{t("settings.privacyProtectionDesc")}</p>
+        <p className="setting-description">{t("settings.privacyProtectionDesc")}</p>
         <CheckboxGroup
           options={[
             {
@@ -173,7 +173,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.themeMode")}</h3>
-        <p className="settings-description">{t("settings.themeModeDesc")}</p>
+        <p className="setting-description">{t("settings.themeModeDesc")}</p>
         <RadioGroup
           name="themeMode"
           options={[
@@ -190,7 +190,7 @@ export const Settings = ({ onMessage }: Props) => {
       {showCustomTheme && (
         <div className="settings-section custom-theme-settings">
           <h3>{t("settings.customTheme")}</h3>
-          <p className="settings-description">{t("settings.customThemeDesc")}</p>
+          <p className="setting-description">{t("settings.customThemeDesc")}</p>
           <div className="color-inputs">
             <div className="color-input">
               <label>{t("settings.primaryColor")}</label>
@@ -265,7 +265,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.language")}</h3>
-        <p className="settings-description">{t("settings.languageDesc")}</p>
+        <p className="setting-description">{t("settings.languageDesc")}</p>
         <RadioGroup
           name="locale"
           options={[
@@ -282,7 +282,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.showCookieRisk")}</h3>
-        <p className="settings-description">{t("settings.showCookieRiskDesc")}</p>
+        <p className="setting-description">{t("settings.showCookieRiskDesc")}</p>
         <CheckboxGroup
           options={[
             {
