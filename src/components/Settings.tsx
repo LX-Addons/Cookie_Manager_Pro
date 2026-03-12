@@ -4,6 +4,7 @@ import type { Settings as SettingsType, CustomTheme, Locale } from "@/types";
 import { CookieClearType, LogRetention, ThemeMode, ModeType, ScheduleInterval } from "@/types";
 import { RadioGroup } from "@/components/RadioGroup";
 import { CheckboxGroup } from "@/components/CheckboxGroup";
+import { Select } from "@/components/Select";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {
@@ -17,7 +18,11 @@ export const Settings = ({ onMessage }: Props) => {
   const showCustomTheme = settings.themeMode === ThemeMode.CUSTOM;
 
   const updateSetting = <K extends keyof SettingsType>(key: K, value: SettingsType[K]) => {
-    setSettings({ ...settings, [key]: value });
+    // Remove undefined values from settings object before updating
+    const cleanSettings = Object.fromEntries(
+      Object.entries(settings).filter(([, v]) => v !== undefined)
+    ) as SettingsType;
+    setSettings({ ...cleanSettings, [key]: value });
   };
 
   const updateCustomTheme = (key: keyof CustomTheme, value: string) => {
@@ -43,7 +48,7 @@ export const Settings = ({ onMessage }: Props) => {
     <div className="settings-container">
       <div className="settings-section">
         <h3>{t("settings.workMode")}</h3>
-        <p className="settings-description">{t("settings.workModeDesc")}</p>
+        <p className="setting-description">{t("settings.workModeDesc")}</p>
         <RadioGroup
           name="workMode"
           options={[
@@ -57,7 +62,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.cookieClearType")}</h3>
-        <p className="settings-description">{t("settings.cookieClearTypeDesc")}</p>
+        <p className="setting-description">{t("settings.cookieClearTypeDesc")}</p>
         <RadioGroup
           name="cookieClearType"
           options={[
@@ -72,7 +77,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.scheduledCleanup")}</h3>
-        <p className="settings-description">{t("settings.scheduledCleanupDesc")}</p>
+        <p className="setting-description">{t("settings.scheduledCleanupDesc")}</p>
         <RadioGroup
           name="scheduleInterval"
           options={[
@@ -88,7 +93,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.advancedCleanup")}</h3>
-        <p className="settings-description">{t("settings.advancedCleanupDesc")}</p>
+        <p className="setting-description">{t("settings.advancedCleanupDesc")}</p>
         <CheckboxGroup
           options={[
             { value: "clearCache", label: t("settings.clearCache"), checked: settings.clearCache },
@@ -104,18 +109,36 @@ export const Settings = ({ onMessage }: Props) => {
             },
           ]}
           onChange={(values) => {
-            updateSetting("clearCache", values.includes("clearCache"));
-            updateSetting("clearLocalStorage", values.includes("clearLocalStorage"));
-            updateSetting("clearIndexedDB", values.includes("clearIndexedDB"));
+            setSettings((prev) => ({
+              ...prev,
+              clearCache: values.includes("clearCache"),
+              clearLocalStorage: values.includes("clearLocalStorage"),
+              clearIndexedDB: values.includes("clearIndexedDB"),
+            }));
           }}
         />
       </div>
 
       <div className="settings-section">
         <h3>{t("settings.autoCleanup")}</h3>
-        <p className="settings-description">{t("settings.autoCleanupDesc")}</p>
+        <p className="setting-description">{t("settings.autoCleanupDesc")}</p>
         <CheckboxGroup
           options={[
+            {
+              value: "cleanupOnTabClose",
+              label: t("settings.cleanupOnTabClose"),
+              checked: settings.cleanupOnTabClose,
+            },
+            {
+              value: "cleanupOnBrowserClose",
+              label: t("settings.cleanupOnBrowserClose"),
+              checked: settings.cleanupOnBrowserClose,
+            },
+            {
+              value: "cleanupOnNavigate",
+              label: t("settings.cleanupOnNavigate"),
+              checked: settings.cleanupOnNavigate,
+            },
             {
               value: "cleanupOnStartup",
               label: t("settings.cleanupOnStartup"),
@@ -128,17 +151,25 @@ export const Settings = ({ onMessage }: Props) => {
             },
           ]}
           onChange={(values) => {
-            updateSetting("cleanupOnStartup", values.includes("cleanupOnStartup"));
-            updateSetting("cleanupExpiredCookies", values.includes("cleanupExpiredCookies"));
+            setSettings((prev) => ({
+              ...prev,
+              cleanupOnTabClose: values.includes("cleanupOnTabClose"),
+              cleanupOnBrowserClose: values.includes("cleanupOnBrowserClose"),
+              cleanupOnNavigate: values.includes("cleanupOnNavigate"),
+              cleanupOnStartup: values.includes("cleanupOnStartup"),
+              cleanupExpiredCookies: values.includes("cleanupExpiredCookies"),
+            }));
           }}
         />
       </div>
 
       <div className="settings-section">
         <h3>{t("settings.logRetention")}</h3>
-        <p className="settings-description">{t("settings.logRetentionDesc")}</p>
-        <RadioGroup
+        <p className="setting-description">{t("settings.logRetentionDesc")}</p>
+        <Select
           name="logRetention"
+          value={settings.logRetention}
+          onChange={(value) => updateSetting("logRetention", value)}
           options={[
             { value: LogRetention.ONE_HOUR, label: t("settings.oneHour") },
             { value: LogRetention.SIX_HOURS, label: t("settings.sixHours") },
@@ -149,14 +180,12 @@ export const Settings = ({ onMessage }: Props) => {
             { value: LogRetention.TEN_DAYS, label: t("settings.tenDays") },
             { value: LogRetention.THIRTY_DAYS, label: t("settings.thirtyDays") },
           ]}
-          value={settings.logRetention}
-          onChange={(value) => updateSetting("logRetention", value)}
         />
       </div>
 
       <div className="settings-section">
         <h3>{t("settings.privacyProtection")}</h3>
-        <p className="settings-description">{t("settings.privacyProtectionDesc")}</p>
+        <p className="setting-description">{t("settings.privacyProtectionDesc")}</p>
         <CheckboxGroup
           options={[
             {
@@ -173,7 +202,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.themeMode")}</h3>
-        <p className="settings-description">{t("settings.themeModeDesc")}</p>
+        <p className="setting-description">{t("settings.themeModeDesc")}</p>
         <RadioGroup
           name="themeMode"
           options={[
@@ -190,7 +219,7 @@ export const Settings = ({ onMessage }: Props) => {
       {showCustomTheme && (
         <div className="settings-section custom-theme-settings">
           <h3>{t("settings.customTheme")}</h3>
-          <p className="settings-description">{t("settings.customThemeDesc")}</p>
+          <p className="setting-description">{t("settings.customThemeDesc")}</p>
           <div className="color-inputs">
             <div className="color-input">
               <label>{t("settings.primaryColor")}</label>
@@ -265,7 +294,7 @@ export const Settings = ({ onMessage }: Props) => {
 
       <div className="settings-section">
         <h3>{t("settings.language")}</h3>
-        <p className="settings-description">{t("settings.languageDesc")}</p>
+        <p className="setting-description">{t("settings.languageDesc")}</p>
         <RadioGroup
           name="locale"
           options={[
@@ -276,23 +305,6 @@ export const Settings = ({ onMessage }: Props) => {
           onChange={(value) => {
             updateSetting("locale", value as Locale);
             handleLocaleChange(value as Locale);
-          }}
-        />
-      </div>
-
-      <div className="settings-section">
-        <h3>{t("settings.showCookieRisk")}</h3>
-        <p className="settings-description">{t("settings.showCookieRiskDesc")}</p>
-        <CheckboxGroup
-          options={[
-            {
-              value: "showCookieRisk",
-              label: t("settings.showCookieRisk"),
-              checked: settings.showCookieRisk,
-            },
-          ]}
-          onChange={(values) => {
-            updateSetting("showCookieRisk", values.includes("showCookieRisk"));
           }}
         />
       </div>

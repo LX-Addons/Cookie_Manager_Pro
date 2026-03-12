@@ -33,11 +33,16 @@ export const CheckboxGroup = memo(({ options, onChange }: Props) => {
     const unifiedOptions = options as OptionWithValue[];
 
     const handleChange = (value: string, checked: boolean) => {
+      // Get currently checked values from props
       const currentValues = unifiedOptions.filter((opt) => opt.checked).map((opt) => opt.value);
 
       if (checked) {
-        onChange([...currentValues, value]);
+        // Add the value if not already present
+        if (!currentValues.includes(value)) {
+          onChange([...currentValues, value]);
+        }
       } else {
+        // Remove the value
         onChange(currentValues.filter((v) => v !== value));
       }
     };

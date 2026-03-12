@@ -304,8 +304,8 @@ describe("Settings", () => {
   it("should handle log retention change", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const oneDayRadio = screen.getByLabelText("1天");
-    fireEvent.click(oneDayRadio);
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.ONE_DAY } });
 
     expect(mockSettings.logRetention).toBe(LogRetention.ONE_DAY);
   });
@@ -353,17 +353,12 @@ describe("Settings", () => {
     expect(screen.getByLabelText("深色主题")).toBeChecked();
   });
 
-  it("should render all log retention options", () => {
+  it("should render log retention select", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByLabelText("1小时")).toBeTruthy();
-    expect(screen.getByLabelText("6小时")).toBeTruthy();
-    expect(screen.getByLabelText("12小时")).toBeTruthy();
-    expect(screen.getByLabelText("1天")).toBeTruthy();
-    expect(screen.getByLabelText("3天")).toBeTruthy();
-    expect(screen.getByLabelText("7天")).toBeTruthy();
-    expect(screen.getByLabelText("10天")).toBeTruthy();
-    expect(screen.getByLabelText("30天")).toBeTruthy();
+    const select = screen.getByRole("combobox");
+    expect(select).toBeTruthy();
+    expect(select.getAttribute("name")).toBe("logRetention");
   });
 
   it("should render all scheduled cleanup options", () => {
