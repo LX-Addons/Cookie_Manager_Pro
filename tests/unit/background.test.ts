@@ -46,6 +46,8 @@ const listeners = {
   onStartup: [] as Array<() => void>,
   onUpdated: [] as Array<(tabId: number, changeInfo: unknown, tab: unknown) => void>,
   onAlarm: [] as Array<(alarm: { name: string }) => void>,
+  onRemoved: [] as Array<(tabId: number) => void>,
+  onWindowRemoved: [] as Array<() => void>,
 };
 
 describe("background", () => {
@@ -56,6 +58,8 @@ describe("background", () => {
     listeners.onStartup = [];
     listeners.onUpdated = [];
     listeners.onAlarm = [];
+    listeners.onRemoved = [];
+    listeners.onWindowRemoved = [];
 
     global.chrome = {
       runtime: {
@@ -88,6 +92,12 @@ describe("background", () => {
           },
           removeListener: vi.fn(),
         },
+        onRemoved: {
+          addListener: function (cb: (tabId: number) => void) {
+            listeners.onRemoved.push(cb);
+          },
+          removeListener: vi.fn(),
+        },
         query: vi.fn(() =>
           Promise.resolve([
             {
@@ -97,6 +107,14 @@ describe("background", () => {
             },
           ])
         ),
+      },
+      windows: {
+        onRemoved: {
+          addListener: function (cb: () => void) {
+            listeners.onWindowRemoved.push(cb);
+          },
+          removeListener: vi.fn(),
+        },
       },
     } as unknown as typeof chrome;
 
