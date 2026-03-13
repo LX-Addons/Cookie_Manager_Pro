@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { createRoot } from "react-dom/client";
 import { useStorage } from "@/hooks/useStorage";
 import { DomainManager } from "@/components/DomainManager";
 import { Settings } from "@/components/Settings";
@@ -34,7 +33,7 @@ import {
 import { MESSAGE_DURATION, DEBOUNCE_DELAY_MS } from "@/lib/constants";
 import "./style.css";
 
-export default function IndexPopup() {
+function IndexPopup() {
   const [currentDomain, setCurrentDomain] = useState("");
   const [activeTab, setActiveTab] = useState("manage");
   const [message, setMessage] = useState({ text: "", isError: false, visible: false });
