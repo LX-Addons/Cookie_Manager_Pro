@@ -21,14 +21,14 @@ jobs:
       - name: "检出代码库"
         uses: actions/checkout@v5
 
+      - name: "安装 pnpm"
+        run: npm install -g pnpm
+
       - name: "设置 Node.js 环境"
         uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: 'pnpm'
-
-      - name: "安装 pnpm"
-        run: npm install -g pnpm
 
       - name: "依赖审查"
         uses: actions/dependency-review-action@v4
