@@ -62,7 +62,7 @@ test.describe("Cookie Operations", () => {
     await expect(statLabels.nth(1)).toContainText(/(当前网站|Current)/);
     await expect(statLabels.nth(2)).toContainText(/(会话|Session)/);
     await expect(statLabels.nth(3)).toContainText(/(持久|Persistent)/);
-    await expect(statLabels.nth(4)).toContainText(/(第三方|Third-party)/);
+    await expect(statLabels.nth(4)).toContainText(/(第三方|Third Party)/);
     await expect(statLabels.nth(5)).toContainText(/(追踪|Tracking)/);
 
     await popup.close();
