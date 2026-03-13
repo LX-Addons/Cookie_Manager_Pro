@@ -1,9 +1,9 @@
 import { test as base, chromium, type BrowserContext, type Page } from "@playwright/test";
-import path from "path";
-import { fileURLToPath } from "url";
-import os from "os";
-import { randomUUID } from "crypto";
-import fs from "fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import os from "node:os";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

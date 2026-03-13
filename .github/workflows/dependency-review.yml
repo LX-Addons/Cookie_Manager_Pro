@@ -14,6 +14,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PNPM_VERSION: "10.32.1"
+  NODE_VERSION: "24"
+
 jobs:
   dependency-review:
     runs-on: ubuntu-latest
@@ -22,13 +26,15 @@ jobs:
         uses: actions/checkout@v5
 
       - name: "安装 pnpm"
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - name: "设置 Node.js 环境"
         uses: actions/setup-node@v5
         with:
-          node-version: "22"
-          cache: 'pnpm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
       - name: "依赖审查"
         uses: actions/dependency-review-action@v4

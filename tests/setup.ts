@@ -51,20 +51,22 @@ class MockStorage {
   }
 }
 
-const mockStorage = new MockStorage();
-
-vi.mock("wxt/utils/storage", () => ({
-  Storage: MockStorage,
-  storage: {
-    getItem: vi.fn(async (key: string) => mockStorage.get(key)),
-    setItem: vi.fn(async (key: string, value: unknown) => {
-      mockStorage.set(key, value);
-    }),
-    watch: vi.fn(() => {
-      return vi.fn();
-    }),
-  },
-}));
+// 使用工厂函数创建 mock，确保在模块加载时正确初始化
+vi.mock("wxt/utils/storage", () => {
+  const mockStorageData = new Map<string, unknown>();
+  return {
+    Storage: MockStorage,
+    storage: {
+      getItem: vi.fn(async (key: string) => mockStorageData.get(key)),
+      setItem: vi.fn(async (key: string, value: unknown) => {
+        mockStorageData.set(key, value);
+      }),
+      watch: vi.fn(() => {
+        return vi.fn();
+      }),
+    },
+  };
+});
 
 // Mock Chrome API
 global.chrome = {

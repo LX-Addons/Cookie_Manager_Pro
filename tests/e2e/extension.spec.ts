@@ -210,10 +210,18 @@ test.describe("Settings", () => {
     await customRadio.click();
 
     await expect(popup.locator(".custom-theme-settings")).toBeVisible();
-    await expect(popup.locator(".custom-theme-settings").getByText(/主色调|Primary/)).toBeVisible();
-    await expect(popup.locator(".custom-theme-settings").getByText(/成功色|Success/)).toBeVisible();
-    await expect(popup.locator(".custom-theme-settings").getByText(/警告色|Warning/)).toBeVisible();
-    await expect(popup.locator(".custom-theme-settings").getByText(/危险色|Danger/)).toBeVisible();
+    await expect(
+      popup.locator(".custom-theme-settings").getByText(/主色调|Primary Color/)
+    ).toBeVisible();
+    await expect(
+      popup.locator(".custom-theme-settings").getByText(/成功色|Success Color/)
+    ).toBeVisible();
+    await expect(
+      popup.locator(".custom-theme-settings").getByText(/警告色|Warning Color/)
+    ).toBeVisible();
+    await expect(
+      popup.locator(".custom-theme-settings").getByText(/危险色|Danger Color/)
+    ).toBeVisible();
 
     await popup.close();
   });

@@ -35,7 +35,7 @@ concurrency:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "9.15.0"
+  PNPM_VERSION: "10.32.1"
   EXTENSION_SIZE_LIMIT_MB: 10
 
 jobs:
@@ -53,7 +53,7 @@ jobs:
       - name: 生成缓存 key
         id: cache-key
         run: |
-          CACHE_KEY="${{ runner.os }}-${{ github.ref_name }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}"
+          CACHE_KEY="${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/pnpm-lock.yaml') }}"
           echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
           echo "📁 缓存 Key: $CACHE_KEY"
 
@@ -149,7 +149,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
@@ -160,7 +160,8 @@ jobs:
             ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
             ${{ runner.os }}-node-
 
       - name: 安装依赖
@@ -207,7 +208,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
@@ -255,7 +256,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
@@ -266,7 +267,8 @@ jobs:
             ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
             ${{ runner.os }}-node-
 
       - name: 安装依赖
@@ -284,7 +286,12 @@ jobs:
         run: |
           echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
 
-          AUDIT_OUTPUT=$(pnpm audit --audit-level=moderate 2>&1) || true
+          # 基于退出码判断审计结果，避免依赖固定输出字符串
+          if AUDIT_OUTPUT=$(pnpm audit --audit-level=moderate 2>&1); then
+            AUDIT_STATUS=clean
+          else
+            AUDIT_STATUS=warning
+          fi
 
           echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -293,7 +300,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
 
-          if echo "$AUDIT_OUTPUT" | grep -q "found 0 vulnerabilities"; then
+          if [ "$AUDIT_STATUS" = "clean" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ 未发现安全漏洞" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=clean" >> $GITHUB_OUTPUT
@@ -345,7 +352,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
@@ -356,7 +363,8 @@ jobs:
             ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
             ${{ runner.os }}-node-
 
       - name: 安装依赖
@@ -490,7 +498,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
@@ -501,7 +509,8 @@ jobs:
             ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
             ${{ runner.os }}-node-
 
       - name: 安装依赖
@@ -617,7 +626,7 @@ jobs:
             body += `| :---: | :--- | :---: | :--- |\n`;
             body += `| 🚀 | **环境准备** | ${statusEmoji(setupResult)} | 缓存与产物配置 |\n`;
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
-            body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js 20/22/24 多版本测试 |\n`;
+            body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js ${{ env.NODE_VERSION }} 测试 |\n`;
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | 密钥泄露 + 依赖审计 |\n`;
             body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n`;
             body += `| 🎭 | **E2E 测试** | ${statusEmoji(e2eResult)} | Playwright 浏览器测试 |\n\n`;
@@ -706,6 +715,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: 获取版本信息
         id: version
         run: |
@@ -720,6 +739,9 @@ jobs:
           name: extension-build
           path: .output/
           merge-multiple: true
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
 
       - name: 生成更新日志
         id: changelog

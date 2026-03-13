@@ -11,11 +11,19 @@ vi.mock("@/hooks/useStorage", () => ({
 
 vi.mock("@/components/CookieList", () => ({
   CookieList: (props: {
+    cookies?: unknown[];
+    currentDomain?: string;
+    onUpdate?: () => void;
+    onMessage?: (msg: string, isError?: boolean) => void;
+    whitelist?: string[];
+    blacklist?: string[];
     onAddToWhitelist?: (domains: string[]) => void;
     onAddToBlacklist?: (domains: string[]) => void;
   }) => {
     return (
       <div data-testid="cookie-list">
+        <div data-testid="cookie-count">{props.cookies?.length || 0}</div>
+        <div data-testid="current-domain">{props.currentDomain || "无域名"}</div>
         <button
           onClick={() => props.onAddToWhitelist?.(["example.com"])}
           data-testid="add-to-whitelist"
@@ -27,6 +35,12 @@ vi.mock("@/components/CookieList", () => ({
           data-testid="add-to-blacklist"
         >
           添加到黑名单
+        </button>
+        <button onClick={() => props.onUpdate?.()} data-testid="update-cookies">
+          更新
+        </button>
+        <button onClick={() => props.onMessage?.("测试消息", false)} data-testid="show-message">
+          显示消息
         </button>
         Cookie 详情
       </div>
@@ -526,6 +540,7 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
     const buttons = container.querySelectorAll(".button-group button");
+    expect(buttons.length).toBeGreaterThan(0);
     if (buttons.length > 0) {
       fireEvent.click(buttons[0]);
     }
@@ -539,6 +554,7 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
     const buttons = container.querySelectorAll(".button-group button");
+    expect(buttons.length).toBeGreaterThan(0);
     if (buttons.length > 0) {
       fireEvent.click(buttons[0]);
     }
@@ -549,6 +565,7 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
     const buttons = container.querySelectorAll(".button-group button");
+    expect(buttons.length).toBeGreaterThan(0);
     if (buttons.length > 0) {
       fireEvent.click(buttons[0]);
     }

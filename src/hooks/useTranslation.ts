@@ -37,6 +37,11 @@ export function useTranslation() {
   );
 
   const setTranslationLocale = useCallback((locale: Locale) => {
+    // 先同步更新本地 state 和 i18n，确保 UI 立即响应
+    setLocaleState(locale);
+    setLocale(locale);
+
+    // 再异步持久化到 storage
     storage.getItem<Settings>(SETTINGS_KEY).then((current) => {
       const newSettings = { ...(current || DEFAULT_SETTINGS), locale };
       storage.setItem(SETTINGS_KEY, newSettings);

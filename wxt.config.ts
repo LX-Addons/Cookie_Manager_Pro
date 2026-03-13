@@ -10,8 +10,8 @@ const icons = {
 export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/module-react"],
+  manifestVersion: 3,
   manifest: {
-    manifest_version: 3,
     name: "Cookie Manager Pro",
     description: "高级 Cookie 管理，支持白名单/黑名单功能和选择性 Cookie 清除",
     permissions: ["cookies", "storage", "tabs", "browsingData", "alarms"],
@@ -30,12 +30,6 @@ export default defineConfig({
     build: {
       minify: true,
       sourcemap: false,
-    },
-    server: {
-      // 提高 Windows 上的构建稳定性
-      watch: {
-        usePolling: false,
-      },
     },
   }),
   zip: {

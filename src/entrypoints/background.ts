@@ -188,6 +188,7 @@ export default defineBackground(() => {
     const settings = await storage.getItem<Settings>(SETTINGS_KEY);
     if (!settings?.enableAutoCleanup) return;
 
+    // 确保 tabUrlMap 已初始化，避免扩展重载/更新后丢失清理机会
     if (!tabUrlMap.size) {
       await initializeTabUrlMap();
     }
@@ -257,25 +258,34 @@ export default defineBackground(() => {
     const blacklist = await storage.getItem(BLACKLIST_KEY);
     const settings = await storage.getItem(SETTINGS_KEY);
 
-    if (whitelist === undefined) {
+    if (whitelist == null) {
       await storage.setItem(WHITELIST_KEY, []);
     }
 
-    if (blacklist === undefined) {
+    if (blacklist == null) {
       await storage.setItem(BLACKLIST_KEY, []);
     }
 
-    if (settings === undefined) {
+    if (settings == null) {
       await storage.setItem(SETTINGS_KEY, DEFAULT_SETTINGS);
     }
   };
 
   chrome.runtime.onInstalled.addListener(async () => {
     await initializeStorage();
+    // 初始化 tabUrlMap，确保扩展安装/更新后能正确捕获已打开的标签页
+    await initializeTabUrlMap();
     await chrome.alarms.create("scheduled-cleanup", {
       periodInMinutes: ALARM_INTERVAL_MINUTES,
     });
     await checkScheduledCleanup();
+  });
+
+  // 监听设置变化，当启用自动清理时初始化 tabUrlMap
+  storage.watch<Settings>(SETTINGS_KEY, async (newSettings, oldSettings) => {
+    if (newSettings?.enableAutoCleanup && !oldSettings?.enableAutoCleanup) {
+      await initializeTabUrlMap();
+    }
   });
 
   chrome.tabs.onUpdated.addListener(handleTabUpdated);

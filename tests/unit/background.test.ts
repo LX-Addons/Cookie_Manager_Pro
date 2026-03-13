@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockStorageData = new Map<string, unknown>();
 
-class MockStorage {
+class _MockStorage {
   async get(key: string) {
     return mockStorageData.get(key);
   }
@@ -11,10 +11,8 @@ class MockStorage {
   }
 }
 
-// Mock WXT storage
-vi.mock("wxt/utils/storage", () => ({
-  Storage: MockStorage,
-}));
+// 注意：wxt/utils/storage 的 mock 已在 tests/setup.ts 中定义
+// 这里不再重复定义，以避免 mock 冲突
 
 vi.mock("@/utils/cleanup", () => ({
   performCleanup: vi.fn(() => Promise.resolve({ count: 5, clearedDomains: ["example.com"] })),
@@ -33,6 +31,7 @@ vi.mock("@/lib/store", async (importOriginal) => {
         mockStorageData.set(key, value);
         return Promise.resolve();
       }),
+      watch: vi.fn(() => vi.fn()),
     },
   };
 });

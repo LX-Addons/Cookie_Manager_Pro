@@ -397,7 +397,7 @@ describe("cleanup", () => {
         },
       ];
 
-      global.chrome = {
+      globalThis.chrome = {
         cookies: {
           getAll: vi.fn().mockResolvedValue(mockCookies),
           remove: vi.fn().mockResolvedValue({}),
@@ -429,7 +429,7 @@ describe("cleanup", () => {
         },
       ];
 
-      global.chrome = {
+      globalThis.chrome = {
         cookies: {
           getAll: vi.fn().mockResolvedValue(mockCookies),
           remove: vi.fn().mockResolvedValue({}),
@@ -454,7 +454,7 @@ describe("cleanup", () => {
         },
       ];
 
-      global.chrome = {
+      globalThis.chrome = {
         cookies: {
           getAll: vi.fn().mockResolvedValue(mockCookies),
           remove: vi.fn().mockResolvedValue({}),
@@ -478,7 +478,7 @@ describe("cleanup", () => {
         },
       ];
 
-      global.chrome = {
+      globalThis.chrome = {
         cookies: {
           getAll: vi.fn().mockResolvedValue(mockCookies),
           remove: vi.fn().mockRejectedValue(new Error("Remove failed")),
@@ -496,7 +496,7 @@ describe("cleanup", () => {
     });
 
     it("should handle empty cookies list", async () => {
-      global.chrome = {
+      globalThis.chrome = {
         cookies: {
           getAll: vi.fn().mockResolvedValue([]),
           remove: vi.fn().mockResolvedValue({}),
@@ -521,7 +521,7 @@ describe("cleanup", () => {
         },
       ];
 
-      global.chrome = {
+      globalThis.chrome = {
         cookies: {
           getAll: vi.fn().mockResolvedValue(mockCookies),
           remove: vi.fn().mockResolvedValue({}),
@@ -548,7 +548,7 @@ describe("cleanup", () => {
         },
       ];
 
-      global.chrome = {
+      globalThis.chrome = {
         cookies: {
           getAll: vi.fn().mockResolvedValue(mockCookies),
           remove: vi.fn().mockResolvedValue({}),
