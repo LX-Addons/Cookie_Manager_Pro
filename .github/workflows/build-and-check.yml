@@ -549,6 +549,8 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: 运行 E2E 测试
+        env:
+          E2E_EXTENSION_PATH: ${{ github.workspace }}/build/chrome-mv3-prod
         run: xvfb-run --auto-servernum pnpm run test:e2e
 
       - name: 上传 Playwright 报告
