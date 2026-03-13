@@ -36,16 +36,21 @@ export function useTranslation() {
     [locale]
   );
 
-  const setTranslationLocale = useCallback((locale: Locale) => {
+  const setTranslationLocale = useCallback((newLocale: Locale) => {
     // 先同步更新本地 state 和 i18n，确保 UI 立即响应
-    setLocaleState(locale);
-    setLocale(locale);
+    setLocaleState(newLocale);
+    setLocale(newLocale);
 
     // 再异步持久化到 storage
-    storage.getItem<Settings>(SETTINGS_KEY).then((current) => {
-      const newSettings = { ...(current || DEFAULT_SETTINGS), locale };
-      storage.setItem(SETTINGS_KEY, newSettings);
-    });
+    storage
+      .getItem<Settings>(SETTINGS_KEY)
+      .then((current) => {
+        const newSettings = { ...(current || DEFAULT_SETTINGS), locale: newLocale };
+        return storage.setItem(SETTINGS_KEY, newSettings);
+      })
+      .catch((error) => {
+        console.error("Failed to persist locale:", error);
+      });
   }, []);
 
   return {

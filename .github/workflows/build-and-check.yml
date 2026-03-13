@@ -308,6 +308,7 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "⚠️ **发现安全漏洞！** 请查看上方审计报告并修复。" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=warning" >> $GITHUB_OUTPUT
+            exit 1
           fi
 
       - name: 安全模式检查
@@ -468,6 +469,14 @@ jobs:
         with:
           name: extension-build
           path: .output/chrome-mv3/
+          retention-days: ${{ needs.setup.outputs.artifact_retention }}
+          if-no-files-found: error
+
+      - name: 上传打包产物
+        uses: actions/upload-artifact@v6
+        with:
+          name: extension-zip
+          path: .output/*.zip
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
           if-no-files-found: error
 
@@ -736,9 +745,20 @@ jobs:
       - name: 下载构建产物
         uses: actions/download-artifact@v7
         with:
-          name: extension-build
+          name: extension-zip
           path: .output/
           merge-multiple: true
+
+      - name: 验证 zip 文件存在
+        run: |
+          echo "📁 下载的构建产物内容:"
+          ls -la .output/
+
+          if [ ! -f .output/*.zip ]; then
+            echo "❌ 未找到 zip 文件"
+            exit 1
+          fi
+          echo "✅ 找到 zip 文件"
 
       - name: 安装依赖
         run: pnpm install --frozen-lockfile

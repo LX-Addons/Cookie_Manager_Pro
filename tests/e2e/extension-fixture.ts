@@ -24,7 +24,7 @@ export const test = base.extend<{
   extensionId: string;
 }>({
   context: [
-    async ({}, use) => {
+    async (_deps, use) => {
       const extensionExists = await checkExtensionExists();
       if (!extensionExists) {
         throw new Error(`Extension not found at ${extensionPath}. Please run 'pnpm build' first.`);

@@ -24,7 +24,7 @@ test.describe("Popup Basic Functionality", () => {
 
     await expect(popup.getByRole("tab", { name: /管理|Manage/ })).toBeVisible();
     await expect(
-      popup.getByRole("tab", { name: /白名单 | 黑名单|Whitelist|Blacklist/ })
+      popup.getByRole("tab", { name: /白名单|黑名单|Whitelist|Blacklist/ })
     ).toBeVisible();
     await expect(popup.getByRole("tab", { name: /设置|Settings/ })).toBeVisible();
     await expect(popup.getByRole("tab", { name: /日志|Logs/ })).toBeVisible();
@@ -54,7 +54,7 @@ test.describe("Cookie Operations", () => {
     const popup = await openPopup(context, extensionId);
 
     await expect(
-      popup.locator(".section").filter({ hasText: /Cookie 统计|Cookie Stats/ })
+      popup.locator(".section").filter({ hasText: /Cookie统计|Cookie Stats/ })
     ).toBeVisible();
 
     const statLabels = popup.locator(".stat-label");
@@ -72,14 +72,14 @@ test.describe("Cookie Operations", () => {
     const popup = await openPopup(context, extensionId);
 
     await expect(
-      popup.getByRole("button", { name: /添加到白名单 |Add to Whitelist/ })
+      popup.getByRole("button", { name: /添加到白名单|Add to Whitelist/ })
     ).toBeVisible();
     await expect(
-      popup.getByRole("button", { name: /添加到黑名单 |Add to Blacklist/ })
+      popup.getByRole("button", { name: /添加到黑名单|Add to Blacklist/ })
     ).toBeVisible();
-    await expect(popup.getByRole("button", { name: /清除当前网站 |Clear Current/ })).toBeVisible();
+    await expect(popup.getByRole("button", { name: /清除当前网站|Clear Current/ })).toBeVisible();
     await expect(
-      popup.getByRole("button", { name: /清除所有 Cookie|Clear All Cookies/ })
+      popup.getByRole("button", { name: /清除所有Cookie|Clear All Cookies/ })
     ).toBeVisible();
 
     await popup.close();
@@ -88,7 +88,7 @@ test.describe("Cookie Operations", () => {
   test("should show and close confirm dialog", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
-    const clearCurrentBtn = popup.getByRole("button", { name: /清除当前网站 |Clear Current/ });
+    const clearCurrentBtn = popup.getByRole("button", { name: /清除当前网站|Clear Current/ });
     await clearCurrentBtn.click();
 
     await expect(popup.locator(".confirm-dialog")).toBeVisible();
@@ -121,7 +121,7 @@ test.describe("Domain Management", () => {
   test("should display domain management interface", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
-    const domainTab = popup.getByRole("tab", { name: /白名单 | 黑名单|Whitelist|Blacklist/ });
+    const domainTab = popup.getByRole("tab", { name: /白名单|黑名单|Whitelist|Blacklist/ });
     await domainTab.click();
 
     await expect(popup.locator('input[placeholder*="google.com"]')).toBeVisible();
@@ -136,7 +136,7 @@ test.describe("Domain Management", () => {
   test("should show error for empty domain", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
-    const domainTab = popup.getByRole("tab", { name: /白名单 | 黑名单|Whitelist|Blacklist/ });
+    const domainTab = popup.getByRole("tab", { name: /白名单|黑名单|Whitelist|Blacklist/ });
     await domainTab.click();
 
     const addButton = popup.getByRole("button", { name: /^添加$|^Add$/ });
@@ -150,7 +150,7 @@ test.describe("Domain Management", () => {
   test("should show error for invalid domain", async ({ context, extensionId }) => {
     const popup = await openPopup(context, extensionId);
 
-    const domainTab = popup.getByRole("tab", { name: /白名单 | 黑名单|Whitelist|Blacklist/ });
+    const domainTab = popup.getByRole("tab", { name: /白名单|黑名单|Whitelist|Blacklist/ });
     await domainTab.click();
 
     const input = popup.locator('input[placeholder*="google.com"]');
@@ -174,7 +174,7 @@ test.describe("Settings", () => {
 
     await expect(popup.getByRole("heading", { name: /工作模式|Work Mode/ })).toBeVisible();
     await expect(
-      popup.getByRole("heading", { name: /Cookie 清除类型|Cookie Clear Type/ })
+      popup.getByRole("heading", { name: /Cookie清除类型|Cookie Clear Type/ })
     ).toBeVisible();
     await expect(popup.getByRole("heading", { name: /定时清理|Scheduled Cleanup/ })).toBeVisible();
     await expect(popup.getByRole("heading", { name: /日志保留时长|Log Retention/ })).toBeVisible();

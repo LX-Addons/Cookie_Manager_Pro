@@ -74,7 +74,7 @@ jobs:
           echo "## 📜 许可证合规检查" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          pnpm add -g license-checker-rseidelsohn
+          pnpm add -g license-checker-rseidelsohn@4.4.2
 
           echo "### 📊 许可证摘要" >> $GITHUB_STEP_SUMMARY
           license-checker-rseidelsohn --summary >> $GITHUB_STEP_SUMMARY

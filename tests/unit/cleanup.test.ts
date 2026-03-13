@@ -20,11 +20,25 @@ vi.mock("@/lib/store", () => ({
   },
 }));
 
+const normalizeDomain = (domain: string): string => {
+  return domain.replace(/^\./, "").toLowerCase();
+};
+
 vi.mock("@/utils", () => ({
-  isInList: vi.fn((domain: string, list: string[]) => list.includes(domain)),
+  isInList: vi.fn((domain: string, list: string[]) => {
+    const normalizedDomain = normalizeDomain(domain);
+    return list.some((item: string) => {
+      const normalizedItem = normalizeDomain(item);
+      return (
+        normalizedDomain === normalizedItem ||
+        normalizedDomain.endsWith("." + normalizedItem) ||
+        normalizedItem.endsWith("." + normalizedDomain)
+      );
+    });
+  }),
   isDomainMatch: vi.fn((cookieDomain: string, targetDomain: string) => {
-    const normalizedCookie = cookieDomain.replace(/^\./, "").toLowerCase();
-    const normalizedTarget = targetDomain.replace(/^\./, "").toLowerCase();
+    const normalizedCookie = normalizeDomain(cookieDomain);
+    const normalizedTarget = normalizeDomain(targetDomain);
     return (
       normalizedCookie === normalizedTarget ||
       normalizedTarget.endsWith("." + normalizedCookie) ||
@@ -206,7 +220,10 @@ describe("cleanup", () => {
         clearCache: true,
       });
 
-      expect(clearBrowserData).toHaveBeenCalled();
+      expect(clearBrowserData).toHaveBeenCalledWith(
+        expect.any(Set),
+        expect.objectContaining({ clearCache: true })
+      );
     });
 
     it("should pass clearLocalStorage option to cleanup", async () => {
@@ -235,7 +252,10 @@ describe("cleanup", () => {
         clearLocalStorage: true,
       });
 
-      expect(clearBrowserData).toHaveBeenCalled();
+      expect(clearBrowserData).toHaveBeenCalledWith(
+        expect.any(Set),
+        expect.objectContaining({ clearLocalStorage: true })
+      );
     });
 
     it("should pass clearIndexedDB option to cleanup", async () => {
@@ -264,7 +284,10 @@ describe("cleanup", () => {
         clearIndexedDB: true,
       });
 
-      expect(clearBrowserData).toHaveBeenCalled();
+      expect(clearBrowserData).toHaveBeenCalledWith(
+        expect.any(Set),
+        expect.objectContaining({ clearIndexedDB: true })
+      );
     });
   });
 
@@ -331,10 +354,18 @@ describe("cleanup", () => {
         clearType: CookieClearType.ALL,
       });
 
-      expect(result).toBeDefined();
+      // 白名单模式：example.com 在白名单中，test.com 和 demo.com 不在
+      // 自定义 filter：只允许 test.com
+      // 结果应该只清理 test.com
+      expect(result.count).toBe(1);
+      expect(result.clearedDomains).toContain("test.com");
+      expect(result.clearedDomains).not.toContain("example.com");
+      expect(result.clearedDomains).not.toContain("demo.com");
     });
 
     it("should use options over settings for clearType", async () => {
+      const { clearCookies } = await import("@/utils");
+
       vi.mocked(storage.getItem).mockImplementation(async (key: string) => {
         if (key === "local:settings") {
           return { mode: ModeType.WHITELIST, clearType: CookieClearType.SESSION };
@@ -348,11 +379,16 @@ describe("cleanup", () => {
         return null;
       });
 
-      const result = await performCleanupWithFilter(() => true, {
+      await performCleanupWithFilter(() => true, {
         clearType: CookieClearType.PERSISTENT,
       });
 
-      expect(result).toBeDefined();
+      // 验证 clearCookies 被调用时使用了 options 中的 PERSISTENT，而不是 settings 中的 SESSION
+      expect(clearCookies).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clearType: CookieClearType.PERSISTENT,
+        })
+      );
     });
 
     it("should handle empty whitelist and blacklist", async () => {

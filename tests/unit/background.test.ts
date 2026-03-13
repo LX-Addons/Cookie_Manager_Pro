@@ -2,15 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockStorageData = new Map<string, unknown>();
 
-class _MockStorage {
-  async get(key: string) {
-    return mockStorageData.get(key);
-  }
-  async set(key: string, value: unknown) {
-    mockStorageData.set(key, value);
-  }
-}
-
 // 注意：wxt/utils/storage 的 mock 已在 tests/setup.ts 中定义
 // 这里不再重复定义，以避免 mock 冲突
 

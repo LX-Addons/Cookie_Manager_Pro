@@ -6,14 +6,51 @@ import {
   DEFAULT_SETTINGS,
   SCHEDULE_INTERVAL_MAP,
   CLEANUP_ON_STARTUP_KEY,
+  TAB_URL_MAP_KEY,
 } from "@/lib/store";
 import type { Settings } from "@/types";
 import { performCleanup, performCleanupWithFilter } from "@/utils/cleanup";
-import { CookieClearType, ScheduleInterval } from "@/types";
+import { ScheduleInterval } from "@/types";
 import { ALARM_INTERVAL_MINUTES } from "@/lib/constants";
 
 export default defineBackground(() => {
-  const tabUrlMap = new Map<number, string>();
+  // 内存中的 tabUrlMap，用于快速访问
+  let tabUrlMap = new Map<number, string>();
+
+  // 从持久化存储加载 tabUrlMap
+  const loadTabUrlMap = async (): Promise<Map<number, string>> => {
+    try {
+      const stored = await storage.getItem<Record<string, string>>(TAB_URL_MAP_KEY);
+      if (stored) {
+        return new Map(Object.entries(stored).map(([k, v]) => [parseInt(k, 10), v]));
+      }
+    } catch (e) {
+      console.error("Failed to load tabUrlMap from storage:", e);
+    }
+    return new Map();
+  };
+
+  // 保存 tabUrlMap 到持久化存储
+  const saveTabUrlMap = async (map: Map<number, string>) => {
+    try {
+      const obj: Record<string, string> = {};
+      map.forEach((value, key) => {
+        obj[key.toString()] = value;
+      });
+      await storage.setItem(TAB_URL_MAP_KEY, obj);
+    } catch (e) {
+      console.error("Failed to save tabUrlMap to storage:", e);
+    }
+  };
+
+  // 初始化 tabUrlMap（从存储加载并同步当前标签页）
+  const initTabUrlMap = async () => {
+    const stored = await loadTabUrlMap();
+    const current = await initializeTabUrlMapFromTabs();
+    // 合并存储的和当前的，以当前的为准
+    tabUrlMap = new Map([...stored, ...current]);
+    await saveTabUrlMap(tabUrlMap);
+  };
 
   const checkScheduledCleanup = async () => {
     try {
@@ -27,12 +64,7 @@ export default defineBackground(() => {
       const interval = SCHEDULE_INTERVAL_MAP[settings.scheduleInterval];
 
       if (now - lastCleanup >= interval) {
-        await performCleanupWithFilter(() => true, {
-          clearType: CookieClearType.ALL,
-          clearCache: settings.clearCache,
-          clearLocalStorage: settings.clearLocalStorage,
-          clearIndexedDB: settings.clearIndexedDB,
-        });
+        await performCleanupWithFilter(() => true, getCleanupOptions(settings));
 
         await storage.setItem(SETTINGS_KEY, {
           ...settings,
@@ -81,7 +113,9 @@ export default defineBackground(() => {
   };
 
   const cleanupOpenTabsOnStartup = async (settings: Settings) => {
-    const tabsToCleanup = Array.from(tabUrlMap.values());
+    // 从持久化存储加载 tabUrlMap
+    const storedMap = await loadTabUrlMap();
+    const tabsToCleanup = Array.from(storedMap.values());
     if (tabsToCleanup.length === 0) return;
 
     for (const url of tabsToCleanup) {
@@ -120,6 +154,7 @@ export default defineBackground(() => {
 
     const previousUrl = tabUrlMap.get(tabId);
     tabUrlMap.set(tabId, changeInfo.url);
+    await saveTabUrlMap(tabUrlMap);
 
     if (!settings.cleanupOnNavigate || !previousUrl || previousUrl === changeInfo.url) {
       return;
@@ -158,6 +193,7 @@ export default defineBackground(() => {
 
     if (tab.url && !tabUrlMap.has(tabId)) {
       tabUrlMap.set(tabId, tab.url);
+      await saveTabUrlMap(tabUrlMap);
     }
   };
 
@@ -188,7 +224,7 @@ export default defineBackground(() => {
     const settings = await storage.getItem<Settings>(SETTINGS_KEY);
     if (!settings?.enableAutoCleanup) return;
 
-    // 确保 tabUrlMap 已初始化，避免扩展重载/更新后丢失清理机会
+    // 确保 tabUrlMap 已初始化，从持久化存储加载
     if (!tabUrlMap.size) {
       await initializeTabUrlMap();
     }
@@ -209,20 +245,28 @@ export default defineBackground(() => {
     }
 
     tabUrlMap.delete(tabId);
+    await saveTabUrlMap(tabUrlMap);
   };
 
+  const initializeTabUrlMapFromTabs = async (): Promise<Map<number, string>> => {
+    const map = new Map<number, string>();
+    try {
+      const allTabs = await chrome.tabs.query({});
+      for (const tab of allTabs) {
+        if (tab.id && tab.url) {
+          map.set(tab.id, tab.url);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to initialize tab URL map from tabs:", e);
+    }
+    return map;
+  };
+
+  // 兼容旧代码的初始化函数
   const initializeTabUrlMap = async () => {
     if (!tabUrlMap.size) {
-      try {
-        const allTabs = await chrome.tabs.query({});
-        for (const tab of allTabs) {
-          if (tab.id && tab.url) {
-            tabUrlMap.set(tab.id, tab.url);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to initialize tab URL map:", e);
-      }
+      await initTabUrlMap();
     }
   };
 

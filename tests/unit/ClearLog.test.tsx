@@ -277,8 +277,18 @@ describe("ClearLog", () => {
 
   it("should clear expired logs and show message", async () => {
     const useStorage = storageHook.useStorage;
+    const oldTimestamp = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 天前
     const mockSetLogs = vi.fn((fn) => {
-      const result = fn([{ domain: "example.com", count: 5 }]);
+      const result = fn([
+        {
+          id: "test-log-1",
+          domain: "example.com",
+          count: 5,
+          action: "clear",
+          cookieType: "all",
+          timestamp: oldTimestamp,
+        },
+      ]);
       return result;
     });
 
@@ -302,7 +312,19 @@ describe("ClearLog", () => {
           ];
         }
         if (key === "local:clearLog") {
-          return [[{ domain: "example.com", count: 5 }], mockSetLogs];
+          return [
+            [
+              {
+                id: "test-log-1",
+                domain: "example.com",
+                count: 5,
+                action: "clear",
+                cookieType: "all",
+                timestamp: oldTimestamp,
+              },
+            ],
+            mockSetLogs,
+          ];
         }
         return [defaultValue, vi.fn()];
       }
@@ -339,7 +361,16 @@ describe("ClearLog", () => {
         }
         if (key === "local:clearLog") {
           return [
-            [{ domain: "example.com", count: 5, action: "clear", time: Date.now() }],
+            [
+              {
+                id: "test-log-1",
+                domain: "example.com",
+                count: 5,
+                action: "clear",
+                cookieType: "all",
+                timestamp: Date.now(),
+              },
+            ],
             vi.fn(),
           ];
         }
