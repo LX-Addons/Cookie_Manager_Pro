@@ -7,7 +7,7 @@ import { randomUUID } from "crypto";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const extensionPath = path.join(__dirname, "..", "..", "build", "chrome-mv3-prod");
+const extensionPath = path.join(__dirname, "..", "..", ".output", "chrome-mv3");
 
 export const test = base.extend<{
   context: BrowserContext;

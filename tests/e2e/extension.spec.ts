@@ -58,12 +58,12 @@ test.describe("Cookie Operations", () => {
     ).toBeVisible();
 
     const statLabels = popup.locator(".stat-label");
-    await expect(statLabels.nth(0)).toContainText(/总数|Total/);
-    await expect(statLabels.nth(1)).toContainText(/当前网站 | Current/);
-    await expect(statLabels.nth(2)).toContainText(/会话|Session/);
-    await expect(statLabels.nth(3)).toContainText(/持久|Persistent/);
-    await expect(statLabels.nth(4)).toContainText(/第三方|Third-party/);
-    await expect(statLabels.nth(5)).toContainText(/追踪|Tracking/);
+    await expect(statLabels.nth(0)).toContainText(/(总数|Total)/);
+    await expect(statLabels.nth(1)).toContainText(/(当前网站 | Current)/);
+    await expect(statLabels.nth(2)).toContainText(/(会话|Session)/);
+    await expect(statLabels.nth(3)).toContainText(/(持久|Persistent)/);
+    await expect(statLabels.nth(4)).toContainText(/(第三方|Third-party)/);
+    await expect(statLabels.nth(5)).toContainText(/(追踪|Tracking)/);
 
     await popup.close();
   });
@@ -165,7 +165,7 @@ test.describe("Domain Management", () => {
 
     await expect(popup.locator('input[placeholder*="google.com"]')).toBeVisible();
     await expect(popup.getByRole("button", { name: /^添加$|^Add$/ })).toBeVisible();
-    await expect(popup.getByRole("button", { name: /添加当前网站 |Add Current/ })).toBeVisible();
+    await expect(popup.getByRole("button", { name: /(添加当前网站 |Add Current)/ })).toBeVisible();
 
     await popup.close();
   });

@@ -34,7 +34,7 @@ import {
 import { MESSAGE_DURATION, DEBOUNCE_DELAY_MS } from "@/lib/constants";
 import "./style.css";
 
-function IndexPopup() {
+export default function IndexPopup() {
   const [currentDomain, setCurrentDomain] = useState("");
   const [activeTab, setActiveTab] = useState("manage");
   const [message, setMessage] = useState({ text: "", isError: false, visible: false });
@@ -605,18 +605,3 @@ function IndexPopup() {
 }
 
 export default IndexPopup;
-
-// Only render in browser environment, not in tests
-// In test environment, vitest sets import.meta.env.TEST to true
-const isTestEnvironment =
-  import.meta.env?.TEST === true ||
-  (typeof globalThis !== "undefined" &&
-    (globalThis as typeof globalThis & { __VITEST__?: boolean }).__VITEST__);
-
-if (!isTestEnvironment) {
-  const rootElement = document.getElementById("root");
-  if (rootElement) {
-    const root = createRoot(rootElement);
-    root.render(<IndexPopup />);
-  }
-}
