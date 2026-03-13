@@ -525,11 +525,21 @@ jobs:
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
           if-no-files-found: error
 
+      - name: 验证 zip 文件存在后上传
+        run: |
+          echo "🔍 验证 zip 文件是否存在..."
+          ls -la .output/*.zip
+          if [ ! -f ".output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip" ]; then
+            echo "❌ zip 文件不存在"
+            exit 1
+          fi
+          echo "✅ zip 文件存在：.output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip"
+
       - name: 上传打包产物
         uses: actions/upload-artifact@v6
         with:
           name: extension-zip
-          path: .output/*.zip
+          path: .output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
           if-no-files-found: error
 
@@ -853,7 +863,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: 发布 v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.notes }}
-          files: .output/*.zip
+          files: .output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           generate_release_notes: false
