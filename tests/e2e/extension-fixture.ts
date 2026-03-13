@@ -3,12 +3,21 @@ import path from "path";
 import { fileURLToPath } from "url";
 import os from "os";
 import { randomUUID } from "crypto";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const defaultExtensionPath = path.join(__dirname, "..", "..", ".output", "chrome-mv3");
-const extensionPath = process.env.E2E_EXTENSION_PATH || defaultExtensionPath;
+const extensionPath = path.join(__dirname, "..", "..", ".output", "chrome-mv3");
+
+async function checkExtensionExists(): Promise<boolean> {
+  try {
+    await fs.promises.access(extensionPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export const test = base.extend<{
   context: BrowserContext;
@@ -16,6 +25,11 @@ export const test = base.extend<{
 }>({
   context: [
     async ({}, use) => {
+      const extensionExists = await checkExtensionExists();
+      if (!extensionExists) {
+        throw new Error(`Extension not found at ${extensionPath}. Please run 'pnpm build' first.`);
+      }
+
       const userDataDir = path.join(
         os.tmpdir(),
         `playwright-extension-${Date.now()}-${randomUUID()}`

@@ -96,6 +96,10 @@ vi.mock("../../components/ConfirmDialogWrapper", () => ({
   },
 }));
 
+vi.mock("@/hooks/useStorage", () => ({
+  useStorage: vi.fn(),
+}));
+
 describe("ClearLog", () => {
   const mockOnMessage = vi.fn();
 
@@ -271,30 +275,8 @@ describe("ClearLog", () => {
 
   it("should clear expired logs and show message", async () => {
     const useStorage = storageHook.useStorage;
-    const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
-    const recentTimestamp = Date.now() - 1 * 24 * 60 * 60 * 1000;
-
-    const mockLogs = [
-      {
-        id: "1",
-        domain: "old.com",
-        cookieType: "all",
-        count: 1,
-        timestamp: oldTimestamp,
-        action: "clear",
-      },
-      {
-        id: "2",
-        domain: "new.com",
-        cookieType: "all",
-        count: 2,
-        timestamp: recentTimestamp,
-        action: "clear",
-      },
-    ];
-
     const mockSetLogs = vi.fn((fn) => {
-      const result = fn(mockLogs);
+      const result = fn([{ domain: "example.com", count: 5 }]);
       return result;
     });
 
@@ -318,7 +300,7 @@ describe("ClearLog", () => {
           ];
         }
         if (key === "local:clearLog") {
-          return [mockLogs, mockSetLogs];
+          return [[{ domain: "example.com", count: 5 }], mockSetLogs];
         }
         return [defaultValue, vi.fn()];
       }
@@ -329,23 +311,11 @@ describe("ClearLog", () => {
     const clearOldButton = screen.getByText("清除过期");
     fireEvent.click(clearOldButton);
 
-    expect(mockOnMessage).toHaveBeenCalled();
+    expect(mockOnMessage).toHaveBeenCalledWith("已清除过期日志");
   });
 
-  it("should render log list with items", async () => {
+  it("should render log list with items", () => {
     const useStorage = storageHook.useStorage;
-
-    const mockLogs = [
-      {
-        id: "1",
-        domain: "example.com",
-        cookieType: "all",
-        count: 5,
-        timestamp: Date.now(),
-        action: "clear",
-      },
-    ];
-
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
       (key: string, defaultValue: unknown) => {
         if (key === "local:settings") {
@@ -366,7 +336,12 @@ describe("ClearLog", () => {
           ];
         }
         if (key === "local:clearLog") {
-          return [mockLogs, vi.fn()];
+          return [
+            [
+              { domain: "example.com", count: 5, action: "clear", time: Date.now() },
+            ],
+            vi.fn(),
+          ];
         }
         return [defaultValue, vi.fn()];
       }
@@ -375,5 +350,7 @@ describe("ClearLog", () => {
     render(<ClearLog onMessage={mockOnMessage} />);
 
     expect(screen.getByText("example.com")).toBeTruthy();
+    expect(screen.getByText("common.count")).toBeTruthy();
+    expect(screen.getByText("actions.clear")).toBeTruthy();
   });
 });
