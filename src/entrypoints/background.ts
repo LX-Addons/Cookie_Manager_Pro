@@ -33,9 +33,7 @@ export default defineBackground(() => {
   // 保存 tabUrlMap 到持久化存储
   const saveTabUrlMap = async (map: Map<number, string>) => {
     try {
-      const obj = Object.fromEntries(
-        Array.from(map.entries()).map(([k, v]) => [k.toString(), v])
-      );
+      const obj = Object.fromEntries(Array.from(map.entries()).map(([k, v]) => [k.toString(), v]));
       await storage.setItem(TAB_URL_MAP_KEY, obj);
     } catch (e) {
       console.error("Failed to save tabUrlMap to storage:", e);

@@ -21,7 +21,10 @@ async function checkExtensionExists(): Promise<{ exists: boolean; error?: string
   try {
     await fs.promises.access(manifestPath);
   } catch {
-    return { exists: false, error: `manifest.json not found at ${manifestPath}. Build may be incomplete.` };
+    return {
+      exists: false,
+      error: `manifest.json not found at ${manifestPath}. Build may be incomplete.`,
+    };
   }
 
   try {

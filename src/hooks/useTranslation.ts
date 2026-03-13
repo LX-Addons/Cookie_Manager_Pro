@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { storage } from "wxt/utils/storage";
 import { SETTINGS_KEY, DEFAULT_SETTINGS } from "@/lib/store";
 import type { Settings, Locale } from "@/types";
@@ -6,7 +6,6 @@ import { setLocale, detectBrowserLocale, t as translate } from "@/i18n";
 
 export function useTranslation() {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_SETTINGS.locale);
-  const initializedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
