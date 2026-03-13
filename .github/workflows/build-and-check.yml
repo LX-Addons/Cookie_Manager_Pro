@@ -163,8 +163,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: 安装依赖
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: TypeScript 类型检查
         run: pnpm exec tsc --noEmit
@@ -223,8 +222,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: 安装依赖
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: 运行单元测试并生成覆盖率报告
         run: pnpm run test:coverage
@@ -272,8 +270,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: 安装依赖
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: 检查密钥泄露
         uses: trufflesecurity/trufflehog@d722a7e50645c42123e31fe97761a88ade988db8
@@ -363,8 +360,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: 安装依赖
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: 缓存 WXT 构建缓存
         uses: actions/cache@v5
@@ -509,8 +505,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: 安装依赖
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: 列出可用 Artifacts
         run: |
