@@ -71,29 +71,22 @@ vi.mock("@/components/DomainManager", () => ({
 }));
 
 // 用于存储 showConfirm 回调的引用
-let showConfirmCallback:
-  | ((title: string, message: string, variant: string, onConfirm: () => void) => void)
-  | null = null;
-
-vi.mock("@/components/ConfirmDialogWrapper", () => ({
-  ConfirmDialogWrapper: ({
-    children,
-  }: {
-    children: (
-      showConfirm: (title: string, message: string, variant: string, onConfirm: () => void) => void
-    ) => React.ReactNode;
-  }) => {
+vi.mock("@/hooks/useConfirmDialog", () => ({
+  useConfirmDialog: () => ({
+    confirmState: {
+      isOpen: false,
+      title: "",
+      message: "",
+      variant: "warning",
+      onConfirm: () => {},
+    },
     // showConfirm 被调用时立即执行 onConfirm（模拟用户点击确认）
-    showConfirmCallback = (
-      title: string,
-      message: string,
-      variant: string,
-      onConfirm: () => void
-    ) => {
+    showConfirm: (title: string, message: string, variant: string, onConfirm: () => void) => {
       onConfirm();
-    };
-    return <>{children(showConfirmCallback)}</>;
-  },
+    },
+    closeConfirm: () => {},
+    handleConfirm: () => {},
+  }),
 }));
 
 vi.mock("@/utils/cleanup", () => ({
