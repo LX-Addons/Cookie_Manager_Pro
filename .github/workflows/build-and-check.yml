@@ -457,20 +457,30 @@ jobs:
           ls -la .output/
 
           echo "🔨 运行 pnpm run zip..."
-          if ! pnpm run zip 2>&1; then
-            echo "❌ zip 命令失败"
-            echo "📁 打包后 .output/ 目录内容:"
-            ls -la .output/ || true
-            echo "🔍 查找生成的 zip 文件:"
-            find .output -name "*.zip" -type f 2>/dev/null || echo "未找到 zip 文件"
-            exit 1
-          fi
-
+          pnpm run zip 2>&1
+          ZIP_EXIT_CODE=$?
+          
           echo "📁 打包后 .output/ 目录内容:"
-          ls -la .output/
-
+          ls -la .output/ || true
+          
           echo "🔍 查找生成的 zip 文件:"
           find .output -name "*.zip" -type f 2>/dev/null || echo "未找到 zip 文件"
+          
+          # 检查是否有 zip 文件生成
+          ZIP_COUNT=$(find .output -name "*.zip" -type f 2>/dev/null | wc -l)
+          if [ "$ZIP_COUNT" -eq 0 ]; then
+            echo "⚠️ 警告: 未找到生成的 zip 文件，尝试手动创建..."
+            cd .output/chrome-mv3 && zip -r "../cookie-manager-pro-${VERSION}-chrome.zip" . && cd ../..
+          fi
+          
+          # 再次检查
+          echo "🔍 再次查找 zip 文件:"
+          find .output -name "*.zip" -type f 2>/dev/null || echo "仍未找到 zip 文件"
+          
+          if [ $ZIP_EXIT_CODE -ne 0 ]; then
+            echo "❌ zip 命令返回非零退出码: $ZIP_EXIT_CODE"
+            exit 1
+          fi
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v6
