@@ -46,7 +46,6 @@ temp/
 tmp/
 
 # Lock files
-pnpm-lock.yaml
 yarn.lock
 
 # Minified files
