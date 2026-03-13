@@ -509,9 +509,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: extension-zip
-          path: |
-            .output/*.zip
-            .output/**/*.zip
+          path: .output/**/*.zip
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
           if-no-files-found: error
 
@@ -790,7 +788,7 @@ jobs:
           echo "📁 下载的构建产物内容:"
           ls -la .output/
 
-          if ! compgen -G ".output/*.zip" > /dev/null; then
+          if ! find .output -name "*.zip" -type f | grep -q .; then
             echo "❌ 未找到 zip 文件"
             exit 1
           fi
@@ -835,8 +833,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: 发布 v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.notes }}
-          files: |
-            .output/**/*.zip
+          files: .output/**/*.zip
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           generate_release_notes: false
@@ -851,7 +848,7 @@ jobs:
           echo "| **类型** | ${{ github.ref == 'refs/heads/main' && '正式版' || '预发布版' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📦 发布资源:" >> $GITHUB_STEP_SUMMARY
-          ls -la .output/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
+          find .output -name "*.zip" -type f -exec ls -la {} \; >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
 
   dependabot-notify:
     name: Dependabot通知
