@@ -476,7 +476,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: extension-zip
-          path: .output/*.zip
+          path: .output/**/*.zip
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
           if-no-files-found: error
 
@@ -800,7 +800,7 @@ jobs:
           name: 发布 v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.notes }}
           files: |
-            .output/*.zip
+            .output/**/*.zip
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           generate_release_notes: false
