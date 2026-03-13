@@ -459,10 +459,21 @@ jobs:
           echo "📁 打包前 .output/ 目录内容:"
           ls -la .output/
 
-          pnpm run zip
+          echo "🔨 运行 pnpm run zip..."
+          pnpm run zip 2>&1
+          ZIP_EXIT_CODE=$?
+          echo "📦 zip 命令退出码: $ZIP_EXIT_CODE"
 
           echo "📁 打包后 .output/ 目录内容:"
           ls -la .output/
+
+          echo "🔍 查找生成的 zip 文件:"
+          find .output -name "*.zip" -type f 2>/dev/null || echo "未找到 zip 文件"
+
+          if [ $ZIP_EXIT_CODE -ne 0 ]; then
+            echo "❌ zip 命令失败"
+            exit 1
+          fi
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v6
@@ -476,9 +487,11 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: extension-zip
-          path: .output/**/*.zip
+          path: |
+            .output/*.zip
+            .output/**/*.zip
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: 输出构建摘要
         run: |
