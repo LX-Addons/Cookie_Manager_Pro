@@ -126,7 +126,9 @@ test.describe("Domain Management", () => {
 
     await expect(popup.locator('input[placeholder*="google.com"]')).toBeVisible();
     await expect(popup.getByRole("button", { name: /^添加$|^Add$/ })).toBeVisible();
-    await expect(popup.getByRole("button", { name: /(添加当前网站|Add current website)/ })).toBeVisible();
+    await expect(
+      popup.getByRole("button", { name: /(添加当前网站|Add current website)/ })
+    ).toBeVisible();
 
     await popup.close();
   });
