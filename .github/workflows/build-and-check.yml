@@ -854,7 +854,8 @@ jobs:
             let commitSince = 0;
             
             try {
-              previousTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""', { encoding: 'utf-8' }).trim();
+              const currentTag = 'v' + currentVersion;
+              previousTag = execSync(`git describe --tags --abbrev=0 --exclude ${currentTag} 2>/dev/null || echo ""`, { encoding: 'utf-8' }).trim();
             } catch (error) {
               previousTag = '';
             }
