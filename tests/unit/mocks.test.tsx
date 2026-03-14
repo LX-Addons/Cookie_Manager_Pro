@@ -3,7 +3,7 @@ import { hasDomainInText, createTranslationMock } from "../utils/mocks";
 
 const TEST_DOMAIN = "example.com";
 
-const formatDomainText = (domain: string, prefix: string = "🌐 ", suffix: string = " (2)") => 
+const formatDomainText = (domain: string, prefix: string = "🌐 ", suffix: string = " (2)") =>
   `${prefix}${domain}${suffix}`;
 
 describe("mocks", () => {
