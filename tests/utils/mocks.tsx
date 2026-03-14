@@ -14,7 +14,7 @@ export const hasDomainInText = (
 export const createTranslationMock = (translations: Record<string, string>) => {
   return {
     useTranslation: () => ({
-      t: (key: string, params?: Record<string, string | number>) => {
+      t: (key: string, params?: Record<string, string | number | null | undefined>) => {
         const text = translations[key] || key;
         if (!params) return text;
         return text.replaceAll(/\{(\w+)\}/g, (_, token: string) => {
