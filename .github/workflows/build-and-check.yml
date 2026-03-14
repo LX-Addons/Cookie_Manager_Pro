@@ -867,8 +867,32 @@ jobs:
               core.info('📋 排除当前版本后的标签列表: ' + existingTags.join(', '));
               
               if (existingTags.length > 0) {
-                previousTag = existingTags[existingTags.length - 1];
-                core.info('📋 上一个版本标签: ' + previousTag);
+                for (let i = existingTags.length - 1; i >= 0; i--) {
+                  const candidateTag = existingTags[i];
+                  try {
+                    const { data: compare } = await github.rest.repos.compareCommits({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      base: candidateTag,
+                      head: context.sha,
+                    });
+                    
+                    if (compare.status === 'ahead' || compare.status === 'identical') {
+                      previousTag = candidateTag;
+                      core.info('📋 找到可达的基线标签: ' + previousTag);
+                      break;
+                    } else {
+                      core.info('📋 标签 ' + candidateTag + ' 不可达 (status: ' + compare.status + ')，跳过');
+                    }
+                  } catch (err) {
+                    core.info('📋 标签 ' + candidateTag + ' 比较失败: ' + err.message + '，跳过');
+                  }
+                }
+                
+                if (!previousTag) {
+                  core.warning('⚠️ 未找到可达的基线标签，使用最新的标签');
+                  previousTag = existingTags[existingTags.length - 1];
+                }
               }
             } catch (error) {
               core.error('⚠️ 获取标签列表失败: ' + error.message);
@@ -904,22 +928,22 @@ jobs:
                     '📦 其他': { prefix: null, commits: [] },
                   };
                   
+                  const escapeMarkdown = (text) => {
+                    return text
+                      .replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/`/g, '\\`')
+                      .replace(/\[/g, '\\[')
+                      .replace(/\]/g, '\\]')
+                      .replace(/\|/g, '\\|');
+                  };
+                  
                   commits.commits.forEach(commit => {
                     const message = commit.commit.message.split('\n')[0];
                     const sha = commit.sha.substring(0, 7);
                     
                     const match = message.match(/^(feat|fix|refactor|perf|docs|style|test|build|ci|chore)(\([^)]+\))?(!)?:\s*(.+)$/i);
-                    
-                    const escapeMarkdown = (text) => {
-                      return text
-                        .replace(/&/g, '&amp;')
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/`/g, '\\`')
-                        .replace(/\[/g, '\\[')
-                        .replace(/\]/g, '\\]')
-                        .replace(/\|/g, '\\|');
-                    };
                     
                     let category = categories['📦 其他'];
                     if (match) {
