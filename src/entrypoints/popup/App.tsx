@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { createRoot } from "react-dom/client";
 import { useStorage } from "@/hooks/useStorage";
 import { DomainManager } from "@/components/DomainManager";
 import { Settings } from "@/components/Settings";
@@ -605,18 +604,3 @@ function IndexPopup() {
 }
 
 export default IndexPopup;
-
-// Only render in browser environment, not in tests
-// In test environment, vitest sets import.meta.env.TEST to true
-const isTestEnvironment =
-  import.meta.env?.TEST === true ||
-  (typeof globalThis !== "undefined" &&
-    (globalThis as typeof globalThis & { __VITEST__?: boolean }).__VITEST__);
-
-if (!isTestEnvironment) {
-  const rootElement = document.getElementById("root");
-  if (rootElement) {
-    const root = createRoot(rootElement);
-    root.render(<IndexPopup />);
-  }
-}

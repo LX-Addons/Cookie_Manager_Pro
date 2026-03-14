@@ -10,23 +10,29 @@ const icons = {
 export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/module-react"],
-  vite: (_env) => ({
-    build: {
-      minify: false,
-    },
-  }),
+  manifestVersion: 3,
   manifest: {
     name: "Cookie Manager Pro",
-    description: "高级Cookie管理，支持白名单/黑名单功能和选择性Cookie清除",
+    description: "高级 Cookie 管理，支持白名单/黑名单功能和选择性 Cookie 清除",
     permissions: ["cookies", "storage", "tabs", "browsingData", "alarms"],
     host_permissions: ["https://*/*", "http://*/*"],
     action: {
       default_icon: icons,
+      default_title: "Cookie Manager Pro",
     },
     icons,
     content_security_policy: {
       extension_pages:
         "default-src 'self'; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'; form-action 'none'; base-uri 'self';",
     },
+  },
+  vite: () => ({
+    build: {
+      minify: true,
+      sourcemap: false,
+    },
+  }),
+  zip: {
+    artifactTemplate: "{{name}}-{{version}}-{{manifestVersion}}.zip",
   },
 });

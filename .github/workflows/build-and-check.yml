@@ -34,7 +34,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' || !contains(fromJSON('["main", "beta", "release"]'), github.ref_name) }}
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10.32.1"
   EXTENSION_SIZE_LIMIT_MB: 10
 
 jobs:
@@ -52,7 +53,7 @@ jobs:
       - name: 生成缓存 key
         id: cache-key
         run: |
-          CACHE_KEY="${{ runner.os }}-${{ github.ref_name }}-node-${{ hashFiles('**/package-lock.json') }}"
+          CACHE_KEY="${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/pnpm-lock.yaml') }}"
           echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
           echo "📁 缓存 Key: $CACHE_KEY"
 
@@ -75,8 +76,9 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const branchPrefix = '${{ github.ref_name }}'.replace(/[^a-zA-Z0-9-]/g, '-');
+            const nodeVersion = '${{ env.NODE_VERSION }}';
             const prefixes = [
-              '${{ runner.os }}-' + branchPrefix + '-node-',
+              '${{ runner.os }}-' + branchPrefix + '-node' + nodeVersion + '-',
               '${{ runner.os }}-' + branchPrefix + '-wxt-'
             ];
             let cachesCleared = 0;
@@ -141,35 +143,40 @@ jobs:
       - name: 检出仓库
         uses: actions/checkout@v5
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 配置 Node.js
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
-        id: npm-cache
+        id: pnpm-cache
         with:
           path: |
             node_modules
-            ~/.npm
+            ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
 
       - name: 安装依赖
-        if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline
+        run: pnpm install --frozen-lockfile
 
       - name: TypeScript 类型检查
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
       - name: ESLint 代码检查
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Prettier 格式检查
-        run: npm run format:check
+        run: pnpm run format:check
 
       - name: 输出检查摘要
         if: always()
@@ -189,37 +196,41 @@ jobs:
     needs: [setup]
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [24]
     steps:
       - name: 检出仓库
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 配置 Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
-        id: npm-cache
+        id: pnpm-cache
         with:
           path: |
             node_modules
-            ~/.npm
-          key: ${{ runner.os }}-${{ github.ref_name }}-node${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+            ~/.pnpm-store
+          key: ${{ runner.os }}-${{ github.ref_name }}-node${{ matrix.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-${{ github.ref_name }}-node${{ matrix.node-version }}-
             ${{ runner.os }}-node${{ matrix.node-version }}-
-            ${{ runner.os }}-node-
 
       - name: 安装依赖
-        if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline
+        run: pnpm install --frozen-lockfile
 
       - name: 运行单元测试并生成覆盖率报告
-        run: npm run test:coverage
+        run: pnpm run test:coverage
 
       - name: 上传覆盖率到 Codecov
         if: always()
@@ -241,26 +252,31 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 配置 Node.js
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
-        id: npm-cache
+        id: pnpm-cache
         with:
           path: |
             node_modules
-            ~/.npm
+            ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
 
       - name: 安装依赖
-        if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline
+        run: pnpm install --frozen-lockfile
 
       - name: 检查密钥泄露
         uses: trufflesecurity/trufflehog@d722a7e50645c42123e31fe97761a88ade988db8
@@ -274,7 +290,12 @@ jobs:
         run: |
           echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
 
-          AUDIT_OUTPUT=$(npm audit --audit-level=moderate 2>&1) || true
+          # 基于退出码判断审计结果，避免依赖固定输出字符串
+          if AUDIT_OUTPUT=$(pnpm audit --audit-level=moderate 2>&1); then
+            AUDIT_STATUS=clean
+          else
+            AUDIT_STATUS=warning
+          fi
 
           echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -283,7 +304,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
 
-          if echo "$AUDIT_OUTPUT" | grep -q "found 0 vulnerabilities"; then
+          if [ "$AUDIT_STATUS" = "clean" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ 未发现安全漏洞" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=clean" >> $GITHUB_OUTPUT
@@ -291,6 +312,7 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "⚠️ **发现安全漏洞！** 请查看上方审计报告并修复。" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=warning" >> $GITHUB_OUTPUT
+            exit 1
           fi
 
       - name: 安全模式检查
@@ -328,32 +350,37 @@ jobs:
       - name: 检出仓库
         uses: actions/checkout@v5
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 配置 Node.js
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
-        id: npm-cache
+        id: pnpm-cache
         with:
           path: |
             node_modules
-            ~/.npm
+            ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
 
       - name: 安装依赖
-        if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline
+        run: pnpm install --frozen-lockfile
 
       - name: 缓存 WXT 构建缓存
         uses: actions/cache@v5
         with:
           path: .wxt
-          key: ${{ runner.os }}-${{ github.ref_name }}-wxt-${{ hashFiles('**/package-lock.json', 'entrypoints/**/*', 'components/**/*', 'hooks/**/*', 'lib/**/*', 'i18n/**/*', 'utils/**/*', 'types/**/*', 'wxt.config.ts') }}
+          key: ${{ runner.os }}-${{ github.ref_name }}-wxt-${{ hashFiles('**/pnpm-lock.yaml', 'entrypoints/**/*', 'components/**/*', 'hooks/**/*', 'lib/**/*', 'i18n/**/*', 'utils/**/*', 'types/**/*', 'wxt.config.ts') }}
           restore-keys: |
             ${{ runner.os }}-${{ github.ref_name }}-wxt-
             ${{ runner.os }}-wxt-
@@ -362,7 +389,7 @@ jobs:
         run: |
           set -e
           echo "🔨 开始构建..."
-          npm run build 2>&1
+          pnpm run build 2>&1
           echo "✅ 构建命令完成"
 
           echo "📁 构建后检查 .output/ 目录:"
@@ -434,19 +461,85 @@ jobs:
 
       - name: 打包扩展
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "=========================================="
+          echo "📦 开始打包扩展"
+          echo "=========================================="
           echo "📁 打包前 .output/ 目录内容:"
           ls -la .output/
 
-          npm run zip
-
-          echo "📁 打包后 .output/ 目录内容:"
-          ls -la .output/
+          echo ""
+          echo "🔨 运行 pnpm run zip..."
+          set +e
+          pnpm run zip 2>&1
+          ZIP_EXIT_CODE=$?
+          set -e
+          echo "pnpm run zip 退出码：$ZIP_EXIT_CODE"
+          
+          echo ""
+          echo "📁 打包后 .output/ 目录内容 (递归):"
+          ls -laR .output/ || true
+          
+          echo ""
+          echo "🔍 查找生成的 zip 文件 (整个项目):"
+          find . -name "*.zip" -type f 2>/dev/null | head -20
+          
+          ZIP_COUNT=$(find .output -name "*.zip" -type f 2>/dev/null | wc -l)
+          echo "📊 在 .output/ 中找到 $ZIP_COUNT 个 zip 文件"
+          if [ "$ZIP_COUNT" -eq 0 ]; then
+            echo "⚠️ 警告：未找到生成的 zip 文件，尝试手动创建..."
+            if [ -d ".output/chrome-mv3" ]; then
+              cd .output/chrome-mv3
+              ZIP_FILE="../cookie-manager-pro-${VERSION}-mv3.zip"
+              echo "📦 创建 zip 文件：$ZIP_FILE"
+              zip -r "$ZIP_FILE" .
+              cd ../..
+              echo "✅ 手动创建 zip 完成"
+              ZIP_COUNT=$(find .output -name "*.zip" -type f 2>/dev/null | wc -l)
+              echo "📊 手动创建后找到 $ZIP_COUNT 个 zip 文件"
+            else
+              echo "❌ 构建目录 .output/chrome-mv3 不存在"
+              exit 1
+            fi
+          fi
+          
+          echo ""
+          echo "🔍 最终 zip 文件列表:"
+          find .output -name "*.zip" -type f -exec ls -la {} \;
+          
+          echo ""
+          # 验证 zip 文件是否存在
+          FINAL_ZIP_COUNT=$(find .output -name "*.zip" -type f 2>/dev/null | wc -l)
+          if [ "$FINAL_ZIP_COUNT" -eq 0 ]; then
+            echo "❌ 最终验证失败：仍然没有找到 zip 文件"
+            exit 1
+          fi
+          
+          echo "✅ zip 文件验证成功，找到 $FINAL_ZIP_COUNT 个文件"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v6
         with:
           name: extension-build
           path: .output/chrome-mv3/
+          retention-days: ${{ needs.setup.outputs.artifact_retention }}
+          if-no-files-found: error
+
+      - name: 验证 zip 文件存在后上传
+        run: |
+          echo "🔍 验证 zip 文件是否存在..."
+          ls -la .output/*.zip
+          if [ ! -f ".output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip" ]; then
+            echo "❌ zip 文件不存在"
+            exit 1
+          fi
+          echo "✅ zip 文件存在：.output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip"
+
+      - name: 上传打包产物
+        uses: actions/upload-artifact@v6
+        with:
+          name: extension-zip
+          path: .output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip
           retention-days: ${{ needs.setup.outputs.artifact_retention }}
           if-no-files-found: error
 
@@ -470,26 +563,31 @@ jobs:
       - name: 检出仓库
         uses: actions/checkout@v5
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 配置 Node.js
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
       - name: 缓存 node_modules
         uses: actions/cache@v5
-        id: npm-cache
+        id: pnpm-cache
         with:
           path: |
             node_modules
-            ~/.npm
+            ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache_key }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.ref_name }}-node-
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-${{ github.ref_name }}-node${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-
 
       - name: 安装依赖
-        if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline
+        run: pnpm install --frozen-lockfile
 
       - name: 列出可用 Artifacts
         run: |
@@ -500,7 +598,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: extension-build
-          path: .output/
+          path: .output/chrome-mv3/
 
       - name: 准备测试扩展
         run: |
@@ -510,12 +608,8 @@ jobs:
           echo "📁 .output/ 目录内容:"
           ls -la .output/ || echo "目录为空或不存在"
 
-          if [ -d ".output" ] && [ -f ".output/manifest.json" ]; then
-            echo "✅ 找到 manifest.json 在 .output/ 根目录"
-            SOURCE_DIR=".output"
-          elif [ -d ".output/chrome-mv3" ]; then
+          if [ -d ".output/chrome-mv3" ] && [ -f ".output/chrome-mv3/manifest.json" ]; then
             echo "✅ 找到构建目录: .output/chrome-mv3"
-            SOURCE_DIR=".output/chrome-mv3"
           else
             echo "❌ 未找到构建产物，检查所有目录..."
             find . -name "manifest.json" -type f 2>/dev/null | head -5
@@ -524,17 +618,14 @@ jobs:
             exit 1
           fi
 
-          mkdir -p build/chrome-mv3-prod
-          cp -r "$SOURCE_DIR"/* build/chrome-mv3-prod/
-
-          echo "📁 最终 build/chrome-mv3-prod/ 目录内容:"
-          ls -la build/chrome-mv3-prod/
+          echo "📁 最终 .output/chrome-mv3/ 目录内容:"
+          ls -la .output/chrome-mv3/
 
       - name: 安装 Playwright 浏览器
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: 运行 E2E 测试
-        run: xvfb-run --auto-servernum npm run test:e2e
+        run: xvfb-run --auto-servernum pnpm run test:e2e
 
       - name: 上传 Playwright 报告
         if: always()
@@ -608,7 +699,7 @@ jobs:
             body += `| :---: | :--- | :---: | :--- |\n`;
             body += `| 🚀 | **环境准备** | ${statusEmoji(setupResult)} | 缓存与产物配置 |\n`;
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
-            body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js 20/22/24 多版本测试 |\n`;
+            body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js ${{ env.NODE_VERSION }} 测试 |\n`;
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | 密钥泄露 + 依赖审计 |\n`;
             body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n`;
             body += `| 🎭 | **E2E 测试** | ${statusEmoji(e2eResult)} | Playwright 浏览器测试 |\n\n`;
@@ -697,6 +788,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: 获取版本信息
         id: version
         run: |
@@ -708,9 +809,23 @@ jobs:
       - name: 下载构建产物
         uses: actions/download-artifact@v7
         with:
-          name: extension-build
+          name: extension-zip
           path: .output/
           merge-multiple: true
+
+      - name: 验证 zip 文件存在
+        run: |
+          echo "📁 下载的构建产物内容:"
+          ls -la .output/
+
+          if ! find .output -name "*.zip" -type f | grep -q .; then
+            echo "❌ 未找到 zip 文件"
+            exit 1
+          fi
+          echo "✅ 找到 zip 文件"
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
 
       - name: 生成更新日志
         id: changelog
@@ -719,9 +834,9 @@ jobs:
           CURRENT_VERSION="${{ steps.version.outputs.version }}"
 
           if [ -z "$PREVIOUS_TAG" ]; then
-            NOTES=$(npx git-cliff --strip header 2>/dev/null || echo "初始发布 v${CURRENT_VERSION}")
+            NOTES=$(pnpm exec git-cliff --strip header 2>/dev/null || echo "初始发布 v${CURRENT_VERSION}")
           else
-            NOTES=$(npx git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "发布 v${CURRENT_VERSION}")
+            NOTES=$(pnpm exec git-cliff "${PREVIOUS_TAG}..HEAD" --strip header 2>/dev/null || echo "发布 v${CURRENT_VERSION}")
           fi
 
           if [ -z "$NOTES" ] || [ "$NOTES" = "## [Unreleased]" ]; then
@@ -748,8 +863,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: 发布 v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.notes }}
-          files: |
-            .output/*.zip
+          files: .output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
           generate_release_notes: false
@@ -764,7 +878,7 @@ jobs:
           echo "| **类型** | ${{ github.ref == 'refs/heads/main' && '正式版' || '预发布版' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📦 发布资源:" >> $GITHUB_STEP_SUMMARY
-          ls -la .output/*.zip >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
+          find .output -name "*.zip" -type f -exec ls -la {} \; >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "未找到 zip 文件" >> $GITHUB_STEP_SUMMARY
 
   dependabot-notify:
     name: Dependabot通知

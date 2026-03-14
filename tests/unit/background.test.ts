@@ -2,23 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockStorageData = new Map<string, unknown>();
 
-class MockStorage {
-  async get(key: string) {
-    return mockStorageData.get(key);
-  }
-  async set(key: string, value: unknown) {
-    mockStorageData.set(key, value);
-  }
-}
-
-vi.mock("wxt/utils/storage", () => ({
-  Storage: MockStorage,
-}));
-
-// Mock defineBackground to immediately execute the callback
-vi.mock("wxt/utils/define-background", () => ({
-  defineBackground: (fn: () => void) => fn(),
-}));
+// 注意：wxt/utils/storage 的 mock 已在 tests/setup.ts 中定义
+// 这里不再重复定义，以避免 mock 冲突
 
 vi.mock("@/utils/cleanup", () => ({
   performCleanup: vi.fn(() => Promise.resolve({ count: 5, clearedDomains: ["example.com"] })),
@@ -37,6 +22,7 @@ vi.mock("@/lib/store", async (importOriginal) => {
         mockStorageData.set(key, value);
         return Promise.resolve();
       }),
+      watch: vi.fn(() => vi.fn()),
     },
   };
 });
@@ -874,5 +860,131 @@ describe("background", () => {
     for (const cb of listeners.onRemoved) {
       await cb(1, { isWindowClosing: false, windowId: 1 });
     }
+  });
+
+  it("should handle tab removed without URL in tabUrlMap", async () => {
+    const { performCleanup } = await import("@/utils/cleanup");
+
+    mockStorageData.set("local:settings", {
+      enableAutoCleanup: true,
+      cleanupOnTabClose: true,
+    });
+
+    await import("@/entrypoints/background");
+
+    for (const cb of listeners.onRemoved) {
+      await cb(999, { isWindowClosing: false, windowId: 1 });
+    }
+
+    expect(performCleanup).not.toHaveBeenCalled();
+  });
+
+  it("should handle tab removed with invalid URL", async () => {
+    const { performCleanup } = await import("@/utils/cleanup");
+
+    mockStorageData.set("local:settings", {
+      enableAutoCleanup: true,
+      cleanupOnTabClose: true,
+    });
+
+    await import("@/entrypoints/background");
+
+    for (const cb of listeners.onUpdated) {
+      await cb(1, { url: "invalid-url" }, { id: 1, url: "invalid-url" });
+    }
+
+    for (const cb of listeners.onRemoved) {
+      await cb(1, { isWindowClosing: false, windowId: 1 });
+    }
+
+    expect(performCleanup).not.toHaveBeenCalled();
+  });
+
+  it("should handle tab navigate without previous URL", async () => {
+    const { performCleanup } = await import("@/utils/cleanup");
+
+    mockStorageData.set("local:settings", {
+      enableAutoCleanup: true,
+      cleanupOnNavigate: true,
+    });
+
+    await import("@/entrypoints/background");
+
+    for (const cb of listeners.onUpdated) {
+      await cb(1, { url: "https://example.com/new" }, { id: 1, url: "https://example.com/new" });
+    }
+
+    expect(performCleanup).not.toHaveBeenCalled();
+  });
+
+  it("should handle tab navigate within same hostname", async () => {
+    const { performCleanup } = await import("@/utils/cleanup");
+
+    mockStorageData.set("local:settings", {
+      enableAutoCleanup: true,
+      cleanupOnNavigate: true,
+    });
+
+    await import("@/entrypoints/background");
+
+    for (const cb of listeners.onUpdated) {
+      await cb(
+        1,
+        { url: "https://example.com/page1" },
+        { id: 1, url: "https://example.com/page1" }
+      );
+    }
+
+    for (const cb of listeners.onUpdated) {
+      await cb(
+        1,
+        { url: "https://example.com/page2" },
+        { id: 1, url: "https://example.com/page2" }
+      );
+    }
+
+    expect(performCleanup).not.toHaveBeenCalled();
+  });
+
+  it("should handle tab navigate with invalid previous URL", async () => {
+    const { performCleanup } = await import("@/utils/cleanup");
+
+    mockStorageData.set("local:settings", {
+      enableAutoCleanup: true,
+      cleanupOnNavigate: true,
+    });
+
+    await import("@/entrypoints/background");
+
+    for (const cb of listeners.onUpdated) {
+      await cb(1, { url: "invalid-url" }, { id: 1, url: "invalid-url" });
+    }
+
+    for (const cb of listeners.onUpdated) {
+      await cb(1, { url: "https://example.com" }, { id: 1, url: "https://example.com" });
+    }
+
+    expect(performCleanup).not.toHaveBeenCalled();
+  });
+
+  it("should handle tab navigate with invalid current URL", async () => {
+    const { performCleanup } = await import("@/utils/cleanup");
+
+    mockStorageData.set("local:settings", {
+      enableAutoCleanup: true,
+      cleanupOnNavigate: true,
+    });
+
+    await import("@/entrypoints/background");
+
+    for (const cb of listeners.onUpdated) {
+      await cb(1, { url: "https://example.com" }, { id: 1, url: "https://example.com" });
+    }
+
+    for (const cb of listeners.onUpdated) {
+      await cb(1, { url: "invalid-url" }, { id: 1, url: "invalid-url" });
+    }
+
+    expect(performCleanup).not.toHaveBeenCalled();
   });
 });

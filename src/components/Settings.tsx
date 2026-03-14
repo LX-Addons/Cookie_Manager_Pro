@@ -13,7 +13,7 @@ interface Props {
 
 export const Settings = ({ onMessage }: Props) => {
   const [settings, setSettings] = useStorage<SettingsType>(SETTINGS_KEY, DEFAULT_SETTINGS);
-  const { t, setLocale } = useTranslation();
+  const { t } = useTranslation();
 
   const showCustomTheme = settings.themeMode === ThemeMode.CUSTOM;
 
@@ -38,10 +38,6 @@ export const Settings = ({ onMessage }: Props) => {
       customTheme: { ...DEFAULT_CUSTOM_THEME },
     });
     onMessage(t("settings.resetTheme"));
-  };
-
-  const handleLocaleChange = (locale: Locale) => {
-    setLocale(locale);
   };
 
   return (
@@ -299,12 +295,12 @@ export const Settings = ({ onMessage }: Props) => {
           name="locale"
           options={[
             { value: "zh-CN", label: "简体中文" },
-            { value: "en", label: "English" },
+            { value: "en-US", label: "English" },
           ]}
           value={settings.locale}
           onChange={(value) => {
             updateSetting("locale", value as Locale);
-            handleLocaleChange(value as Locale);
+            // 不需要调用 handleLocaleChange，useTranslation 已通过 storage.watch 监听存储变化
           }}
         />
       </div>
