@@ -23,12 +23,6 @@ on:
         default: false
         type: boolean
 
-permissions:
-  actions: write
-  contents: write
-  pull-requests: write
-  security-events: write
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || !contains(fromJSON('["main", "beta", "release"]'), github.ref_name) }}
@@ -43,6 +37,8 @@ jobs:
     name: 准备环境
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      actions: write
     outputs:
       cache_key: ${{ steps.cache-key.outputs.key }}
       artifact_retention: ${{ steps.retention.outputs.days }}
@@ -246,6 +242,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [setup]
+    permissions:
+      security-events: write
     steps:
       - name: 检出仓库
         uses: actions/checkout@v5
@@ -643,6 +641,8 @@ jobs:
     timeout-minutes: 5
     needs: [setup, lint, test, security, build, e2e]
     if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
     steps:
       - name: 检出仓库
         uses: actions/checkout@v5
@@ -778,6 +778,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [setup, lint, test, build, security]
+    permissions:
+      contents: write
     if: |
       needs.lint.result == 'success' &&
       needs.test.result == 'success' &&
@@ -905,15 +907,26 @@ jobs:
                   commits.commits.forEach(commit => {
                     const message = commit.commit.message.split('\n')[0];
                     const sha = commit.sha.substring(0, 7);
-                    const author = commit.commit.author ? commit.commit.author.name : 'unknown';
                     
-                    const match = message.match(/^(feat|fix|refactor|perf|docs|style|test|build|ci|chore)(\(.+\))?:\s*(.+)$/i);
+                    const match = message.match(/^(feat|fix|refactor|perf|docs|style|test|build|ci|chore)(\([^)]+\))?(!)?:\s*(.+)$/i);
+                    
+                    const escapeMarkdown = (text) => {
+                      return text
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/`/g, '\\`')
+                        .replace(/\[/g, '\\[')
+                        .replace(/\]/g, '\\]')
+                        .replace(/\|/g, '\\|');
+                    };
                     
                     let category = categories['📦 其他'];
                     if (match) {
                       const type = match[1].toLowerCase();
                       const scope = match[2] || '';
-                      const desc = match[3];
+                      const isBreaking = match[3] === '!';
+                      const desc = escapeMarkdown(match[4]);
                       
                       for (const [catName, catData] of Object.entries(categories)) {
                         if (Array.isArray(catData.prefix)) {
@@ -928,18 +941,17 @@ jobs:
                       }
                       
                       category.commits.push({
-                        message: desc,
-                        scope: scope.replace(/[()]/g, ''),
+                        message: isBreaking ? `💥 ${desc}` : desc,
+                        scope: escapeMarkdown(scope.replace(/[()]/g, '')),
                         sha,
                         url: commit.html_url
                       });
                     } else {
                       category.commits.push({
-                        message,
+                        message: escapeMarkdown(message),
                         scope: '',
                         sha,
-                        url: commit.html_url,
-                        author
+                        url: commit.html_url
                       });
                     }
                   });
