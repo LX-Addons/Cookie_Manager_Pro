@@ -1007,7 +1007,9 @@ jobs:
             const finalContent = lines.join('\n');
             core.info('📋 最终内容长度: ' + finalContent.length);
             core.info('📋 最终内容前 500 字符: ' + finalContent.substring(0, 500));
-            core.setOutput('result', finalContent);
+            
+            require('fs').writeFileSync('release-notes.md', finalContent);
+            core.info('✅ 已将发布内容写入 release-notes.md');
 
       - name: 检查标签是否存在
         id: check_tag
@@ -1024,7 +1026,7 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: 发布 v${{ steps.version.outputs.version }}
-          body: ${{ steps.final_notes.outputs.result }}
+          body_path: release-notes.md
           files: .output/cookie-manager-pro-${{ steps.version.outputs.version }}-mv3.zip
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
