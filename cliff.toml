@@ -1,19 +1,25 @@
 [changelog]
 header = """
-# Changelog
+# 🎉 Cookie Manager Pro v{{ version }}
 
-All notable changes to this project will be documented in this file.
-
+## 📦 发布信息
 """
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
-### {{ group | upper_first }}
+### {{ group }}
 {% for commit in commits %}
 - {{ commit.message | split(pat="\n") | first | upper_first }}
+{%- if commit.committers %} ({{ commit.committers | map(attribute="name") | sort | unique | join(", ") }}){% endif -%}
 {% endfor %}
 {% endfor %}
+
+---
+**感谢使用 Cookie Manager Pro!** 🍪
 """
 trim = true
+footer = """
+
+"""
 
 [git]
 conventional_commits = false
@@ -24,26 +30,26 @@ commit_preprocessors = [
     { pattern = "^\\P{L}*", replace = "" },
 ]
 commit_parsers = [
-    { message = "^[Ff]eat", group = "✨ Features" },
-    { message = "^[Ff]ix", group = "🐛 Bug Fixes" },
-    { message = "^[Dd]oc", group = "📚 Documentation" },
-    { message = "^[Pp]erf", group = "⚡ Performance" },
-    { message = "^[Rr]efactor", group = "♻️ Refactoring" },
-    { message = "^[Ss]tyle", group = "💄 Styling" },
+    { message = "^[Ff]eat", group = "✨ 新功能" },
+    { message = "^[Ff]ix", group = "🐛 Bug 修复" },
+    { message = "^[Dd]oc", group = "📚 文档更新" },
+    { message = "^[Pp]erf", group = "⚡ 性能优化" },
+    { message = "^[Rr]efactor", group = "♻️ 代码重构" },
+    { message = "^[Ss]tyle", group = "💄 样式改进" },
     { message = "^[Tt]est", skip = true },
     { message = "^[Cc]hore\\(release\\)", skip = true },
-    { message = "^[Cc]hore", group = "🔧 Miscellaneous" },
-    { message = "^[Bb]uild", group = "🏗️ Build" },
+    { message = "^[Cc]hore", group = "🔧 其他更新" },
+    { message = "^[Bb]uild", group = "🏗️ 构建系统" },
     { message = "^[Cc]i", skip = true },
-    { message = "^[Uu]i", group = "💄 Styling" },
-    { body = ".*[Ss]ecurity", group = "🔒 Security" },
+    { message = "^[Uu]i", group = "💄 界面优化" },
+    { body = ".*[Ss]ecurity", group = "🔒 安全更新" },
     { message = "^[Uu]pdate", skip = true },
     { message = "^[Dd]elete", skip = true },
     { message = "^[Cc]reate", skip = true },
     { message = "^[Aa]dd", skip = true },
     { message = "^[Mm]erge", skip = true },
     { message = "^\\[", skip = true },
-    { message = ".*", group = "📝 Other Changes" },
+    { message = ".*", group = "📝 其他更新" },
 ]
 protect_breaking_commits = false
 filter_commits = false
