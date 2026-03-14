@@ -852,12 +852,31 @@ jobs:
             
             let previousTag = '';
             let commitSince = 0;
+            const currentTag = 'v' + currentVersion;
             
             try {
-              const currentTag = 'v' + currentVersion;
-              previousTag = execSync(`git describe --tags --abbrev=0 --exclude ${currentTag} 2>/dev/null || echo ""`, { encoding: 'utf-8' }).trim();
+              const { data: tagsList } = await github.rest.repos.listTags({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              });
+              
+              const tagNames = tagsList.map(tag => tag.name).sort((a, b) => {
+                const aParts = a.replace('v', '').split('.').map(Number);
+                const bParts = b.replace('v', '').split('.').map(Number);
+                for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+                  const diff = (aParts[i] || 0) - (bParts[i] || 0);
+                  if (diff !== 0) return diff;
+                }
+                return 0;
+              });
+              
+              const currentIndex = tagNames.indexOf(currentTag);
+              if (currentIndex > 0) {
+                previousTag = tagNames[currentIndex - 1];
+              }
             } catch (error) {
-              previousTag = '';
+              console.log('⚠️ 获取标签列表失败:', error.message);
             }
             
             if (previousTag) {
