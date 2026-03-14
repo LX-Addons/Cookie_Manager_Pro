@@ -23,12 +23,6 @@ on:
         default: false
         type: boolean
 
-permissions:
-  actions: write
-  contents: write
-  pull-requests: write
-  security-events: write
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || !contains(fromJSON('["main", "beta", "release"]'), github.ref_name) }}
@@ -43,6 +37,8 @@ jobs:
     name: 准备环境
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      actions: write
     outputs:
       cache_key: ${{ steps.cache-key.outputs.key }}
       artifact_retention: ${{ steps.retention.outputs.days }}
@@ -246,6 +242,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [setup]
+    permissions:
+      security-events: write
     steps:
       - name: 检出仓库
         uses: actions/checkout@v5
@@ -643,6 +641,8 @@ jobs:
     timeout-minutes: 5
     needs: [setup, lint, test, security, build, e2e]
     if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
     steps:
       - name: 检出仓库
         uses: actions/checkout@v5
@@ -778,6 +778,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [setup, lint, test, build, security]
+    permissions:
+      contents: write
     if: |
       needs.lint.result == 'success' &&
       needs.test.result == 'success' &&
@@ -832,26 +834,11 @@ jobs:
         uses: actions/github-script@v8
         env:
           CURRENT_VERSION: ${{ steps.version.outputs.version }}
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_SERVER_URL: ${{ github.server_url }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
         with:
           script: |
-            const { execSync } = require('child_process');
-            
             const currentVersion = process.env.CURRENT_VERSION;
-            const githubRef = process.env.GITHUB_REF;
-            const githubServerUrl = process.env.GITHUB_SERVER_URL;
-            const githubRepository = process.env.GITHUB_REPOSITORY;
-            
-            const currentDate = new Date().toLocaleDateString('zh-CN', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            });
             
             let previousTag = '';
-            let commitSince = 0;
             const currentTag = 'v' + currentVersion;
             
             try {
@@ -880,59 +867,37 @@ jobs:
               core.info('📋 排除当前版本后的标签列表: ' + existingTags.join(', '));
               
               if (existingTags.length > 0) {
-                previousTag = existingTags[existingTags.length - 1];
-                core.info('📋 上一个版本标签: ' + previousTag);
+                for (let i = existingTags.length - 1; i >= 0; i--) {
+                  const candidateTag = existingTags[i];
+                  try {
+                    const { data: compare } = await github.rest.repos.compareCommits({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      base: candidateTag,
+                      head: context.sha,
+                    });
+                    
+                    if (compare.status === 'ahead' || compare.status === 'identical') {
+                      previousTag = candidateTag;
+                      core.info('📋 找到可达的基线标签: ' + previousTag);
+                      break;
+                    } else {
+                      core.info('📋 标签 ' + candidateTag + ' 不可达 (status: ' + compare.status + ')，跳过');
+                    }
+                  } catch (err) {
+                    core.info('📋 标签 ' + candidateTag + ' 比较失败: ' + err.message + '，跳过');
+                  }
+                }
+                
+                if (!previousTag) {
+                  core.warning('⚠️ 未找到可达的基线标签，将使用 generateReleaseNotes 作为备选方案');
+                }
               }
             } catch (error) {
               core.error('⚠️ 获取标签列表失败: ' + error.message);
             }
             
-            if (previousTag) {
-              try {
-                commitSince = parseInt(execSync(`git rev-list --count "${previousTag}..HEAD" 2>/dev/null || echo "0"`, { encoding: 'utf-8' }).trim());
-              } catch (error) {
-                commitSince = 0;
-              }
-            }
-            
             const lines = [];
-            
-            if (!previousTag) {
-              lines.push('# 🎉 Cookie Manager Pro v' + currentVersion);
-              lines.push('');
-              lines.push('## 📦 发布信息');
-              lines.push('');
-              lines.push('| 项目 | 详情 |');
-              lines.push('| :--- | :--- |');
-              lines.push('| **版本号** | `' + currentVersion + '` |');
-              lines.push('| **发布日期** | ' + currentDate + ' |');
-              lines.push('| **发布类型** | 🚀 初始发布 |');
-              lines.push('');
-              lines.push('---');
-              lines.push('');
-              lines.push('## 📋 更新内容');
-              lines.push('');
-            } else {
-              const releaseType = githubRef === 'refs/heads/main' ? '📌 正式版' : '🔧 预发布版';
-              const compareUrl = githubServerUrl + '/' + githubRepository + '/compare/' + previousTag + '...v' + currentVersion;
-              
-              lines.push('# 🚀 Cookie Manager Pro v' + currentVersion);
-              lines.push('');
-              lines.push('## 📦 发布信息');
-              lines.push('');
-              lines.push('| 项目 | 详情 |');
-              lines.push('| :--- | :--- |');
-              lines.push('| **版本号** | `' + currentVersion + '` |');
-              lines.push('| **发布日期** | ' + currentDate + ' |');
-              lines.push('| **发布类型** | ' + releaseType + ' |');
-              lines.push('| **更新提交数** | ' + commitSince + ' |');
-              lines.push('| **对比版本** | [`' + previousTag + '`](' + compareUrl + ') |');
-              lines.push('');
-              lines.push('---');
-              lines.push('');
-              lines.push('## 📋 更新内容');
-              lines.push('');
-            }
             
             let changelogContent = '';
             try {
@@ -949,13 +914,100 @@ jobs:
                 core.info('📋 获取到的提交数量: ' + (commits.commits ? commits.commits.length : 0));
                 
                 if (commits && commits.commits && commits.commits.length > 0) {
-                  const commitList = commits.commits.map(commit => {
+                  const categories = {
+                    '🚀 新功能': { prefix: 'feat', commits: [] },
+                    '🐛 Bug 修复': { prefix: 'fix', commits: [] },
+                    '♻️ 重构': { prefix: 'refactor', commits: [] },
+                    '✨ 性能优化': { prefix: 'perf', commits: [] },
+                    '📚 文档': { prefix: 'docs', commits: [] },
+                    '🎨 样式': { prefix: 'style', commits: [] },
+                    '✅ 测试': { prefix: 'test', commits: [] },
+                    '🔧 构建/CI': { prefix: ['build', 'ci'], commits: [] },
+                    '🔨 杂项': { prefix: 'chore', commits: [] },
+                    '📦 其他': { prefix: null, commits: [] },
+                  };
+                  
+                  const escapeMarkdown = (text) => {
+                    return text
+                      .replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/`/g, '\\`')
+                      .replace(/\[/g, '\\[')
+                      .replace(/\]/g, '\\]')
+                      .replace(/\|/g, '\\|');
+                  };
+                  
+                  commits.commits.forEach(commit => {
                     const message = commit.commit.message.split('\n')[0];
                     const sha = commit.sha.substring(0, 7);
-                    const author = commit.commit.author ? commit.commit.author.name : 'unknown';
-                    return `- ${message} ([${sha}](${commit.html_url})) by @${author}`;
+                    
+                    const match = message.match(/^(feat|fix|refactor|perf|docs|style|test|build|ci|chore)(\([^)]+\))?(!)?:\s*(.+)$/i);
+                    
+                    let category = categories['📦 其他'];
+                    if (match) {
+                      const type = match[1].toLowerCase();
+                      const scope = match[2] || '';
+                      const isBreaking = match[3] === '!';
+                      const desc = escapeMarkdown(match[4]);
+                      
+                      for (const [catName, catData] of Object.entries(categories)) {
+                        if (Array.isArray(catData.prefix)) {
+                          if (catData.prefix.includes(type)) {
+                            category = catData;
+                            break;
+                          }
+                        } else if (catData.prefix === type) {
+                          category = catData;
+                          break;
+                        }
+                      }
+                      
+                      category.commits.push({
+                        message: isBreaking ? `💥 ${desc}` : desc,
+                        scope: escapeMarkdown(scope.replace(/[()]/g, '')),
+                        sha,
+                        url: commit.html_url
+                      });
+                    } else {
+                      category.commits.push({
+                        message: escapeMarkdown(message),
+                        scope: '',
+                        sha,
+                        url: commit.html_url
+                      });
+                    }
                   });
-                  changelogContent = commitList.join('\n');
+                  
+                  const changelogLines = [];
+                  for (const [catName, catData] of Object.entries(categories)) {
+                    if (catData.commits.length > 0 && catName !== '📦 其他') {
+                      changelogLines.push(`<details>`);
+                      changelogLines.push(`<summary>${catName} (${catData.commits.length})</summary>`);
+                      changelogLines.push('');
+                      catData.commits.forEach(c => {
+                        const scopeText = c.scope ? `**${c.scope}**: ` : '';
+                        changelogLines.push(`- ${scopeText}${c.message} ([${c.sha}](${c.url}))`);
+                      });
+                      changelogLines.push('');
+                      changelogLines.push(`</details>`);
+                      changelogLines.push('');
+                    }
+                  }
+                  
+                  if (categories['📦 其他'].commits.length > 0) {
+                    changelogLines.push(`<details>`);
+                    changelogLines.push(`<summary>📦 其他 (${categories['📦 其他'].commits.length})</summary>`);
+                    changelogLines.push('');
+                    categories['📦 其他'].commits.forEach(c => {
+                      changelogLines.push(`- ${c.message} ([${c.sha}](${c.url}))`);
+                    });
+                    changelogLines.push('');
+                    changelogLines.push(`</details>`);
+                    changelogLines.push('');
+                  }
+                  
+                  changelogContent = changelogLines.join('\n');
                   core.info('📋 生成的更新内容长度: ' + changelogContent.length);
                 }
               } else {
@@ -984,25 +1036,6 @@ jobs:
             } else {
               lines.push('- 🔄 版本更新至 ' + currentVersion);
             }
-            
-            lines.push('');
-            lines.push('---');
-            lines.push('');
-            lines.push('## 💡 使用说明');
-            lines.push('');
-            lines.push('- 下载附件中的 `cookie-manager-pro-' + currentVersion + '-mv3.zip` 文件');
-            lines.push('- 在 Chrome/Edge 浏览器中打开 `chrome://extensions/`（或 `edge://extensions/`）');
-            lines.push('- 开启"开发者模式"');
-            lines.push('- 将下载的 zip 文件拖放至扩展页面进行安装');
-            lines.push('');
-            lines.push('---');
-            lines.push('');
-            lines.push('## 📞 问题反馈');
-            lines.push('');
-            lines.push('如有问题或建议，欢迎在 [Issues](' + githubServerUrl + '/' + githubRepository + '/issues) 中反馈！');
-            lines.push('');
-            lines.push('---');
-            lines.push('📅 Generated by GitHub Actions on ' + currentDate);
             
             const finalContent = lines.join('\n');
             core.info('📋 最终内容长度: ' + finalContent.length);
