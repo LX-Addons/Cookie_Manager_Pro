@@ -933,14 +933,14 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   base: previousTag,
-                  head: 'v' + currentVersion,
+                  head: context.sha,
                 });
                 
                 if (commits && commits.commits && commits.commits.length > 0) {
                   const commitList = commits.commits.map(commit => {
                     const message = commit.commit.message.split('\n')[0];
                     const sha = commit.sha.substring(0, 7);
-                    const author = commit.commit.author.name;
+                    const author = commit.commit.author ? commit.commit.author.name : 'unknown';
                     return `- ${message} ([${sha}](${commit.html_url})) by @${author}`;
                   });
                   changelogContent = commitList.join('\n');
