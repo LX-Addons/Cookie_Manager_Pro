@@ -33,9 +33,7 @@ vi.mock("@/utils", async (importOriginal) => {
       return list.some((item: string) => {
         const normalizedItem = normalizeDomain(item);
         return (
-          normalizedDomain === normalizedItem ||
-          normalizedDomain.endsWith("." + normalizedItem) ||
-          normalizedItem.endsWith("." + normalizedDomain)
+          normalizedDomain === normalizedItem || normalizedDomain.endsWith("." + normalizedItem)
         );
       });
     }),

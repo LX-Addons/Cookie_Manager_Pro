@@ -247,51 +247,62 @@ export const clearSingleCookie = async (
   }
 };
 
+const buildCookieSetDetails = (
+  cookie: chrome.cookies.Cookie
+): { success: true; setDetails: chrome.cookies.SetDetails } | { success: false } => {
+  if (!cookie.name || cookie.value == null || !cookie.domain) {
+    return { success: false };
+  }
+
+  const sameSiteForChrome = toChromeSameSite(cookie.sameSite);
+  const secure = cookie.secure ?? sameSiteForChrome === "no_restriction";
+
+  if (sameSiteForChrome === "no_restriction" && !secure) {
+    console.error("SameSite=None requires Secure flag");
+    return { success: false };
+  }
+
+  const cleanedDomain = cookie.domain.replace(/^\./, "");
+  const url = `http${secure ? "s" : ""}://${cleanedDomain}${cookie.path}`;
+
+  const setDetails: chrome.cookies.SetDetails = {
+    url,
+    name: cookie.name,
+    value: cookie.value,
+    domain: cookie.domain,
+    path: cookie.path,
+    secure,
+    httpOnly: cookie.httpOnly ?? false,
+  };
+
+  if (sameSiteForChrome !== undefined) {
+    setDetails.sameSite = sameSiteForChrome;
+  }
+
+  if (cookie.storeId) {
+    setDetails.storeId = cookie.storeId;
+  }
+
+  if (cookie.expirationDate) {
+    setDetails.expirationDate = cookie.expirationDate;
+  }
+
+  return { success: true, setDetails };
+};
+
 export const createCookie = async (cookie: Partial<chrome.cookies.Cookie>): Promise<boolean> => {
   try {
-    if (!cookie.name || cookie.value == null || !cookie.domain) {
-      return false;
-    }
-
-    const path = cookie.path || "/";
-    const cleanedDomain = cookie.domain.replace(/^\./, "");
-
-    const tempCookie = {
+    const fullCookie: chrome.cookies.Cookie = {
       ...cookie,
-      domain: cookie.domain,
-      path,
+      path: cookie.path || "/",
     } as chrome.cookies.Cookie;
 
-    const url = buildCookieUrl(tempCookie, cleanedDomain);
-
-    const sameSiteForChrome = toChromeSameSite(cookie.sameSite);
-    const secure = cookie.secure ?? (sameSiteForChrome === "no_restriction" ? true : false);
-
-    if (sameSiteForChrome === "no_restriction" && !secure) {
-      console.error("SameSite=None requires Secure flag");
+    const result = buildCookieSetDetails(fullCookie);
+    if (!result.success) {
       return false;
     }
 
-    const newCookie: chrome.cookies.SetDetails = {
-      url,
-      name: cookie.name,
-      value: cookie.value,
-      domain: cookie.domain,
-      path,
-      secure,
-      httpOnly: cookie.httpOnly ?? false,
-      sameSite: sameSiteForChrome,
-    };
-
-    if (cookie.storeId) {
-      newCookie.storeId = cookie.storeId;
-    }
-
-    if (cookie.expirationDate) {
-      newCookie.expirationDate = cookie.expirationDate;
-    }
-
-    await chrome.cookies.set(newCookie);
+    await chrome.cookies.set(result.setDetails);
     return true;
   } catch (e) {
     console.error("Failed to create cookie:", e);
@@ -327,41 +338,12 @@ export const editCookie = async (
       ...safeUpdates,
     };
 
-    if (!nextCookie.name || nextCookie.value == null || !nextCookie.domain) {
+    const result = buildCookieSetDetails(nextCookie);
+    if (!result.success) {
       return false;
     }
 
-    const sameSiteForChrome = toChromeSameSite(nextCookie.sameSite);
-    const secure = nextCookie.secure ?? (sameSiteForChrome === "no_restriction" ? true : false);
-
-    if (sameSiteForChrome === "no_restriction" && !secure) {
-      console.error("SameSite=None requires Secure flag");
-      return false;
-    }
-
-    const newCleanedDomain = nextCookie.domain.replace(/^\./, "");
-    const newUrl = buildCookieUrl(nextCookie, newCleanedDomain);
-
-    const newCookie: chrome.cookies.SetDetails = {
-      url: newUrl,
-      name: nextCookie.name,
-      value: nextCookie.value,
-      domain: nextCookie.domain,
-      path: nextCookie.path,
-      secure,
-      httpOnly: nextCookie.httpOnly,
-      sameSite: sameSiteForChrome,
-    };
-
-    if (nextCookie.storeId) {
-      newCookie.storeId = nextCookie.storeId;
-    }
-
-    if (nextCookie.expirationDate) {
-      newCookie.expirationDate = nextCookie.expirationDate;
-    }
-
-    await chrome.cookies.set(newCookie);
+    await chrome.cookies.set(result.setDetails);
     return true;
   } catch (e) {
     console.error("Failed to edit cookie:", e);

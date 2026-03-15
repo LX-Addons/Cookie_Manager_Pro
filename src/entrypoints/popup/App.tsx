@@ -202,10 +202,7 @@ function IndexPopup() {
 
   const quickAddToWhitelist = useCallback(() => {
     if (currentDomain) {
-      const normalizedCurrentDomain = normalizeDomain(currentDomain);
-      const isAlreadyInList = whitelist.some(
-        (item) => normalizeDomain(item) === normalizedCurrentDomain
-      );
+      const isAlreadyInList = isInList(currentDomain, whitelist);
       if (!isAlreadyInList) {
         setWhitelist([...whitelist, currentDomain]);
         showMessage(t("popup.addedToWhitelist", { domain: currentDomain }));
@@ -217,10 +214,7 @@ function IndexPopup() {
 
   const quickAddToBlacklist = useCallback(() => {
     if (currentDomain) {
-      const normalizedCurrentDomain = normalizeDomain(currentDomain);
-      const isAlreadyInList = blacklist.some(
-        (item) => normalizeDomain(item) === normalizedCurrentDomain
-      );
+      const isAlreadyInList = isInList(currentDomain, blacklist);
       if (!isAlreadyInList) {
         setBlacklist([...blacklist, currentDomain]);
         showMessage(t("popup.addedToBlacklist", { domain: currentDomain }));
@@ -489,6 +483,9 @@ function IndexPopup() {
                           (domain) => isInList(domain, blacklist),
                           {
                             clearType: CookieClearType.ALL,
+                            clearCache: settings.clearCache,
+                            clearLocalStorage: settings.clearLocalStorage,
+                            clearIndexedDB: settings.clearIndexedDB,
                           }
                         );
 

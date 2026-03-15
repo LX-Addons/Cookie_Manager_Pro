@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Settings } from "@/components/Settings";
 import { LogRetention, ModeType, CookieClearType, ThemeMode, ScheduleInterval } from "@/types";
@@ -22,7 +22,7 @@ let mockSettings = {
   showCookieRisk: true,
 };
 
-let useStorageMock: (key: string, defaultValue: unknown) => unknown[];
+let useStorageMock: Mock<(key: string, defaultValue: unknown) => unknown[]>;
 
 vi.mock("@/hooks/useStorage", () => ({
   useStorage: vi.fn((key: string, defaultValue: unknown) => {
@@ -688,6 +688,11 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
+    // Simulate disabling auto cleanup by directly calling the setSettings function
+    const setSettingsFn = useStorageMock.mock.results[0].value[1];
+    setSettingsFn({ enableAutoCleanup: false });
+
+    expect(mockSettings.enableAutoCleanup).toBe(false);
     expect(mockSettings.cleanupOnStartup).toBe(true);
     expect(mockSettings.cleanupExpiredCookies).toBe(true);
   });

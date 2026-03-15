@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Cookie, SameSite } from "@/types";
 import { useTranslation } from "@/hooks/useTranslation";
-import { fromChromeSameSite, toChromeSameSite } from "@/utils";
+import { fromChromeSameSite } from "@/utils";
 
 interface Props {
   isOpen: boolean;
@@ -53,11 +53,7 @@ const CookieEditorContent = ({ cookie, currentDomain, onClose, onSave }: Omit<Pr
 
     setIsSaving(true);
     try {
-      const cookieToSave = {
-        ...formData,
-        sameSite: toChromeSameSite(formData.sameSite) as SameSite,
-      };
-      const success = await onSave(cookieToSave);
+      const success = await onSave(formData);
       if (success) {
         onClose();
       }

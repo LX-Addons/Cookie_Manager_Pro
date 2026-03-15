@@ -59,6 +59,7 @@ const setupCookieMocks = (cookies: chrome.cookies.Cookie[]) => {
   vi.spyOn(chrome.cookies, "remove").mockImplementation(
     async (details: chrome.cookies.Details) => details
   );
+  vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
 };
 
 describe("normalizeDomain", () => {
@@ -651,9 +652,121 @@ describe("clearSingleCookie", () => {
   });
 });
 
+describe("createCookie", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupCookieMocks([]);
+  });
+
+  it("should create cookie successfully", async () => {
+    const result = await createCookie({
+      name: "test",
+      value: "value",
+      domain: "example.com",
+    });
+    expect(result).toBe(true);
+    expect(chrome.cookies.set).toHaveBeenCalled();
+  });
+
+  it("should create cookie with storeId", async () => {
+    const setMock = vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+    const result = await createCookie({
+      name: "test",
+      value: "value",
+      domain: "example.com",
+      storeId: "1",
+    });
+    expect(result).toBe(true);
+    const setCall = setMock.mock.calls[0][0];
+    expect(setCall.storeId).toBe("1");
+  });
+
+  it("should create cookie with expirationDate", async () => {
+    const setMock = vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+    const result = await createCookie({
+      name: "test",
+      value: "value",
+      domain: "example.com",
+      expirationDate: Date.now() / 1000 + 3600,
+    });
+    expect(result).toBe(true);
+    const setCall = setMock.mock.calls[0][0];
+    expect(setCall.expirationDate).toBeTruthy();
+  });
+
+  it("should create cookie with sameSite none and secure true", async () => {
+    const setMock = vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+    const result = await createCookie({
+      name: "test",
+      value: "value",
+      domain: "example.com",
+      sameSite: "no_restriction",
+      secure: true,
+    });
+    expect(result).toBe(true);
+    const setCall = setMock.mock.calls[0][0];
+    expect(setCall.sameSite).toBe("no_restriction");
+    expect(setCall.secure).toBe(true);
+  });
+
+  it("should fail when sameSite none and secure false", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = await createCookie({
+      name: "test",
+      value: "value",
+      domain: "example.com",
+      sameSite: "no_restriction",
+      secure: false,
+    });
+    expect(result).toBe(false);
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("should fail when missing name", async () => {
+    const result = await createCookie({
+      value: "value",
+      domain: "example.com",
+    } as any);
+    expect(result).toBe(false);
+  });
+
+  it("should fail when missing domain", async () => {
+    const result = await createCookie({
+      name: "test",
+      value: "value",
+    } as any);
+    expect(result).toBe(false);
+  });
+
+  it("should fail when value is null", async () => {
+    const result = await createCookie({
+      name: "test",
+      value: null as unknown as string,
+      domain: "example.com",
+    });
+    expect(result).toBe(false);
+  });
+
+  it("should handle errors when creating cookie", async () => {
+    vi.spyOn(chrome.cookies, "set").mockRejectedValue(new Error("Failed"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await createCookie({
+      name: "test",
+      value: "value",
+      domain: "example.com",
+    });
+    expect(result).toBe(false);
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+});
+
 describe("editCookie", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setupCookieMocks([]);
   });
 
   it("should edit cookie successfully", async () => {
@@ -1064,7 +1177,7 @@ describe("buildDomainString", () => {
   });
 
   it("should return successMsg when clearedDomains is empty and includes allWebsites", () => {
-    const mockT = vi.fn((key: string, params?: Record<string, string | number>) => {
+    const mockT = vi.fn((key: string, _params?: Record<string, string | number>) => {
       if (key === "common.allWebsites") {
         return "所有网站";
       }
@@ -1076,7 +1189,7 @@ describe("buildDomainString", () => {
   });
 
   it("should return currentDomain when clearedDomains is empty and not includes allWebsites", () => {
-    const mockT = vi.fn((key: string, params?: Record<string, string | number>) => {
+    const mockT = vi.fn((key: string, _params?: Record<string, string | number>) => {
       if (key === "common.allWebsites") {
         return "所有网站";
       }

@@ -189,10 +189,10 @@ Cookie_Manager_Pro/
 
 |           技术            |  版本   | 说明               |
 | :-----------------------: | :-----: | ------------------ |
-|          **WXT**          | 0.20.18 | 现代浏览器扩展框架 |
+|          **WXT**          | 0.20.19 | 现代浏览器扩展框架 |
 |         **React**         | 19.1.0  | 前端 UI 框架       |
 |      **TypeScript**       |  5.9.3  | 类型安全开发       |
-| **@wxt-dev/module-react** |  1.2.1  | WXT React 模块     |
+| **@wxt-dev/module-react** |  1.2.2  | WXT React 模块     |
 |       **Manifest**        |   V3    | Chrome 扩展规范    |
 |        **Vitest**         | 4.0.18  | 单元测试框架       |
 |      **Playwright**       | 1.58.2  | E2E 测试框架       |

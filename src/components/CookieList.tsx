@@ -58,8 +58,11 @@ export const CookieListContent = memo(
     const { t } = useTranslation();
 
     const selectAll = useMemo(() => {
-      return selectedCookies.size === cookies.length && cookies.length > 0;
-    }, [selectedCookies.size, cookies.length]);
+      if (cookies.length === 0) return false;
+      return cookies.every((cookie) =>
+        selectedCookies.has(getCookieKey(cookie.name, cookie.domain, cookie.path, cookie.storeId))
+      );
+    }, [cookies, selectedCookies]);
 
     const groupedCookies = useMemo(() => {
       const grouped = new Map<string, Cookie[]>();

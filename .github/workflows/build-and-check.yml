@@ -55,8 +55,10 @@ jobs:
       - name: 生成分支标识
         id: ref-slug
         run: |
-          REF_SLUG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9-]/-/g')
-          echo "value=$REF_SLUG" >> $GITHUB_OUTPUT
+          REF_NAME='${{ github.ref_name }}'
+          REF_SLUG=$(printf '%s' "$REF_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/-\{2,\}/-/g; s/^-//; s/-$//')
+          REF_HASH=$(printf '%s' "$REF_NAME" | sha256sum | cut -c1-8)
+          echo "value=${REF_SLUG}-${REF_HASH}" >> $GITHUB_OUTPUT
 
       - name: 生成缓存 key
         id: cache-key
@@ -525,12 +527,13 @@ jobs:
       - name: 获取 zip 文件路径
         id: zip-info
         run: |
-          ZIP_PATH=$(find .output -maxdepth 1 -name "*.zip" -type f | head -n 1)
-
-          if [ -z "$ZIP_PATH" ]; then
-            echo "❌ 未找到 zip 文件"
+          mapfile -t ZIP_FILES < <(find .output -name "*.zip" -type f | sort)
+          if [ "${#ZIP_FILES[@]}" -ne 1 ]; then
+            echo "❌ 期望恰好找到 1 个 zip 文件，实际为 ${#ZIP_FILES[@]}"
+            printf '%s\n' "${ZIP_FILES[@]}"
             exit 1
           fi
+          ZIP_PATH="${ZIP_FILES[0]}"
 
           echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
           echo "✅ zip 文件路径: $ZIP_PATH"
@@ -732,14 +735,15 @@ jobs:
             body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityResult)} ${getBadge('构建', buildResult)} ${getBadge('E2E测试', e2eResult)}\n\n`;
 
             const results = {
+              setup: setupResult,
               lint: lintResult,
               test: testResult,
               security: securityResult,
               build: buildResult
             };
 
-            const allSuccess = ['lint', 'test', 'security', 'build'].every(r => 
-              results[r] === 'success' || results[r] === 'skipped'
+            const allSuccess = ['setup', 'lint', 'test', 'security', 'build'].every(r =>
+              results[r] === 'success'
             );
             const e2eSuccess = e2eResult === 'success' || e2eResult === 'skipped';
 
@@ -856,11 +860,13 @@ jobs:
       - name: 获取发布 zip 文件路径
         id: release-zip
         run: |
-          ZIP_PATH=$(find .output -name "*.zip" -type f | head -n 1)
-          if [ -z "$ZIP_PATH" ]; then
-            echo "❌ 未找到发布 zip 文件"
+          mapfile -t ZIP_FILES < <(find .output -name "*.zip" -type f | sort)
+          if [ "${#ZIP_FILES[@]}" -ne 1 ]; then
+            echo "❌ 期望恰好找到 1 个 zip 文件，实际为 ${#ZIP_FILES[@]}"
+            printf '%s\n' "${ZIP_FILES[@]}"
             exit 1
           fi
+          ZIP_PATH="${ZIP_FILES[0]}"
           echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
 
       - name: 生成完整发布内容

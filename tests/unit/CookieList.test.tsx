@@ -53,10 +53,7 @@ vi.mock("@/utils", async (importOriginal) => {
     normalizeDomain: vi.fn((domain: string) => domain.replace(/^\./, "").toLowerCase()),
     maskCookieValue: vi.fn((_value: string) => "••••••••"),
     getCookieKey: vi.fn((name: string, domain: string, path?: string, storeId?: string) => {
-      const parts = [name, domain];
-      if (path) parts.push(path);
-      if (storeId) parts.push(storeId);
-      return parts.join("|");
+      return `${name}|${domain}|${path ?? "/"}|${storeId ?? "0"}`;
     }),
     isSensitiveCookie: vi.fn(() => false),
     isInList: vi.fn((domain: string, list: string[]) => {

@@ -81,16 +81,22 @@ export default defineBackground(() => {
       }
 
       if (
+        settings.enableAutoCleanup &&
         settings.scheduleInterval !== ScheduleInterval.DISABLED &&
         settings.cleanupExpiredCookies
       ) {
-        try {
-          const count = await cleanupExpiredCookies();
-          if (count > 0) {
-            console.log(`Cleaned up ${count} expired cookies on scheduled cleanup`);
+        const lastCleanup = settings.lastScheduledCleanup || 0;
+        const interval = SCHEDULE_INTERVAL_MAP[settings.scheduleInterval];
+
+        if (now - lastCleanup >= interval) {
+          try {
+            const count = await cleanupExpiredCookies();
+            if (count > 0) {
+              console.log(`Cleaned up ${count} expired cookies on scheduled cleanup`);
+            }
+          } catch (e) {
+            console.error("Failed to cleanup expired cookies on scheduled cleanup:", e);
           }
-        } catch (e) {
-          console.error("Failed to cleanup expired cookies on scheduled cleanup:", e);
         }
       }
 
