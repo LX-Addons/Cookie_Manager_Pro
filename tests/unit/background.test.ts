@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { LogRetention } from "@/types";
 
 const mockStorageData = new Map<string, unknown>();
 
@@ -104,8 +105,6 @@ describe("background", () => {
         ),
       },
     } as unknown as typeof chrome;
-
-    vi.resetModules();
   });
 
   afterEach(() => {
@@ -729,7 +728,7 @@ describe("background", () => {
 
     mockStorageData.set("local:settings", {
       clearType: "all",
-      logRetention: "sevenDays",
+      logRetention: LogRetention.SEVEN_DAYS,
       themeMode: "auto",
       mode: "whitelist",
       enableAutoCleanup: true,

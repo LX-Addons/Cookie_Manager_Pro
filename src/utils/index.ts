@@ -468,11 +468,7 @@ export const getActionColor = (action: string): string => {
   }
 };
 
-export const formatLogTime = (
-  timestamp: number,
-  _t?: (key: string) => string,
-  locale: string = "zh-CN"
-): string => {
+export const formatLogTime = (timestamp: number, locale: string = "zh-CN"): string => {
   const date = new Date(timestamp);
   return date.toLocaleString(locale, {
     year: "numeric",
@@ -516,13 +512,16 @@ export const fromChromeSameSite = (sameSite?: string): string => {
 };
 
 export const toChromeSameSite = (sameSite?: string): chrome.cookies.SameSiteStatus | undefined => {
-  if (sameSite === "none") {
+  if (sameSite === "none" || sameSite === "no_restriction") {
     return "no_restriction";
   }
   if (sameSite === "unspecified" || !sameSite) {
     return undefined;
   }
-  return sameSite as chrome.cookies.SameSiteStatus;
+  if (sameSite === "lax" || sameSite === "strict") {
+    return sameSite;
+  }
+  return undefined;
 };
 
 export const formatCookieSameSite = (

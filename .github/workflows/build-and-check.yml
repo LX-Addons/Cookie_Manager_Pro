@@ -31,22 +31,21 @@ env:
   NODE_VERSION: "24"
   PNPM_VERSION: "10.32.1"
   EXTENSION_SIZE_LIMIT_MB: 10
-
-# 可复用的 shell 函数：查找并验证唯一的 zip 文件
-# 使用方式: eval "$GET_ZIP_PATH" 然后调用 get_zip_path
-GET_ZIP_PATH: |
-  get_zip_path() {
-    local output_var="${1:-zip_path}"
-    mapfile -t ZIP_FILES < <(find .output -name "*.zip" -type f | sort)
-    if [ "${#ZIP_FILES[@]}" -ne 1 ]; then
-      echo "❌ 期望恰好找到 1 个 zip 文件，实际为 ${#ZIP_FILES[@]}"
-      printf '%s\n' "${ZIP_FILES[@]}"
-      return 1
-    fi
-    local ZIP_PATH="${ZIP_FILES[0]}"
-    echo "${output_var}=$ZIP_PATH" >> "$GITHUB_OUTPUT"
-    echo "✅ zip 文件路径: $ZIP_PATH"
-  }
+  # 可复用的 shell 函数：查找并验证唯一的 zip 文件
+  # 使用方式：eval "$GET_ZIP_PATH" 然后调用 get_zip_path
+  GET_ZIP_PATH: |
+    get_zip_path() {
+      local output_var="${1:-zip_path}"
+      mapfile -t ZIP_FILES < <(find .output -name "*.zip" -type f | sort)
+      if [ "${#ZIP_FILES[@]}" -ne 1 ]; then
+        echo "❌ 期望恰好找到 1 个 zip 文件，实际为 ${#ZIP_FILES[@]}"
+        printf '%s\n' "${ZIP_FILES[@]}"
+        return 1
+      fi
+      local ZIP_PATH="${ZIP_FILES[0]}"
+      echo "${output_var}=$ZIP_PATH" >> "$GITHUB_OUTPUT"
+      echo "✅ zip 文件路径：$ZIP_PATH"
+    }
 
 jobs:
   setup:

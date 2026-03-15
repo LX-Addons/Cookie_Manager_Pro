@@ -397,7 +397,9 @@ export const CookieListContent = memo(
                                       type="checkbox"
                                       checked={isSelected}
                                       onChange={() => toggleCookieSelection(key)}
-                                      aria-label={`选择 ${cookie.name}`}
+                                      aria-label={t("cookieList.selectCookie", {
+                                        name: cookie.name,
+                                      })}
                                     />
                                   </label>
                                   <div className="cookie-name">

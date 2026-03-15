@@ -148,7 +148,7 @@ describe("mocks", () => {
       const { useStorageMock, mockSetValue } = createUseStorageMock();
       const [, setValue] = useStorageMock("test-key", 0);
 
-      (setValue as (value: unknown) => void)((prev: number) => (prev as number) + 1);
+      (setValue as (value: unknown) => void)((prev: number) => prev + 1);
       expect(mockSetValue).toHaveBeenCalled();
     });
 

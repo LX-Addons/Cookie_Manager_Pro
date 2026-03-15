@@ -57,6 +57,8 @@ const CookieEditorContent = ({ cookie, currentDomain, onClose, onSave }: Omit<Pr
       if (success) {
         onClose();
       }
+    } catch (error) {
+      console.error("Failed to save cookie:", error);
     } finally {
       setIsSaving(false);
     }

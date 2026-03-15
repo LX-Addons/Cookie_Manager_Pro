@@ -181,6 +181,7 @@
     "edit": "编辑",
     "hide": "隐藏",
     "show": "显示",
+    "selectCookie": "选择 {name}",
     "value": "值:",
     "path": "路径:",
     "secure": "安全:",

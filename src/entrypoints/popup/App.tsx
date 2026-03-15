@@ -300,6 +300,20 @@ function IndexPopup() {
   useEffect(() => {
     if (settings.themeMode === ThemeMode.CUSTOM) {
       applyCustomTheme(settings.customTheme);
+    } else {
+      // 清除自定义主题变量，恢复默认
+      const root = document.documentElement;
+      const themeVars = [
+        "--primary-500",
+        "--success-500",
+        "--warning-500",
+        "--danger-500",
+        "--bg-primary",
+        "--bg-secondary",
+        "--text-primary",
+        "--text-secondary",
+      ];
+      themeVars.forEach((prop) => root.style.removeProperty(prop));
     }
   }, [settings.themeMode, settings.customTheme, applyCustomTheme]);
 
@@ -323,9 +337,7 @@ function IndexPopup() {
   }, []);
 
   useEffect(() => {
-    if (currentDomain !== undefined) {
-      updateStats();
-    }
+    updateStats();
   }, [currentDomain, updateStats]);
 
   return (
@@ -448,19 +460,13 @@ function IndexPopup() {
               blacklist={blacklist}
               showCookieRisk={settings.showCookieRisk}
               onAddToWhitelist={(domains) => {
-                const newDomains = domains.filter((d) => {
-                  const normalizedD = normalizeDomain(d);
-                  return !whitelist.some((item) => normalizeDomain(item) === normalizedD);
-                });
+                const newDomains = domains.filter((d) => !isInList(d, whitelist));
                 if (newDomains.length > 0) {
                   setWhitelist([...whitelist, ...newDomains]);
                 }
               }}
               onAddToBlacklist={(domains) => {
-                const newDomains = domains.filter((d) => {
-                  const normalizedD = normalizeDomain(d);
-                  return !blacklist.some((item) => normalizeDomain(item) === normalizedD);
-                });
+                const newDomains = domains.filter((d) => !isInList(d, blacklist));
                 if (newDomains.length > 0) {
                   setBlacklist([...blacklist, ...newDomains]);
                 }

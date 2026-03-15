@@ -53,19 +53,35 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           AUDIT_EXIT_CODE=0
-          AUDIT_OUTPUT=$(pnpm audit --audit-level=moderate --ignore-registry-errors 2>&1) || AUDIT_EXIT_CODE=$?
+          AUDIT_OUTPUT=$(pnpm audit --audit-level=moderate 2>&1) || AUDIT_EXIT_CODE=$?
 
           if [ $AUDIT_EXIT_CODE -eq 0 ]; then
             echo "✅ 未发现已知漏洞" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=clean" >> $GITHUB_OUTPUT
           else
-            echo "⚠️ 发现漏洞：" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "$AUDIT_OUTPUT" | head -50 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "::error::发现安全漏洞，请查看审计报告并修复"
-            echo "audit_status=warning" >> $GITHUB_OUTPUT
+            # 检查是否为 registry 错误（网络问题、5xx 等）
+            if echo "$AUDIT_OUTPUT" | grep -qiE "(registry|network|ECONNRESET|ETIMEDOUT|ENOTFOUND|5\d{2})"; then
+              echo "❌ **审计失败：无法连接到包注册表**" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "可能是临时网络问题或 registry 故障，请重试或等待后再次运行。" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "<details><summary>错误详情</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "$AUDIT_OUTPUT" | head -50 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "::error::安全审计失败：无法连接到包注册表，请重试"
+              echo "audit_status=registry_error" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️ 发现漏洞：" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "$AUDIT_OUTPUT" | head -50 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "::error::发现安全漏洞，请查看审计报告并修复"
+              echo "audit_status=warning" >> $GITHUB_OUTPUT
+            fi
             exit 1
           fi
 
@@ -76,7 +92,7 @@ jobs:
           echo "## 📜 许可证合规检查" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          LICENSE_CHECKER="pnpm dlx license-checker-rseidelsohn@4.4.2"
+          LICENSE_CHECKER="pnpm exec license-checker-rseidelsohn"
 
           echo "### 📊 许可证摘要" >> $GITHUB_STEP_SUMMARY
           $LICENSE_CHECKER --summary >> $GITHUB_STEP_SUMMARY

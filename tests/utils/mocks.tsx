@@ -1,5 +1,7 @@
 import { useState, ReactNode } from "react";
-import { vi } from "vitest";
+import { vi, type Mock } from "vitest";
+import type { ClearLogEntry } from "@/types";
+import { CookieClearType } from "@/types";
 
 export const hasDomainInText = (
   textContent: string | null | undefined,
@@ -12,6 +14,72 @@ export const hasDomainInText = (
     "i"
   );
   return domainPattern.test(textContent);
+};
+
+export const createMockCookie = (
+  overrides: Partial<chrome.cookies.Cookie> = {}
+): chrome.cookies.Cookie => ({
+  name: "test",
+  value: "value123",
+  domain: ".example.com",
+  path: "/",
+  secure: false,
+  httpOnly: false,
+  sameSite: "lax",
+  storeId: "0",
+  session: false,
+  hostOnly: false,
+  ...overrides,
+});
+
+export const createMockLogEntry = (overrides: Partial<ClearLogEntry> = {}): ClearLogEntry => ({
+  id: "test-log",
+  domain: "example.com",
+  count: 1,
+  action: "clear",
+  cookieType: CookieClearType.ALL,
+  timestamp: Date.now(),
+  ...overrides,
+});
+
+export const setupChromeCookieMocks = (
+  cookies: chrome.cookies.Cookie[] = [],
+  options?: { removeError?: Error; setError?: Error }
+) => {
+  vi.spyOn(chrome.cookies, "getAll").mockResolvedValue(cookies);
+
+  if (options?.removeError) {
+    vi.spyOn(chrome.cookies, "remove").mockRejectedValue(options.removeError);
+  } else {
+    vi.spyOn(chrome.cookies, "remove").mockResolvedValue(undefined);
+  }
+
+  if (options?.setError) {
+    vi.spyOn(chrome.cookies, "set").mockRejectedValue(options.setError);
+  } else {
+    vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+  }
+};
+
+export const setupChromeBrowsingDataMocks = (options?: { removeError?: Error }) => {
+  const mockRemove = options?.removeError
+    ? vi.fn().mockRejectedValue(options.removeError)
+    : vi.fn().mockResolvedValue(undefined);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (chrome.browsingData as any).remove = mockRemove;
+  return mockRemove;
+};
+
+export const mockUseStorageImplementation = (
+  useStorageMock: ReturnType<typeof createUseStorageMock>["useStorageMock"]
+) => {
+  return (key: string, defaultValue: unknown) => {
+    if (!(key in (useStorageMock as Mock).mock.results[0]?.value?.[0] || {})) {
+      return useStorageMock(key, defaultValue);
+    }
+    return useStorageMock(key, defaultValue);
+  };
 };
 
 export const commonTranslations: Record<string, string> = {

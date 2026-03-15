@@ -181,6 +181,7 @@
     "edit": "Edit",
     "hide": "Hide",
     "show": "Show",
+    "selectCookie": "Select {name}",
     "value": "Value:",
     "path": "Path:",
     "secure": "Secure:",
