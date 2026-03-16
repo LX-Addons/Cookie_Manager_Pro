@@ -334,10 +334,10 @@ export const CookieListContent = memo(
               onClick={() => setIsExpanded(!isExpanded)}
               aria-expanded={isExpanded}
             >
-              <span role="heading" aria-level={3}>
+              <h3 className="cookie-heading">
                 <span aria-hidden="true">🍪</span>{" "}
                 {t("cookieList.cookieDetails", { count: cookies.length })}
-              </span>
+              </h3>
               <span className={`expand-icon ${isExpanded ? "expanded" : ""}`} aria-hidden="true">
                 ▼
               </span>
@@ -416,7 +416,7 @@ export const CookieListContent = memo(
                               ? cookie.value
                               : maskCookieValue(cookie.value, COOKIE_VALUE_MASK);
                             const risk =
-                              showCookieRisk !== false
+                              (showCookieRisk ?? true)
                                 ? assessCookieRisk(cookie, currentDomain, t)
                                 : null;
                             const isSelected = selectedCookies.has(key);
@@ -472,7 +472,7 @@ export const CookieListContent = memo(
                                   </div>
                                 </div>
 
-                                {showCookieRisk !== false && risk && (
+                                {risk && (
                                   <div
                                     className="risk-badge"
                                     style={{ borderLeftColor: getRiskLevelColor(risk.level) }}

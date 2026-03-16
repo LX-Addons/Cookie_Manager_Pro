@@ -26,7 +26,7 @@ vi.mock("@/components/CookieList", () => ({
       <div data-testid="cookie-list">
         <div data-testid="cookie-count">{props.cookies?.length || 0}</div>
         <div data-testid="current-domain">{props.currentDomain || "无域名"}</div>
-        {props.showCookieRisk !== false ? (
+        {(props.showCookieRisk ?? true) ? (
           <div data-testid="cookie-risk-enabled">Risk enabled</div>
         ) : (
           <div data-testid="cookie-risk-disabled">Risk disabled</div>
@@ -58,7 +58,7 @@ vi.mock("@/components/CookieList", () => ({
 vi.mock("@/components/DomainManager", () => ({
   DomainManager: ({
     type,
-    currentDomain,
+    currentDomain: _currentDomain,
     onMessage,
     onClearBlacklist,
   }: {
@@ -79,7 +79,6 @@ vi.mock("@/components/DomainManager", () => ({
   ),
 }));
 
-// Mock showConfirm 函数，可以在测试中验证调用
 let mockShowConfirmCallback: (() => void) | null = null;
 const mockShowConfirm = vi.fn(
   (_title: string, _message: string, _variant: "danger" | "warning", onConfirm: () => void) => {
@@ -100,6 +99,12 @@ vi.mock("@/hooks/useConfirmDialog", () => ({
     showConfirm: mockShowConfirm,
     closeConfirm: () => {},
     handleConfirm: () => {},
+  }),
+}));
+
+vi.mock("@/hooks/useClearLog", () => ({
+  useClearLog: () => ({
+    addLog: vi.fn(),
   }),
 }));
 
@@ -135,6 +140,7 @@ vi.mock("@/utils", () => ({
     }
     return next;
   }),
+  buildDomainString: vi.fn(() => "测试域名"),
 }));
 
 const mockMatchMedia = (overrides: Partial<MediaQueryList> = {}) => {
@@ -249,7 +255,6 @@ const setupChromeMocks = () => {
   } as unknown as typeof chrome;
 };
 
-// Helper function to click clear all button and wait for confirmation
 const clickClearAllAndConfirm = async (container: HTMLElement) => {
   const clearAllButton = container.querySelector(".button-group button.btn-danger");
   if (!clearAllButton) {
@@ -257,14 +262,103 @@ const clickClearAllAndConfirm = async (container: HTMLElement) => {
   }
   fireEvent.click(clearAllButton);
 
-  // Wait for showConfirm to be called
   await waitFor(() => {
     expect(mockShowConfirm).toHaveBeenCalled();
   });
 
-  // Wait for the callback to be executed (which calls performCleanupWithFilter)
   await waitFor(() => {
     expect(mockShowConfirmCallback).toBeTruthy();
+  });
+};
+
+const testRenderWithStorage = (storageOptions: MockStorageOptions = {}) => {
+  setupMockStorage(storageOptions);
+  const { container } = render(<IndexPopup />);
+  expect(container.querySelector("header")).toBeTruthy();
+};
+
+const testKeyboardNavigation = (key: string) => {
+  const { container } = render(<IndexPopup />);
+  const tablist = container.querySelector(".tabs");
+  if (tablist) {
+    fireEvent.keyDown(tablist, { key });
+    expect(tablist).toBeTruthy();
+  }
+};
+
+const testTabSwitching = (tabTestId: string) => {
+  const { container } = render(<IndexPopup />);
+  const tab = container.querySelector(`[data-testid="${tabTestId}"]`);
+  if (tab) {
+    fireEvent.click(tab);
+    expect(tab).toBeTruthy();
+  }
+};
+
+const testQuickAddButton = (
+  listType: "whitelist" | "blacklist",
+  initialList: string[],
+  buttonSelector: string
+) => {
+  setupMockStorage({ [listType]: initialList });
+  const { container } = render(<IndexPopup />);
+
+  return waitFor(() => {
+    const button = container.querySelector(buttonSelector);
+    if (button) {
+      fireEvent.click(button);
+    }
+    const messageElement = container.querySelector(".message");
+    expect(messageElement).toBeTruthy();
+  });
+};
+
+const testRulesTab = (
+  mode: "whitelist" | "blacklist",
+  expectedText: string,
+  checkClearBlacklist?: boolean
+) => {
+  setupMockStorage({ mode });
+  const { container, getByTestId } = render(<IndexPopup />);
+
+  const rulesTab = container.querySelector('[data-testid="tab-rules"]');
+  if (rulesTab) {
+    fireEvent.click(rulesTab);
+  }
+
+  expect(getByTestId("domain-manager")).toBeTruthy();
+  expect(getByTestId("domain-manager").textContent).toContain(expectedText);
+  if (checkClearBlacklist) {
+    expect(getByTestId("clear-blacklist")).toBeTruthy();
+  }
+};
+
+const testClearBlacklist = async (
+  mockResult: any,
+  storageOptions: MockStorageOptions = {},
+  tabQueryOverride?: any
+) => {
+  vi.mocked(performCleanupWithFilter).mockResolvedValue(mockResult);
+
+  if (tabQueryOverride) {
+    vi.mocked(chrome.tabs.query).mockResolvedValue(tabQueryOverride);
+  }
+
+  setupMockStorage({ mode: "blacklist", ...storageOptions });
+  const { container, getByTestId } = render(<IndexPopup />);
+
+  await waitFor(() => {
+    expect(container.querySelector(".tabs")).toBeTruthy();
+  });
+
+  const rulesTab = container.querySelector('[data-testid="tab-rules"]');
+  if (rulesTab) {
+    fireEvent.click(rulesTab);
+  }
+
+  await waitFor(() => {
+    const clearBtn = getByTestId("clear-blacklist");
+    fireEvent.click(clearBtn);
   });
 };
 
@@ -311,12 +405,10 @@ describe("IndexPopup", () => {
     (chrome.cookies.getAll as Mock).mockResolvedValue([]);
     const { container, getByTestId } = render(<IndexPopup />);
 
-    // 等待异步操作完成
     await waitFor(() => {
       expect(getByTestId("cookie-count").textContent).toBe("0");
     });
 
-    // 验证 stats 区域渲染且显示为 0
     expect(container.querySelector(".stats")).toBeTruthy();
     const statValues = container.querySelectorAll(".stat-value");
     expect(statValues.length).toBeGreaterThan(0);
@@ -326,12 +418,10 @@ describe("IndexPopup", () => {
     (chrome.tabs.query as Mock).mockResolvedValue([{}]);
     const { container, getByTestId } = render(<IndexPopup />);
 
-    // 等待组件初始化完成
     await waitFor(() => {
       expect(container.querySelector("header")).toBeTruthy();
     });
 
-    // 验证 currentDomain 被正确设置为空，显示"无法获取域名"
     expect(getByTestId("current-domain").textContent).toBe("无域名");
   });
 
@@ -339,13 +429,11 @@ describe("IndexPopup", () => {
     (chrome.cookies.getAll as Mock).mockRejectedValue(new Error("Failed"));
     const { container } = render(<IndexPopup />);
 
-    // 等待错误处理完成（showMessage 被调用后会显示消息）
     await waitFor(() => {
       const messageElement = container.querySelector(".message");
       expect(messageElement).toBeTruthy();
     });
 
-    // 验证错误消息显示
     const messageElement = container.querySelector(".message");
     expect(messageElement?.classList.contains("error")).toBe(true);
   });
@@ -357,25 +445,19 @@ describe("IndexPopup", () => {
   });
 
   it("should handle theme mode - auto", () => {
-    setupMockStorage({ themeMode: "auto" });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ themeMode: "auto" });
   });
 
   it("should handle theme mode - light", () => {
-    setupMockStorage({ themeMode: "light" });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ themeMode: "light" });
   });
 
   it("should handle theme mode - dark", () => {
-    setupMockStorage({ themeMode: "dark" });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ themeMode: "dark" });
   });
 
   it("should handle theme mode - custom", () => {
-    setupMockStorage({
+    testRenderWithStorage({
       themeMode: "custom",
       customTheme: {
         primary: "#ff0000",
@@ -386,41 +468,29 @@ describe("IndexPopup", () => {
         textPrimary: "#000000",
       },
     });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
   });
 
   it("should handle different modes", () => {
-    setupMockStorage({ mode: "whitelist" });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ mode: "whitelist" });
   });
 
   it("should handle empty whitelist and blacklist", () => {
-    setupMockStorage({ whitelist: [], blacklist: [] });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ whitelist: [], blacklist: [] });
   });
 
   it("should handle populated whitelist and blacklist", () => {
-    setupMockStorage({
+    testRenderWithStorage({
       whitelist: ["example.com", "test.com"],
       blacklist: ["bad.com"],
     });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
   });
 
   it("should handle cleanupOnStartup enabled", () => {
-    setupMockStorage({ cleanupOnStartup: true });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ cleanupOnStartup: true });
   });
 
   it("should handle cleanupExpiredCookies enabled", () => {
-    setupMockStorage({ cleanupExpiredCookies: true });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ cleanupExpiredCookies: true });
   });
 
   it("should handle invalid URL in tab", () => {
@@ -452,7 +522,6 @@ describe("IndexPopup", () => {
     const tabs = container.querySelectorAll('[role="tab"]');
     if (tabs.length > 1) {
       fireEvent.click(tabs[1]);
-      // Tab switching requires state update, just verify click works
       expect(tabs[1]).toBeTruthy();
     }
   });
@@ -476,7 +545,6 @@ describe("IndexPopup", () => {
     const button = getByTestId("add-to-whitelist");
     fireEvent.click(button);
 
-    // 验证 onAddToWhitelist 被调用
     expect(mockOnAddToWhitelist).toHaveBeenCalled();
   });
 
@@ -499,7 +567,6 @@ describe("IndexPopup", () => {
     const button = getByTestId("add-to-blacklist");
     fireEvent.click(button);
 
-    // 验证 onAddToBlacklist 被调用
     expect(mockOnAddToBlacklist).toHaveBeenCalled();
   });
 
@@ -509,7 +576,6 @@ describe("IndexPopup", () => {
     expect(buttons.length).toBeGreaterThan(0);
 
     if (buttons.length > 0) {
-      // 点击按钮会触发确认对话框，这里只验证按钮存在且可点击
       fireEvent.click(buttons[0]);
       expect(buttons[0]).toBeTruthy();
     }
@@ -521,7 +587,6 @@ describe("IndexPopup", () => {
     expect(buttons.length).toBeGreaterThan(1);
 
     if (buttons.length > 1) {
-      // 点击按钮会触发确认对话框，这里只验证按钮存在且可点击
       fireEvent.click(buttons[1]);
       expect(buttons[1]).toBeTruthy();
     }
@@ -551,35 +616,27 @@ describe("IndexPopup", () => {
   });
 
   it("should handle log retention settings", () => {
-    setupMockStorage({ logRetention: "forever" });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ logRetention: "forever" });
   });
 
   it("should handle settings with different clear types", () => {
-    setupMockStorage({ clearType: "session" });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ clearType: "session" });
   });
 
   it("should handle settings with auto cleanup options", () => {
-    setupMockStorage({
+    testRenderWithStorage({
       enableAutoCleanup: true,
       cleanupOnTabDiscard: true,
       cleanupOnTabClose: true,
     });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
   });
 
   it("should handle settings with advanced cleanup options", () => {
-    setupMockStorage({
+    testRenderWithStorage({
       clearCache: true,
       clearLocalStorage: true,
       clearIndexedDB: true,
     });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
   });
 
   it("should handle tab query error", async () => {
@@ -587,12 +644,10 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
 
-    // 等待组件渲染完成
     await waitFor(() => {
       expect(container.querySelector("header")).toBeTruthy();
     });
 
-    // 验证组件仍然可以渲染，即使 tabs.query 失败
     expect(container.querySelector("header")).toBeTruthy();
   });
 
@@ -613,7 +668,6 @@ describe("IndexPopup", () => {
 
   it("should render cookie list in manage tab", () => {
     const { container } = render(<IndexPopup />);
-    // Cookie list should be visible in manage tab by default
     expect(container.querySelector('[data-testid="cookie-list"]')).toBeTruthy();
   });
 
@@ -627,9 +681,7 @@ describe("IndexPopup", () => {
   });
 
   it("should handle blacklist mode", () => {
-    setupMockStorage({ mode: "blacklist" });
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector("header")).toBeTruthy();
+    testRenderWithStorage({ mode: "blacklist" });
   });
 
   it("should handle current domain empty", () => {
@@ -646,20 +698,16 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
 
-    // 等待组件渲染完成
     await waitFor(() => {
       expect(container.querySelector(".button-group")).toBeTruthy();
     });
 
-    // 点击清除所有按钮并等待确认
     await clickClearAllAndConfirm(container);
 
-    // 验证 performCleanupWithFilter 被调用
     await waitFor(() => {
       expect(performCleanupWithFilter).toHaveBeenCalled();
     });
 
-    // 验证函数被正确调用（使用 expect.any(Function) 来匹配过滤函数）
     expect(performCleanupWithFilter).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
@@ -676,15 +724,12 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
 
-    // 等待组件渲染完成
     await waitFor(() => {
       expect(container.querySelector(".button-group")).toBeTruthy();
     });
 
-    // 点击清除所有按钮并等待确认
     await clickClearAllAndConfirm(container);
 
-    // 验证 performCleanupWithFilter 被调用
     await waitFor(() => {
       expect(performCleanupWithFilter).toHaveBeenCalled();
     });
@@ -696,15 +741,12 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
 
-    // 等待组件渲染完成
     await waitFor(() => {
       expect(container.querySelector(".button-group")).toBeTruthy();
     });
 
-    // 点击清除所有按钮并等待确认
     await clickClearAllAndConfirm(container);
 
-    // 验证 performCleanupWithFilter 被调用，且组件正确处理了错误
     await waitFor(() => {
       expect(performCleanupWithFilter).toHaveBeenCalled();
     });
@@ -713,72 +755,24 @@ describe("IndexPopup", () => {
   });
 
   it("should show message when domain already in whitelist via quick add button", async () => {
-    setupMockStorage({ whitelist: ["example.com"] });
-    const { container } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      const addButton = container.querySelector(".btn-success");
-      if (addButton) {
-        fireEvent.click(addButton);
-      }
-    });
-
-    // Should show "already in whitelist" message
-    await waitFor(() => {
-      const messageElement = container.querySelector(".message");
-      expect(messageElement).toBeTruthy();
-    });
+    await testQuickAddButton("whitelist", ["example.com"], ".btn-success");
   });
 
   it("should show message when domain already in blacklist via quick add button", async () => {
-    setupMockStorage({ blacklist: ["example.com"] });
-    const { container } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      const addButton = container.querySelector(".btn-secondary");
-      if (addButton) {
-        fireEvent.click(addButton);
-      }
-    });
-
-    // Should show "already in blacklist" message
-    await waitFor(() => {
-      const messageElement = container.querySelector(".message");
-      expect(messageElement).toBeTruthy();
-    });
+    await testQuickAddButton("blacklist", ["example.com"], ".btn-secondary");
   });
 
   it("should handle tab switching to rules tab with whitelist mode", () => {
-    setupMockStorage({ mode: "whitelist" });
-    const { container, getByTestId } = render(<IndexPopup />);
-
-    const rulesTab = container.querySelector('[data-testid="tab-rules"]');
-    if (rulesTab) {
-      fireEvent.click(rulesTab);
-    }
-
-    expect(getByTestId("domain-manager")).toBeTruthy();
-    expect(getByTestId("domain-manager").textContent).toContain("Whitelist");
+    testRulesTab("whitelist", "Whitelist");
   });
 
   it("should handle tab switching to rules tab with blacklist mode", () => {
-    setupMockStorage({ mode: "blacklist" });
-    const { container, getByTestId } = render(<IndexPopup />);
-
-    const rulesTab = container.querySelector('[data-testid="tab-rules"]');
-    if (rulesTab) {
-      fireEvent.click(rulesTab);
-    }
-
-    expect(getByTestId("domain-manager")).toBeTruthy();
-    expect(getByTestId("domain-manager").textContent).toContain("Blacklist");
-    expect(getByTestId("clear-blacklist")).toBeTruthy();
+    testRulesTab("blacklist", "Blacklist", true);
   });
 
   it("should show cookie risk when enabled", () => {
     setupMockStorage({ showCookieRisk: true });
     const { container } = render(<IndexPopup />);
-
     const riskEnabled = container.querySelector('[data-testid="cookie-risk-enabled"]');
     expect(riskEnabled).toBeTruthy();
   });
@@ -786,74 +780,36 @@ describe("IndexPopup", () => {
   it("should not show cookie risk when disabled", () => {
     setupMockStorage({ showCookieRisk: false });
     const { container } = render(<IndexPopup />);
-
     const riskDisabled = container.querySelector('[data-testid="cookie-risk-disabled"]');
     expect(riskDisabled).toBeTruthy();
   });
 
   it("should handle tab switching to settings tab", () => {
-    const { container } = render(<IndexPopup />);
-
-    const settingsTab = container.querySelector('[data-testid="tab-settings"]');
-    if (settingsTab) {
-      fireEvent.click(settingsTab);
-      expect(settingsTab).toBeTruthy();
-    }
+    testTabSwitching("tab-settings");
   });
 
   it("should handle tab switching to log tab", () => {
-    const { container } = render(<IndexPopup />);
-
-    const logTab = container.querySelector('[data-testid="tab-log"]');
-    if (logTab) {
-      fireEvent.click(logTab);
-      expect(logTab).toBeTruthy();
-    }
+    testTabSwitching("tab-log");
   });
 
   it("should handle keyboard navigation with ArrowRight", () => {
-    const { container } = render(<IndexPopup />);
-
-    const tablist = container.querySelector(".tabs");
-    if (tablist) {
-      fireEvent.keyDown(tablist, { key: "ArrowRight" });
-      expect(tablist).toBeTruthy();
-    }
+    testKeyboardNavigation("ArrowRight");
   });
 
   it("should handle keyboard navigation with ArrowLeft", () => {
-    const { container } = render(<IndexPopup />);
-
-    const tablist = container.querySelector(".tabs");
-    if (tablist) {
-      fireEvent.keyDown(tablist, { key: "ArrowLeft" });
-      expect(tablist).toBeTruthy();
-    }
+    testKeyboardNavigation("ArrowLeft");
   });
 
   it("should handle keyboard navigation with Home", () => {
-    const { container } = render(<IndexPopup />);
-
-    const tablist = container.querySelector(".tabs");
-    if (tablist) {
-      fireEvent.keyDown(tablist, { key: "Home" });
-      expect(tablist).toBeTruthy();
-    }
+    testKeyboardNavigation("Home");
   });
 
   it("should handle keyboard navigation with End", () => {
-    const { container } = render(<IndexPopup />);
-
-    const tablist = container.querySelector(".tabs");
-    if (tablist) {
-      fireEvent.keyDown(tablist, { key: "End" });
-      expect(tablist).toBeTruthy();
-    }
+    testKeyboardNavigation("End");
   });
 
   it("should handle clear current cookies", () => {
     const { container } = render(<IndexPopup />);
-
     const clearCurrentButton = container.querySelector(".btn-warning");
     if (clearCurrentButton) {
       fireEvent.click(clearCurrentButton);
@@ -864,18 +820,16 @@ describe("IndexPopup", () => {
   it("should handle message display and auto-hide", async () => {
     const { container } = render(<IndexPopup />);
 
-    // Wait for component to mount
     await waitFor(() => {
       expect(container.querySelector(".container")).toBeTruthy();
     });
 
-    // Message should be initially hidden
     const messageElement = container.querySelector(".message");
     expect(messageElement).toBeTruthy();
   });
 
   it("should handle custom theme colors", () => {
-    setupMockStorage({
+    testRenderWithStorage({
       themeMode: "custom",
       customTheme: {
         primary: "#ff0000",
@@ -888,13 +842,10 @@ describe("IndexPopup", () => {
         textSecondary: "#475569",
       },
     });
-
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector(".container")).toBeTruthy();
   });
 
   it("should handle tab switching to all tabs", async () => {
-    const { container, getByTestId } = render(<IndexPopup />);
+    const { container } = render(<IndexPopup />);
 
     await waitFor(() => {
       expect(container.querySelector(".tabs")).toBeTruthy();
@@ -917,106 +868,40 @@ describe("IndexPopup", () => {
   });
 
   it("should show message when domain is added to whitelist via quick add button", async () => {
-    setupMockStorage({ whitelist: [] });
-    const { container } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      const addButton = container.querySelector(".btn-success");
-      if (addButton) {
-        fireEvent.click(addButton);
-      }
-    });
-
-    await waitFor(() => {
-      const messageElement = container.querySelector(".message");
-      expect(messageElement).toBeTruthy();
-    });
+    await testQuickAddButton("whitelist", [], ".btn-success");
   });
 
   it("should show message when domain is added to blacklist via quick add button", async () => {
-    setupMockStorage({ blacklist: [] });
-    const { container } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      const addButton = container.querySelector(".btn-secondary");
-      if (addButton) {
-        fireEvent.click(addButton);
-      }
-    });
-
-    await waitFor(() => {
-      const messageElement = container.querySelector(".message");
-      expect(messageElement).toBeTruthy();
-    });
+    await testQuickAddButton("blacklist", [], ".btn-secondary");
   });
 
   it("should handle clear blacklist cookies in rules tab with blacklist mode", async () => {
-    setupMockStorage({ mode: "blacklist", blacklist: ["example.com"] });
-    const { container, getByTestId } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      expect(container.querySelector(".tabs")).toBeTruthy();
-    });
-
-    const rulesTab = container.querySelector('[data-testid="tab-rules"]');
-    if (rulesTab) {
-      fireEvent.click(rulesTab);
-    }
-
-    await waitFor(() => {
-      const clearBtn = getByTestId("clear-blacklist");
-      fireEvent.click(clearBtn);
-    });
-
+    await testClearBlacklist(
+      { count: 5, clearedDomains: ["example.com"] },
+      { blacklist: ["example.com"] }
+    );
     await waitFor(() => {
       expect(performCleanupWithFilter).toHaveBeenCalled();
     });
   });
 
+  it("should handle clear blacklist with cookies found and current domain in cleared domains", async () => {
+    await testClearBlacklist(
+      { count: 5, clearedDomains: ["example.com", "test.com"] },
+      { blacklist: ["example.com", "test.com"] },
+      [{ url: "https://example.com/page", active: true } as any]
+    );
+  });
+
   it("should handle clear blacklist with no cookies found", async () => {
-    vi.mocked(performCleanupWithFilter).mockResolvedValue({
-      count: 0,
-      clearedDomains: [],
-    });
-
-    setupMockStorage({ mode: "blacklist", blacklist: ["example.com"] });
-    const { container, getByTestId } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      expect(container.querySelector(".tabs")).toBeTruthy();
-    });
-
-    const rulesTab = container.querySelector('[data-testid="tab-rules"]');
-    if (rulesTab) {
-      fireEvent.click(rulesTab);
-    }
-
-    await waitFor(() => {
-      const clearBtn = getByTestId("clear-blacklist");
-      fireEvent.click(clearBtn);
-    });
+    await testClearBlacklist({ count: 0, clearedDomains: [] }, { blacklist: ["example.com"] });
   });
 
   it("should handle clear blacklist error", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(performCleanupWithFilter).mockRejectedValue(new Error("Clear failed"));
 
-    setupMockStorage({ mode: "blacklist", blacklist: ["example.com"] });
-    const { container, getByTestId } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      expect(container.querySelector(".tabs")).toBeTruthy();
-    });
-
-    const rulesTab = container.querySelector('[data-testid="tab-rules"]');
-    if (rulesTab) {
-      fireEvent.click(rulesTab);
-    }
-
-    await waitFor(() => {
-      const clearBtn = getByTestId("clear-blacklist");
-      fireEvent.click(clearBtn);
-    });
+    await testClearBlacklist(undefined, { blacklist: ["example.com"] });
 
     await waitFor(() => {
       expect(performCleanupWithFilter).toHaveBeenCalled();

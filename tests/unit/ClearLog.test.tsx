@@ -104,37 +104,63 @@ vi.mock("@/hooks/useStorage", () => ({
   useStorage: vi.fn(),
 }));
 
-describe("ClearLog", () => {
+const setupTest = () => {
   const mockOnMessage = vi.fn();
   const { useStorageMock, resetStorage, setStorageValue } = createUseStorageMock();
 
+  const useStorage = storageHook.useStorage;
+  (useStorage as ReturnType<typeof vi.fn>).mockImplementation(useStorageMock);
+
+  setStorageValue("local:settings", {
+    mode: "whitelist",
+    themeMode: "light",
+    clearType: "all",
+    clearCache: false,
+    clearLocalStorage: false,
+    clearIndexedDB: false,
+    cleanupOnStartup: false,
+    cleanupExpiredCookies: false,
+    logRetention: "7d",
+    locale: "zh-CN",
+  });
+  setStorageValue("local:clearLog", []);
+
+  return { mockOnMessage, resetStorage, setStorageValue };
+};
+
+const testClearAllLogs = (shouldConfirm: boolean) => {
+  const { mockOnMessage } = setupTest();
+  render(<ClearLog onMessage={mockOnMessage} />);
+
+  const clearAllButton = screen.getByText("清除全部");
+  fireEvent.click(clearAllButton);
+
+  expect(screen.getByText("确定要清除所有日志记录吗？")).toBeInTheDocument();
+
+  if (shouldConfirm) {
+    const confirmButton = screen.getByText("确定");
+    fireEvent.click(confirmButton);
+    expect(mockOnMessage).toHaveBeenCalledWith("已清除日志");
+  } else {
+    const cancelButton = screen.getByText("取消");
+    fireEvent.click(cancelButton);
+    expect(mockOnMessage).not.toHaveBeenCalled();
+  }
+};
+
+describe("ClearLog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resetStorage();
-    const useStorage = storageHook.useStorage;
-    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(useStorageMock);
-
-    setStorageValue("local:settings", {
-      mode: "whitelist",
-      themeMode: "light",
-      clearType: "all",
-      clearCache: false,
-      clearLocalStorage: false,
-      clearIndexedDB: false,
-      cleanupOnStartup: false,
-      cleanupExpiredCookies: false,
-      logRetention: "7d",
-      locale: "zh-CN",
-    });
-    setStorageValue("local:clearLog", []);
   });
 
   it("should render empty state when no logs", () => {
+    const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
     expect(screen.getByText("暂无清除日志记录")).toBeTruthy();
   });
 
   it("should render log header", () => {
+    const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
     expect(screen.getByText("清除日志")).toBeTruthy();
     expect(screen.getByText("清除过期")).toBeTruthy();
@@ -143,6 +169,7 @@ describe("ClearLog", () => {
   });
 
   it("should call onMessage when export logs is clicked", () => {
+    const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
     const exportButton = screen.getByText("导出日志");
     fireEvent.click(exportButton);
@@ -150,11 +177,13 @@ describe("ClearLog", () => {
   });
 
   it("should call onMessage when clear old logs is clicked", () => {
+    const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
     expect(screen.getByText("清除过期")).toBeTruthy();
   });
 
   it("should show confirm dialog when clear all logs is clicked", () => {
+    const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
     const clearAllButton = screen.getByText("清除全部");
     fireEvent.click(clearAllButton);
@@ -162,24 +191,15 @@ describe("ClearLog", () => {
   });
 
   it("should clear logs when confirm is accepted", () => {
-    render(<ClearLog onMessage={mockOnMessage} />);
-    const clearAllButton = screen.getByText("清除全部");
-    fireEvent.click(clearAllButton);
-    const confirmButton = screen.getByText("确定");
-    fireEvent.click(confirmButton);
-    expect(mockOnMessage).toHaveBeenCalledWith("已清除日志");
+    testClearAllLogs(true);
   });
 
   it("should not clear logs when confirm is cancelled", () => {
-    render(<ClearLog onMessage={mockOnMessage} />);
-    const clearAllButton = screen.getByText("清除全部");
-    fireEvent.click(clearAllButton);
-    const cancelButton = screen.getByText("取消");
-    fireEvent.click(cancelButton);
-    expect(mockOnMessage).not.toHaveBeenCalled();
+    testClearAllLogs(false);
   });
 
   it("should show message when log retention is forever", async () => {
+    const { mockOnMessage, setStorageValue } = setupTest();
     setStorageValue("local:settings", {
       mode: "whitelist",
       themeMode: "light",
@@ -200,6 +220,7 @@ describe("ClearLog", () => {
   });
 
   it("should show message when no expired logs found", async () => {
+    const { mockOnMessage } = setupTest();
     const mockSetLogs = vi.fn((fn) => fn([]));
     const useStorage = storageHook.useStorage;
     (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
@@ -235,6 +256,7 @@ describe("ClearLog", () => {
   });
 
   it("should clear expired logs and show message", async () => {
+    const { mockOnMessage } = setupTest();
     const oldTimestamp = Date.now() - 8 * 24 * 60 * 60 * 1000;
     const oldLog = createMockLogEntry({
       id: "test-log-1",
@@ -278,6 +300,7 @@ describe("ClearLog", () => {
   });
 
   it("should render log list with items", () => {
+    const { mockOnMessage, setStorageValue } = setupTest();
     setStorageValue("local:clearLog", [
       {
         id: "test-log-1",
