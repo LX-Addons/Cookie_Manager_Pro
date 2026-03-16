@@ -13,7 +13,6 @@ import {
   getCookieKey,
   toggleSetValue,
   isSensitiveCookie,
-  isInList,
   formatCookieSameSite,
 } from "@/utils";
 import { CookieEditor } from "./CookieEditor";
@@ -244,6 +243,44 @@ export const CookieListContent = memo(
       return domains;
     };
 
+    const filterRedundantDomains = (domains: string[], existingList?: string[]): string[] => {
+      const normalizedDomains = domains.map((d) => normalizeDomain(d));
+      const existingNormalized = existingList?.map((d) => normalizeDomain(d)) || [];
+
+      const result: string[] = [];
+      for (const domain of normalizedDomains) {
+        const isCoveredByExisting = existingNormalized.some((existing) => {
+          return domain === existing || domain.endsWith("." + existing);
+        });
+        if (isCoveredByExisting) {
+          continue;
+        }
+
+        const isSubdomainOfAnotherNew = result.some((added) => {
+          return domain === added || domain.endsWith("." + added);
+        });
+        if (isSubdomainOfAnotherNew) {
+          continue;
+        }
+
+        const isParentOfAnotherNew = normalizedDomains.some((other) => {
+          return other !== domain && (other === domain || other.endsWith("." + domain));
+        });
+        if (isParentOfAnotherNew) {
+          const alreadyHasParent = result.some((added) => {
+            return added === domain || added.endsWith("." + domain);
+          });
+          if (!alreadyHasParent) {
+            result.push(domain);
+          }
+        } else {
+          result.push(domain);
+        }
+      }
+
+      return result;
+    };
+
     const handleAddToWhitelist = () => {
       if (!onAddToWhitelist) {
         onMessage?.(t("cookieList.functionUnavailable"), true);
@@ -251,9 +288,7 @@ export const CookieListContent = memo(
       }
       const domains = getSelectedDomains();
       const domainArray = Array.from(domains);
-      const newDomains = domainArray.filter(
-        (domain) => !_whitelist || !isInList(domain, _whitelist)
-      );
+      const newDomains = filterRedundantDomains(domainArray, _whitelist);
       if (newDomains.length > 0) {
         onAddToWhitelist(newDomains);
         onMessage?.(t("cookieList.addedDomainsToWhitelist", { count: newDomains.length }));
@@ -271,9 +306,7 @@ export const CookieListContent = memo(
       }
       const domains = getSelectedDomains();
       const domainArray = Array.from(domains);
-      const newDomains = domainArray.filter(
-        (domain) => !_blacklist || !isInList(domain, _blacklist)
-      );
+      const newDomains = filterRedundantDomains(domainArray, _blacklist);
       if (newDomains.length > 0) {
         onAddToBlacklist(newDomains);
         onMessage?.(t("cookieList.addedDomainsToBlacklist", { count: newDomains.length }));
@@ -301,10 +334,10 @@ export const CookieListContent = memo(
               onClick={() => setIsExpanded(!isExpanded)}
               aria-expanded={isExpanded}
             >
-              <h3>
+              <span role="heading" aria-level={3}>
                 <span aria-hidden="true">🍪</span>{" "}
                 {t("cookieList.cookieDetails", { count: cookies.length })}
-              </h3>
+              </span>
               <span className={`expand-icon ${isExpanded ? "expanded" : ""}`} aria-hidden="true">
                 ▼
               </span>

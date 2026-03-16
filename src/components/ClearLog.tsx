@@ -4,7 +4,7 @@ import type { ClearLogEntry, Settings } from "@/types";
 import { LogRetention } from "@/types";
 import { getCookieTypeName, getActionText, getActionColor, formatLogTime } from "@/utils";
 import { useMemo } from "react";
-import { ConfirmDialogWrapper, type ShowConfirmFn } from "./ConfirmDialogWrapper";
+import { ConfirmDialogWrapper, type ShowConfirmFn } from "@/components/ConfirmDialogWrapper";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {

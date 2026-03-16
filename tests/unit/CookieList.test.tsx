@@ -1058,10 +1058,14 @@ describe("CookieListContent", () => {
 describe("CookieList additional regression tests", () => {
   const mockOnUpdate = vi.fn();
   const mockOnMessage = vi.fn();
+  const mockOnAddToWhitelist = vi.fn();
+  const mockOnAddToBlacklist = vi.fn();
 
   beforeEach(() => {
     mockOnUpdate.mockClear();
     mockOnMessage.mockClear();
+    mockOnAddToWhitelist.mockClear();
+    mockOnAddToBlacklist.mockClear();
     mockClearSingleCookie.mockClear();
     mockEditCookie.mockClear();
     mockCreateCookie.mockClear();
@@ -1274,5 +1278,533 @@ describe("CookieList additional regression tests", () => {
 
     fireEvent.click(checkboxes[1]);
     expect(screen.getByText(/已选择/)).toBeTruthy();
+  });
+
+  it("should handle delete cookie with failure", async () => {
+    mockClearSingleCookie.mockResolvedValueOnce(false);
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+    }
+
+    const deleteButtons = screen.getAllByLabelText("删除");
+    fireEvent.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+    });
+
+    const confirmButton = screen.getByTestId("confirm-yes");
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle delete cookie with exception", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockClearSingleCookie.mockRejectedValueOnce(new Error("Delete failed"));
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+    }
+
+    const deleteButtons = screen.getAllByLabelText("删除");
+    fireEvent.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+    });
+
+    const confirmButton = screen.getByTestId("confirm-yes");
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should handle edit cookie with failure", async () => {
+    mockEditCookie.mockResolvedValueOnce(false);
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+    }
+
+    const editButtons = screen.getAllByLabelText("编辑");
+    fireEvent.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cookie-editor")).toBeTruthy();
+    });
+
+    const saveButton = screen.getByTestId("save-editor");
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle edit cookie with exception", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockEditCookie.mockRejectedValueOnce(new Error("Edit failed"));
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+    }
+
+    const editButtons = screen.getAllByLabelText("编辑");
+    fireEvent.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cookie-editor")).toBeTruthy();
+    });
+
+    const saveButton = screen.getByTestId("save-editor");
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should handle create cookie with failure", async () => {
+    mockCreateCookie.mockResolvedValueOnce(false);
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={[]}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const createButton = screen.getByRole("button", { name: /创建 Cookie/ });
+    fireEvent.click(createButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cookie-editor")).toBeTruthy();
+    });
+
+    const saveButton = screen.getByTestId("save-editor");
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle create cookie with exception", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockCreateCookie.mockRejectedValueOnce(new Error("Create failed"));
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={[]}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const createButton = screen.getByRole("button", { name: /创建 Cookie/ });
+    fireEvent.click(createButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cookie-editor")).toBeTruthy();
+    });
+
+    const saveButton = screen.getByTestId("save-editor");
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should handle delete selected with some failures", async () => {
+    mockClearSingleCookie
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error("Failed"));
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const deleteSelectedBtn = screen.getByText("删除选中");
+    fireEvent.click(deleteSelectedBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+    });
+
+    const confirmButton = screen.getByTestId("confirm-yes");
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(mockOnMessage).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle sensitive cookie in delete selected", async () => {
+    const { isSensitiveCookie } = await import("@/utils");
+    (isSensitiveCookie as any).mockImplementation((cookie: any) => cookie.name === "sensitive");
+
+    const sensitiveCookies = [
+      {
+        name: "sensitive",
+        value: "val",
+        domain: "example.com",
+        path: "/",
+        secure: true,
+        httpOnly: false,
+        sameSite: "lax" as const,
+      },
+    ];
+
+    mockClearSingleCookie.mockResolvedValue(true);
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={sensitiveCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+    }
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const deleteSelectedBtn = screen.getByText("删除选中");
+    fireEvent.click(deleteSelectedBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+    });
+  });
+
+  it("should filter redundant domains when adding to whitelist", async () => {
+    const domainsWithRedundancy = [
+      {
+        name: "cookie1",
+        value: "val",
+        domain: "example.com",
+        path: "/",
+        secure: true,
+        httpOnly: false,
+        sameSite: "lax" as const,
+      },
+      {
+        name: "cookie2",
+        value: "val",
+        domain: "sub.example.com",
+        path: "/",
+        secure: true,
+        httpOnly: false,
+        sameSite: "lax" as const,
+      },
+    ];
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={domainsWithRedundancy}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToWhitelistBtn = screen.getByText("加入白名单");
+    fireEvent.click(addToWhitelistBtn);
+
+    expect(mockOnAddToWhitelist).toHaveBeenCalledWith(["example.com"]);
+  });
+
+  it("should filter redundant domains when adding to blacklist", async () => {
+    const domainsWithRedundancy = [
+      {
+        name: "cookie1",
+        value: "val",
+        domain: "example.com",
+        path: "/",
+        secure: true,
+        httpOnly: false,
+        sameSite: "lax" as const,
+      },
+      {
+        name: "cookie2",
+        value: "val",
+        domain: "sub.example.com",
+        path: "/",
+        secure: true,
+        httpOnly: false,
+        sameSite: "lax" as const,
+      },
+    ];
+
+    render(
+      <CookieListContentWithConfirm
+        cookies={domainsWithRedundancy}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={[]}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToBlacklistBtn = screen.getByText("加入黑名单");
+    fireEvent.click(addToBlacklistBtn);
+
+    expect(mockOnAddToBlacklist).toHaveBeenCalledWith(["example.com"]);
+  });
+
+  it("should show message when domains already in whitelist", async () => {
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+        whitelist={["example.com", "test.com"]}
+        blacklist={[]}
+        onAddToWhitelist={mockOnAddToWhitelist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToWhitelistBtn = screen.getByText("加入白名单");
+    fireEvent.click(addToWhitelistBtn);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("域名已在白名单中", true);
+  });
+
+  it("should show message when domains already in blacklist", async () => {
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+        whitelist={[]}
+        blacklist={["example.com", "test.com"]}
+        onAddToBlacklist={mockOnAddToBlacklist}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const selectAllCheckbox = screen.getByRole("checkbox", { name: /全选/ });
+    fireEvent.click(selectAllCheckbox);
+
+    const addToBlacklistBtn = screen.getByText("加入黑名单");
+    fireEvent.click(addToBlacklistBtn);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("域名已在黑名单中", true);
+  });
+
+  it("should update selected cookies when cookie list changes", async () => {
+    const { rerender } = render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+    }
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    if (checkboxes.length > 1) {
+      fireEvent.click(checkboxes[1]);
+    }
+
+    const updatedCookies = mockCookies.slice(0, 1);
+    rerender(
+      <CookieListContentWithConfirm
+        cookies={updatedCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+  });
+
+  it("should handle domain group expansion and collapse", async () => {
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+      fireEvent.click(exampleDomainBtn);
+    }
+  });
+
+  it("should hide cookie risk when showCookieRisk is false", async () => {
+    render(
+      <CookieListContentWithConfirm
+        cookies={mockCookies}
+        currentDomain="example.com"
+        onUpdate={mockOnUpdate}
+        onMessage={mockOnMessage}
+        showCookieRisk={false}
+      />
+    );
+
+    const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
+    fireEvent.click(headerButton);
+
+    const domainButtons = screen.getAllByRole("button");
+    const exampleDomainBtn = domainButtons.find((btn) =>
+      hasDomainInText(btn.textContent, "example.com")
+    );
+    if (exampleDomainBtn) {
+      fireEvent.click(exampleDomainBtn);
+    }
+
+    expect(screen.queryByText("低风险")).toBeNull();
   });
 });

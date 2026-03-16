@@ -1,5 +1,19 @@
-import { describe, it, expect } from "vitest";
-import { hasDomainInText, createTranslationMock, createUseStorageMock } from "../utils/mocks";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  hasDomainInText,
+  createTranslationMock,
+  createUseStorageMock,
+  createMockCookie,
+  createMockLogEntry,
+  setupChromeCookieMocks,
+  setupChromeBrowsingDataMocks,
+  commonTranslations,
+  settingsTranslations,
+  cookieEditorTranslations,
+  cookieListTranslations,
+  clearLogTranslations,
+  createConfirmDialogWrapperMock,
+} from "../utils/mocks";
 
 const TEST_DOMAIN = "example.com";
 
@@ -165,6 +179,161 @@ describe("mocks", () => {
       setStorageValue("test-key", "direct-value");
       const [value] = useStorageMock("test-key", "default-value");
       expect(value).toBe("direct-value");
+    });
+  });
+
+  describe("createMockCookie", () => {
+    it("should create a default mock cookie", () => {
+      const cookie = createMockCookie();
+      expect(cookie.name).toBe("test");
+      expect(cookie.value).toBe("value123");
+      expect(cookie.domain).toBe(".example.com");
+    });
+
+    it("should override default values with provided overrides", () => {
+      const cookie = createMockCookie({
+        name: "custom",
+        value: "custom-value",
+        domain: "test.com",
+      });
+      expect(cookie.name).toBe("custom");
+      expect(cookie.value).toBe("custom-value");
+      expect(cookie.domain).toBe("test.com");
+    });
+  });
+
+  describe("createMockLogEntry", () => {
+    it("should create a default mock log entry", () => {
+      const logEntry = createMockLogEntry();
+      expect(logEntry.id).toBe("test-log");
+      expect(logEntry.domain).toBe("example.com");
+      expect(logEntry.action).toBe("clear");
+    });
+
+    it("should override default values with provided overrides", () => {
+      const logEntry = createMockLogEntry({
+        id: "custom-id",
+        domain: "test.com",
+        count: 5,
+      });
+      expect(logEntry.id).toBe("custom-id");
+      expect(logEntry.domain).toBe("test.com");
+      expect(logEntry.count).toBe(5);
+    });
+  });
+
+  describe("setupChromeCookieMocks", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      global.chrome = {
+        cookies: {
+          getAll: vi.fn(),
+          remove: vi.fn(),
+          set: vi.fn(),
+        },
+      } as unknown as typeof chrome;
+    });
+
+    it("should setup chrome cookie mocks with default cookies", () => {
+      setupChromeCookieMocks();
+      expect(chrome.cookies.getAll).toBeDefined();
+      expect(chrome.cookies.remove).toBeDefined();
+      expect(chrome.cookies.set).toBeDefined();
+    });
+
+    it("should setup chrome cookie mocks with provided cookies", () => {
+      const testCookie = createMockCookie({ name: "test1" });
+      setupChromeCookieMocks([testCookie]);
+      expect(chrome.cookies.getAll).toBeDefined();
+    });
+
+    it("should setup remove error when option is provided", async () => {
+      const testError = new Error("Remove failed");
+      setupChromeCookieMocks([], { removeError: testError });
+      await expect(
+        (chrome.cookies.remove as any)({ name: "test", url: "http://example.com" })
+      ).rejects.toThrow("Remove failed");
+    });
+
+    it("should setup set error when option is provided", async () => {
+      const testError = new Error("Set failed");
+      setupChromeCookieMocks([], { setError: testError });
+      await expect(
+        (chrome.cookies.set as any)({ name: "test", url: "http://example.com", value: "test" })
+      ).rejects.toThrow("Set failed");
+    });
+  });
+
+  describe("setupChromeBrowsingDataMocks", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      global.chrome = {
+        browsingData: {},
+      } as unknown as typeof chrome;
+    });
+
+    it("should setup chrome browsing data mocks", () => {
+      const mockRemove = setupChromeBrowsingDataMocks();
+      expect(mockRemove).toBeDefined();
+    });
+
+    it("should setup remove error when option is provided", async () => {
+      const testError = new Error("Browsing data remove failed");
+      const mockRemove = setupChromeBrowsingDataMocks({
+        removeError: testError,
+      });
+      await expect(mockRemove()).rejects.toThrow("Browsing data remove failed");
+    });
+  });
+
+  describe("translation objects", () => {
+    it("should have common translations", () => {
+      expect(commonTranslations["common.cancel"]).toBe("取消");
+      expect(commonTranslations["common.save"]).toBe("保存");
+      expect(commonTranslations["common.delete"]).toBe("删除");
+    });
+
+    it("should have settings translations", () => {
+      expect(settingsTranslations["settings.workMode"]).toBe("工作模式");
+      expect(settingsTranslations["settings.whitelistMode"]).toBe(
+        "白名单模式：仅白名单内网站不执行清理"
+      );
+    });
+
+    it("should have cookie editor translations", () => {
+      expect(cookieEditorTranslations["cookieEditor.createCookie"]).toBe("新建 Cookie");
+      expect(cookieEditorTranslations["cookieEditor.editCookie"]).toBe("编辑 Cookie");
+    });
+
+    it("should have cookie list translations", () => {
+      expect(cookieListTranslations["cookieList.noCookies"]).toBe("当前网站暂无 Cookie");
+      expect(cookieListTranslations["cookieList.cookieDetails"]).toBe("Cookie 详情 ({count})");
+    });
+
+    it("should have clear log translations", () => {
+      expect(clearLogTranslations["clearLog.clearLogs"]).toBe("清除日志");
+      expect(clearLogTranslations["clearLog.noLogs"]).toBe("暂无清除日志记录");
+    });
+
+    it("should include common translations in other translation objects", () => {
+      expect(settingsTranslations["common.cancel"]).toBe("取消");
+      expect(cookieEditorTranslations["common.save"]).toBe("保存");
+    });
+  });
+
+  describe("createConfirmDialogWrapperMock", () => {
+    it("should create confirm dialog wrapper mock", () => {
+      const mock = createConfirmDialogWrapperMock();
+      expect(mock.ConfirmDialogWrapper).toBeDefined();
+      expect(typeof mock.ConfirmDialogWrapper).toBe("function");
+    });
+
+    it("should create confirm dialog wrapper with custom options", () => {
+      const mock = createConfirmDialogWrapperMock({
+        confirmText: "自定义确认",
+        showDataTestId: false,
+      });
+      expect(mock.ConfirmDialogWrapper).toBeDefined();
     });
   });
 });

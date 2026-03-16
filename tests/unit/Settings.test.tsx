@@ -86,12 +86,16 @@ vi.mock("@/hooks/useTranslation", () => {
     "settings.thirtyDays": "30天",
     "settings.forever": "永久",
     "settings.enableAutoCleanup": "启用自动清理",
+    "settings.cleanupOnTabClose": "标签关闭时清理",
+    "settings.cleanupOnBrowserClose": "浏览器关闭时清理",
+    "settings.cleanupOnNavigate": "导航时清理",
     "settings.themeMode": "主题模式",
     "settings.themeModeDesc": "选择您喜欢的界面主题风格",
     "settings.followBrowser": "跟随系统",
     "settings.light": "浅色主题",
     "settings.dark": "深色主题",
     "settings.custom": "自定义主题",
+    "settings.customTheme": "自定义主题",
     "settings.customThemeDesc": "自定义扩展的主题颜色",
     "settings.primaryColor": "主色调",
     "settings.successColor": "成功色",
@@ -402,7 +406,8 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByText("自定义主题")).toBeTruthy();
+    const resetButton = screen.getByText("重置主题");
+    expect(resetButton).toBeTruthy();
   });
 
   it("should handle custom theme color change", () => {
@@ -410,7 +415,8 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByText("自定义主题")).toBeTruthy();
+    const customThemeSection = screen.getByText("重置主题");
+    expect(customThemeSection).toBeTruthy();
   });
 
   it("should handle reset custom theme", () => {
@@ -599,7 +605,8 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByText("自定义主题")).toBeTruthy();
+    const resetButton = screen.getByText("重置主题");
+    expect(resetButton).toBeTruthy();
   });
 
   it("should render with log retention forever selected", () => {
@@ -683,5 +690,315 @@ describe("Settings", () => {
     expect(mockSettings.enableAutoCleanup).toBe(false);
     expect(mockSettings.cleanupOnStartup).toBe(true);
     expect(mockSettings.cleanupExpiredCookies).toBe(true);
+  });
+
+  it("should handle cleanup on tab close toggle", () => {
+    mockSettings.enableAutoCleanup = true;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const cleanupOnTabCloseLabel = screen.getByText("标签关闭时清理");
+    expect(cleanupOnTabCloseLabel).toBeTruthy();
+  });
+
+  it("should handle cleanup on browser close toggle", () => {
+    mockSettings.enableAutoCleanup = true;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const cleanupOnBrowserCloseLabel = screen.getByText("浏览器关闭时清理");
+    expect(cleanupOnBrowserCloseLabel).toBeTruthy();
+  });
+
+  it("should handle cleanup on navigate toggle", () => {
+    mockSettings.enableAutoCleanup = true;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const cleanupOnNavigateLabel = screen.getByText("导航时清理");
+    expect(cleanupOnNavigateLabel).toBeTruthy();
+  });
+
+  it("should handle custom theme success color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const successColorLabel = screen.getByText("成功色");
+    expect(successColorLabel).toBeTruthy();
+  });
+
+  it("should handle custom theme warning color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const warningColorLabel = screen.getByText("警告色");
+    expect(warningColorLabel).toBeTruthy();
+  });
+
+  it("should handle custom theme danger color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const dangerColorLabel = screen.getByText("危险色");
+    expect(dangerColorLabel).toBeTruthy();
+  });
+
+  it("should handle custom theme bgPrimary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const bgPrimaryColorLabel = screen.getByText("主背景色");
+    expect(bgPrimaryColorLabel).toBeTruthy();
+  });
+
+  it("should handle custom theme textPrimary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const textPrimaryColorLabel = screen.getByText("主文字色");
+    expect(textPrimaryColorLabel).toBeTruthy();
+  });
+
+  it("should handle custom theme all color inputs render", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const colorLabels = screen.getAllByText(
+      /主色调|成功色|警告色|危险色|主背景色|次背景色|主文字色|次文字色/
+    );
+    expect(colorLabels.length).toBeGreaterThan(0);
+  });
+
+  it("should handle all custom theme color inputs change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const primaryColorLabel = screen.getByText("主色调");
+    expect(primaryColorLabel).toBeTruthy();
+
+    const successColorLabel = screen.getByText("成功色");
+    expect(successColorLabel).toBeTruthy();
+
+    const warningColorLabel = screen.getByText("警告色");
+    expect(warningColorLabel).toBeTruthy();
+
+    const dangerColorLabel = screen.getByText("危险色");
+    expect(dangerColorLabel).toBeTruthy();
+
+    const bgPrimaryColorLabel = screen.getByText("主背景色");
+    expect(bgPrimaryColorLabel).toBeTruthy();
+
+    const bgSecondaryColorLabel = screen.getByText("次背景色");
+    expect(bgSecondaryColorLabel).toBeTruthy();
+
+    const textPrimaryColorLabel = screen.getByText("主文字色");
+    expect(textPrimaryColorLabel).toBeTruthy();
+
+    const textSecondaryColorLabel = screen.getByText("次文字色");
+    expect(textSecondaryColorLabel).toBeTruthy();
+  });
+
+  it("should handle reset theme button click", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const resetButton = screen.getByText("重置主题");
+    fireEvent.click(resetButton);
+
+    expect(mockOnMessage).toHaveBeenCalled();
+    expect(mockSettings.customTheme).toEqual(DEFAULT_CUSTOM_THEME);
+  });
+
+  it("should handle language change to en-US", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const englishRadio = screen.getByLabelText("English");
+    fireEvent.click(englishRadio);
+
+    expect(mockSettings.locale).toBe("en-US");
+  });
+
+  it("should handle language change to zh-CN", () => {
+    mockSettings.locale = "en-US";
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const zhCNRadio = screen.getByLabelText("简体中文");
+    fireEvent.click(zhCNRadio);
+
+    expect(mockSettings.locale).toBe("zh-CN");
+  });
+
+  it("should show cookie risk toggle correctly when enabled", () => {
+    mockSettings.showCookieRisk = true;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const riskToggles = screen.getAllByLabelText("显示Cookie风险等级");
+    expect(riskToggles.length).toBeGreaterThan(0);
+  });
+
+  it("should show cookie risk toggle correctly when disabled", () => {
+    mockSettings.showCookieRisk = false;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const riskToggles = screen.getAllByLabelText("显示Cookie风险等级");
+    expect(riskToggles.length).toBeGreaterThan(0);
+  });
+
+  it("should handle show cookie risk toggle change", () => {
+    mockSettings.showCookieRisk = true;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const riskToggles = screen.getAllByLabelText("显示Cookie风险等级");
+    fireEvent.click(riskToggles[0]);
+
+    expect(mockSettings.showCookieRisk).toBe(false);
+  });
+
+  it("should render all settings sections", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("工作模式")).toBeTruthy();
+    expect(screen.getByText("Cookie清除类型")).toBeTruthy();
+    expect(screen.getByText("定时清理")).toBeTruthy();
+    expect(screen.getByText("高级清理")).toBeTruthy();
+    expect(screen.getByText("自动清理")).toBeTruthy();
+    expect(screen.getByText("隐私保护")).toBeTruthy();
+    expect(screen.getByText("日志保留时间")).toBeTruthy();
+    expect(screen.getByText("主题模式")).toBeTruthy();
+    expect(screen.getByText("语言")).toBeTruthy();
+  });
+
+  it("should render all log retention options", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByText("1小时")).toBeTruthy();
+    expect(screen.getByText("6小时")).toBeTruthy();
+    expect(screen.getByText("12小时")).toBeTruthy();
+    expect(screen.getByText("1天")).toBeTruthy();
+    expect(screen.getByText("3天")).toBeTruthy();
+    expect(screen.getByText("7天")).toBeTruthy();
+    expect(screen.getByText("10天")).toBeTruthy();
+    expect(screen.getByText("30天")).toBeTruthy();
+    expect(screen.getByText("永久")).toBeTruthy();
+  });
+
+  it("should handle log retention change to 7 days", () => {
+    mockSettings.logRetention = LogRetention.ONE_DAY;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: LogRetention.SEVEN_DAYS } });
+
+    expect(mockSettings.logRetention).toBe(LogRetention.SEVEN_DAYS);
+  });
+
+  it("should handle all schedule interval options", () => {
+    render(<Settings onMessage={mockOnMessage} />);
+
+    expect(screen.getByLabelText("禁用")).toBeTruthy();
+    expect(screen.getByLabelText("每小时")).toBeTruthy();
+    expect(screen.getByLabelText("每天")).toBeTruthy();
+    expect(screen.getByLabelText("每周")).toBeTruthy();
+  });
+
+  it("should handle schedule interval change to weekly", () => {
+    mockSettings.scheduleInterval = ScheduleInterval.DAILY;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const weeklyRadio = screen.getByLabelText("每周");
+    fireEvent.click(weeklyRadio);
+
+    expect(mockSettings.scheduleInterval).toBe(ScheduleInterval.WEEKLY);
+  });
+
+  it("should handle clear type change to persistent", () => {
+    mockSettings.clearType = CookieClearType.ALL;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const persistentRadio = screen.getByLabelText("仅清除持久Cookie");
+    fireEvent.click(persistentRadio);
+
+    expect(mockSettings.clearType).toBe(CookieClearType.PERSISTENT);
+  });
+
+  it("should handle clear type change to session", () => {
+    mockSettings.clearType = CookieClearType.ALL;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const sessionRadio = screen.getByLabelText("仅清除会话Cookie");
+    fireEvent.click(sessionRadio);
+
+    expect(mockSettings.clearType).toBe(CookieClearType.SESSION);
+  });
+
+  it("should handle mode change to blacklist", () => {
+    mockSettings.mode = ModeType.WHITELIST;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const blacklistRadio = screen.getByLabelText("黑名单模式：仅黑名单内网站执行清理");
+    fireEvent.click(blacklistRadio);
+
+    expect(mockSettings.mode).toBe(ModeType.BLACKLIST);
+  });
+
+  it("should handle mode change to whitelist", () => {
+    mockSettings.mode = ModeType.BLACKLIST;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const whitelistRadio = screen.getByLabelText("白名单模式：仅白名单内网站不执行清理");
+    fireEvent.click(whitelistRadio);
+
+    expect(mockSettings.mode).toBe(ModeType.WHITELIST);
+  });
+
+  it("should handle theme mode change to light", () => {
+    mockSettings.themeMode = ThemeMode.DARK;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const lightRadio = screen.getByLabelText("浅色主题");
+    fireEvent.click(lightRadio);
+
+    expect(mockSettings.themeMode).toBe(ThemeMode.LIGHT);
+  });
+
+  it("should handle theme mode change to dark", () => {
+    mockSettings.themeMode = ThemeMode.LIGHT;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const darkRadio = screen.getByLabelText("深色主题");
+    fireEvent.click(darkRadio);
+
+    expect(mockSettings.themeMode).toBe(ThemeMode.DARK);
+  });
+
+  it("should handle theme mode change to auto", () => {
+    mockSettings.themeMode = ThemeMode.DARK;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const autoRadio = screen.getByLabelText("跟随系统");
+    fireEvent.click(autoRadio);
+
+    expect(mockSettings.themeMode).toBe(ThemeMode.AUTO);
   });
 });
