@@ -230,7 +230,7 @@ export const clearSingleCookie = async (
 ): Promise<boolean> => {
   try {
     const url = buildCookieUrl(cookie, cleanedDomain);
-    const removeDetails: { url: string; name: string; storeId?: string } = {
+    const removeDetails: chrome.cookies.Details = {
       url,
       name: cookie.name,
     };
@@ -514,9 +514,7 @@ export const fromChromeSameSite = (sameSite?: string): string => {
   return sameSite || "unspecified";
 };
 
-export const toChromeSameSite = (
-  sameSite?: string
-): "no_restriction" | "lax" | "strict" | undefined => {
+export const toChromeSameSite = (sameSite?: string): chrome.cookies.SameSiteStatus | undefined => {
   if (sameSite === "none" || sameSite === "no_restriction") {
     return "no_restriction";
   }
@@ -524,7 +522,7 @@ export const toChromeSameSite = (
     return undefined;
   }
   if (sameSite === "lax" || sameSite === "strict") {
-    return sameSite as "lax" | "strict";
+    return sameSite as chrome.cookies.SameSiteStatus;
   }
   return undefined;
 };
