@@ -3,7 +3,6 @@ import type { Cookie } from "@/types";
 import { COOKIE_VALUE_MASK } from "@/lib/constants";
 import {
   assessCookieRisk,
-  getRiskLevelColor,
   getRiskLevelText,
   clearSingleCookie,
   editCookie,
@@ -365,7 +364,7 @@ export const CookieListContent = memo(
                     </>
                   )}
                   {selectedCookies.size === 0 && (
-                    <div className="batch-buttons" style={{ marginLeft: "auto" }}>
+                    <div className="batch-buttons ml-auto">
                       <button
                         type="button"
                         onClick={handleCreateCookie}
@@ -473,14 +472,8 @@ export const CookieListContent = memo(
                                 </div>
 
                                 {risk && (
-                                  <div
-                                    className="risk-badge"
-                                    style={{ borderLeftColor: getRiskLevelColor(risk.level) }}
-                                  >
-                                    <span
-                                      className="risk-level"
-                                      style={{ color: getRiskLevelColor(risk.level) }}
-                                    >
+                                  <div className={`risk-badge risk-${risk.level}`}>
+                                    <span className="risk-level">
                                       {getRiskLevelText(risk.level, t)}
                                     </span>
                                     <span className="risk-reason">{risk.reason}</span>

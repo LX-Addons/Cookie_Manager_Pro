@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
-import { useState, ReactNode } from "react";
+import type { ReactNode, ComponentType } from "react";
+import { useState } from "react";
 import { CookieList, CookieListContent } from "@/components/CookieList";
 import { hasDomainInText } from "../utils/mocks";
 import type { Cookie } from "@/types";
@@ -229,7 +230,7 @@ const setupMocks = () => {
 };
 
 const renderAndExpandCookieList = <P extends Record<string, unknown>>(
-  Component: React.ComponentType<P>,
+  Component: ComponentType<P>,
   props: P
 ) => {
   const result = render(<Component {...props} />);

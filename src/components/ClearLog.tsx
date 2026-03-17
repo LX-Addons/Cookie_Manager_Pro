@@ -2,7 +2,7 @@ import { useStorage } from "@/hooks/useStorage";
 import { CLEAR_LOG_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, LOG_RETENTION_MAP } from "@/lib/store";
 import type { ClearLogEntry, Settings } from "@/types";
 import { LogRetention } from "@/types";
-import { getCookieTypeName, getActionText, getActionColor, formatLogTime } from "@/utils";
+import { getCookieTypeName, getActionText, formatLogTime } from "@/utils";
 import { useMemo } from "react";
 import { ConfirmDialogWrapper, type ShowConfirmFn } from "@/components/ConfirmDialogWrapper";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -93,10 +93,7 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
               <div className="log-info">
                 <div className="log-domain">{log.domain}</div>
                 <div className="log-details">
-                  <span
-                    className="log-type"
-                    style={{ backgroundColor: getActionColor(log.action) }}
-                  >
+                  <span className={`log-type log-type-${log.action}`}>
                     {getActionText(log.action, t)}
                   </span>
                   <span className="log-type">{getCookieTypeName(log.cookieType, t)}</span>

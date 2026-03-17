@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ReactNode } from "react";
+import type { ReactNode, ComponentType } from "react";
 import {
   hasDomainInText,
   createTranslationMock,
@@ -339,7 +339,7 @@ describe("mocks", () => {
       onConfirm: () => void
     ) => ReactNode;
     const createTestComponent = (
-      ConfirmDialogWrapper: React.ComponentType<{
+      ConfirmDialogWrapper: ComponentType<{
         children: (showConfirm: ShowConfirmFn) => ReactNode;
       }>,
       onConfirm: () => void
