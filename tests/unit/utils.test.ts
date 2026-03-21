@@ -26,6 +26,11 @@ import {
   fromChromeSameSite,
   toChromeSameSite,
   buildDomainString,
+  buildNonEmptyOrigins,
+  formatCookieSameSite,
+  adjustColorBrightness,
+  getHoverColor,
+  getActiveColor,
 } from "@/utils";
 import { CookieClearType } from "@/types";
 
@@ -884,6 +889,72 @@ describe("editCookie", () => {
     const result = await editCookie(originalCookie, updates);
     expect(result).toBe(true);
   });
+
+  it("should update httpOnly property", async () => {
+    const originalCookie = {
+      name: "test",
+      value: "old",
+      domain: ".example.com",
+      path: "/",
+      secure: false,
+      httpOnly: false,
+      sameSite: "lax",
+      storeId: "0",
+      session: false,
+      hostOnly: false,
+    } as chrome.cookies.Cookie;
+    const updates = { httpOnly: true };
+
+    const setMock = vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+
+    const result = await editCookie(originalCookie, updates);
+    expect(result).toBe(true);
+    expect(setMock).toHaveBeenCalled();
+  });
+
+  it("should update secure property", async () => {
+    const originalCookie = {
+      name: "test",
+      value: "old",
+      domain: ".example.com",
+      path: "/",
+      secure: false,
+      httpOnly: false,
+      sameSite: "lax",
+      storeId: "0",
+      session: false,
+      hostOnly: false,
+    } as chrome.cookies.Cookie;
+    const updates = { secure: true };
+
+    const setMock = vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+
+    const result = await editCookie(originalCookie, updates);
+    expect(result).toBe(true);
+    expect(setMock).toHaveBeenCalled();
+  });
+
+  it("should update sameSite property", async () => {
+    const originalCookie = {
+      name: "test",
+      value: "old",
+      domain: ".example.com",
+      path: "/",
+      secure: false,
+      httpOnly: false,
+      sameSite: "lax",
+      storeId: "0",
+      session: false,
+      hostOnly: false,
+    } as chrome.cookies.Cookie;
+    const updates = { sameSite: "strict" as const };
+
+    const setMock = vi.spyOn(chrome.cookies, "set").mockResolvedValue(undefined);
+
+    const result = await editCookie(originalCookie, updates);
+    expect(result).toBe(true);
+    expect(setMock).toHaveBeenCalled();
+  });
 });
 
 describe("getActionText", () => {
@@ -1167,6 +1238,18 @@ describe("toChromeSameSite", () => {
     expect(toChromeSameSite("strict")).toBe("strict");
     expect(toChromeSameSite("lax")).toBe("lax");
   });
+
+  it("should return undefined for no_restriction", () => {
+    expect(toChromeSameSite("no_restriction")).toBe("no_restriction");
+  });
+
+  it("should return undefined for invalid values", () => {
+    expect(toChromeSameSite("invalid")).toBeUndefined();
+  });
+
+  it("should return undefined for undefined", () => {
+    expect(toChromeSameSite()).toBeUndefined();
+  });
 });
 
 describe("buildDomainString", () => {
@@ -1223,5 +1306,117 @@ describe("buildDomainString", () => {
     const clearedDomains = new Set<string>();
     const result = buildDomainString(clearedDomains, "测试", "current.com", mockT);
     expect(result).toBe("current.com");
+  });
+});
+
+describe("buildNonEmptyOrigins", () => {
+  it("should return null for empty set", () => {
+    const domains = new Set<string>();
+    expect(buildNonEmptyOrigins(domains)).toBeNull();
+  });
+
+  it("should return non-empty origins for single domain", () => {
+    const domains = new Set(["example.com"]);
+    const result = buildNonEmptyOrigins(domains);
+    expect(result).not.toBeNull();
+    expect(result).toEqual(["https://example.com", "http://example.com"]);
+  });
+
+  it("should return non-empty origins for multiple domains", () => {
+    const domains = new Set(["example.com", "test.com"]);
+    const result = buildNonEmptyOrigins(domains);
+    expect(result).not.toBeNull();
+    expect(result).toEqual([
+      "https://example.com",
+      "http://example.com",
+      "https://test.com",
+      "http://test.com",
+    ]);
+  });
+});
+
+describe("formatCookieSameSite", () => {
+  it("should return notSet for unspecified", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieList.notSet") return "未设置";
+      return key;
+    });
+    expect(formatCookieSameSite(undefined, mockT)).toBe("未设置");
+    expect(formatCookieSameSite("unspecified", mockT)).toBe("未设置");
+  });
+
+  it("should return strict for strict", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieEditor.strict") return "Strict";
+      return key;
+    });
+    expect(formatCookieSameSite("strict", mockT)).toBe("Strict");
+  });
+
+  it("should return lax for lax", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieEditor.lax") return "Lax";
+      return key;
+    });
+    expect(formatCookieSameSite("lax", mockT)).toBe("Lax");
+  });
+
+  it("should return none for none/no_restriction", () => {
+    const mockT = vi.fn((key: string) => {
+      if (key === "cookieEditor.none") return "None";
+      return key;
+    });
+    expect(formatCookieSameSite("none", mockT)).toBe("None");
+    expect(formatCookieSameSite("no_restriction", mockT)).toBe("None");
+  });
+
+  it("should return original value for unknown", () => {
+    const mockT = vi.fn((key: string) => key);
+    expect(formatCookieSameSite("unknown", mockT)).toBe("unknown");
+  });
+});
+
+describe("adjustColorBrightness", () => {
+  it("should adjust color brightness by positive amount", () => {
+    const result = adjustColorBrightness("#000000", 255);
+    expect(result).toBe("#ffffff");
+  });
+
+  it("should adjust color brightness by negative amount", () => {
+    const result = adjustColorBrightness("#ffffff", -255);
+    expect(result).toBe("#000000");
+  });
+
+  it("should handle hex with # prefix", () => {
+    const result = adjustColorBrightness("#ff0000", 0);
+    expect(result).toBe("#ff0000");
+  });
+
+  it("should handle hex without # prefix", () => {
+    const result = adjustColorBrightness("00ff00", 0);
+    expect(result).toBe("#00ff00");
+  });
+
+  it("should return original for invalid hex", () => {
+    expect(adjustColorBrightness("invalid", 10)).toBe("invalid");
+  });
+
+  it("should clamp values between 0-255", () => {
+    expect(adjustColorBrightness("#000000", 300)).toBe("#ffffff");
+    expect(adjustColorBrightness("#ffffff", -300)).toBe("#000000");
+  });
+});
+
+describe("getHoverColor", () => {
+  it("should return color adjusted by -15", () => {
+    const result = getHoverColor("#ffffff");
+    expect(result).toBe("#f0f0f0");
+  });
+});
+
+describe("getActiveColor", () => {
+  it("should return color adjusted by -30", () => {
+    const result = getActiveColor("#ffffff");
+    expect(result).toBe("#e1e1e1");
   });
 });

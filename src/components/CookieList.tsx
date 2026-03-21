@@ -67,6 +67,8 @@ export const CookieListContent = memo(
 
     const { t } = useTranslation();
 
+    const riskEnabled = showCookieRisk ?? true;
+
     const cookieRiskMap = useMemo(() => {
       const map = new Map<string, ReturnType<typeof assessCookieRisk>>();
       for (const cookie of cookies) {
@@ -142,10 +144,10 @@ export const CookieListContent = memo(
     }, [cookies]);
 
     useEffect(() => {
-      if (!showCookieRisk && riskFilter !== "all") {
+      if (!riskEnabled && riskFilter !== "all") {
         setRiskFilter("all");
       }
-    }, [showCookieRisk, riskFilter]);
+    }, [riskEnabled, riskFilter]);
 
     const filteredGroupedCookies = useMemo(() => {
       const grouped = new Map<string, Cookie[]>();
@@ -454,7 +456,7 @@ export const CookieListContent = memo(
                     />
                   </div>
                   <div className="filter-row">
-                    {(showCookieRisk ?? true) && (
+                    {riskEnabled && (
                       <select
                         value={riskFilter}
                         onChange={(e) => setRiskFilter(e.target.value as RiskFilter)}
@@ -608,8 +610,7 @@ export const CookieListContent = memo(
                                 const displayValue = isVisible
                                   ? cookie.value
                                   : maskCookieValue(cookie.value, COOKIE_VALUE_MASK);
-                                const risk =
-                                  (showCookieRisk ?? true) ? cookieRiskMap.get(key) : null;
+                                const risk = riskEnabled ? cookieRiskMap.get(key) : null;
                                 const isSelected = selectedCookies.has(key);
                                 const sensitive = isSensitiveCookie(cookie);
 

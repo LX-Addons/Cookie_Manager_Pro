@@ -1020,4 +1020,104 @@ describe("Settings", () => {
 
     expect(mockSettings.themeMode).toBe(ThemeMode.AUTO);
   });
+
+  it("should handle custom theme primary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const primaryColorInput = screen.getByLabelText("主色调");
+    fireEvent.change(primaryColorInput, { target: { value: "#ff0000" } });
+
+    expect(mockSettings.customTheme.primary).toBe("#ff0000");
+  });
+
+  it("should handle custom theme success color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const successColorInput = screen.getByLabelText("成功色");
+    fireEvent.change(successColorInput, { target: { value: "#00ff00" } });
+
+    expect(mockSettings.customTheme.success).toBe("#00ff00");
+  });
+
+  it("should handle custom theme warning color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const warningColorInput = screen.getByLabelText("警告色");
+    fireEvent.change(warningColorInput, { target: { value: "#ffff00" } });
+
+    expect(mockSettings.customTheme.warning).toBe("#ffff00");
+  });
+
+  it("should handle custom theme danger color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const dangerColorInput = screen.getByLabelText("危险色");
+    fireEvent.change(dangerColorInput, { target: { value: "#ff0000" } });
+
+    expect(mockSettings.customTheme.danger).toBe("#ff0000");
+  });
+
+  it("should handle custom theme bgPrimary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const bgPrimaryColorInput = screen.getByLabelText("主背景色");
+    fireEvent.change(bgPrimaryColorInput, { target: { value: "#ffffff" } });
+
+    expect(mockSettings.customTheme.bgPrimary).toBe("#ffffff");
+  });
+
+  it("should handle custom theme bgSecondary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const bgSecondaryColorInput = screen.getByLabelText("次背景色");
+    fireEvent.change(bgSecondaryColorInput, { target: { value: "#f8fafc" } });
+
+    expect(mockSettings.customTheme.bgSecondary).toBe("#f8fafc");
+  });
+
+  it("should handle custom theme textPrimary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const textPrimaryColorInput = screen.getByLabelText("主文字色");
+    fireEvent.change(textPrimaryColorInput, { target: { value: "#0f172a" } });
+
+    expect(mockSettings.customTheme.textPrimary).toBe("#0f172a");
+  });
+
+  it("should handle custom theme textSecondary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const textSecondaryColorInput = screen.getByLabelText("次文字色");
+    fireEvent.change(textSecondaryColorInput, { target: { value: "#475569" } });
+
+    expect(mockSettings.customTheme.textSecondary).toBe("#475569");
+  });
+
+  it("should handle custom theme when customTheme is undefined", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+    mockSettings.customTheme = undefined as any;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const primaryColorInput = screen.getByLabelText("主色调");
+    fireEvent.change(primaryColorInput, { target: { value: "#ff0000" } });
+
+    expect(mockSettings.customTheme.primary).toBe("#ff0000");
+  });
 });

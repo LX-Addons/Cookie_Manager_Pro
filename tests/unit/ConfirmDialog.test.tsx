@@ -204,6 +204,69 @@ describe("ConfirmDialog", () => {
     expect(icon?.className).toContain("danger");
   });
 
+  it("should render with warning variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="warning"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("warning");
+  });
+
+  it("should render with success variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="success"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("success");
+  });
+
+  it("should render with info variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="info"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("info");
+  });
+
+  it("should render with description", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        description="Test Description"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(screen.getByText("Test Description")).toBeTruthy();
+  });
+
   it("should have correct dialog attributes", () => {
     render(
       <ConfirmDialog
@@ -217,5 +280,97 @@ describe("ConfirmDialog", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeTruthy();
+  });
+
+  it("should not show modal when isOpen is false", () => {
+    render(
+      <ConfirmDialog
+        isOpen={false}
+        title="Test Title"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const dialog = document.querySelector(".confirm-modal") as HTMLDialogElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.open).toBe(false);
+  });
+
+  it("should close modal when isOpen becomes false", () => {
+    const { rerender } = render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const dialog = document.querySelector(".confirm-modal") as HTMLDialogElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.open).toBe(true);
+
+    rerender(
+      <ConfirmDialog
+        isOpen={false}
+        title="Test Title"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(dialog.open).toBe(false);
+  });
+
+  it("should use success button class for success variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="success"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const confirmBtn = screen.getByRole("button", { name: "确定" });
+    expect(confirmBtn.className).toContain("btn-success");
+  });
+
+  it("should use primary button class for info variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="info"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const confirmBtn = screen.getByRole("button", { name: "确定" });
+    expect(confirmBtn.className).toContain("btn-primary");
+  });
+
+  it("should use warning button class for warning variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="warning"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const confirmBtn = screen.getByRole("button", { name: "确定" });
+    expect(confirmBtn.className).toContain("btn-warning");
   });
 });

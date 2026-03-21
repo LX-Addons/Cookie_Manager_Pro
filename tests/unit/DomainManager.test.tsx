@@ -9,7 +9,7 @@ vi.mock("@/hooks/useStorage", () => ({
 
 vi.mock("@/hooks/useTranslation", () => ({
   useTranslation: () => ({
-    t: (key: string) => {
+    t: (key: string, params?: Record<string, string | number>) => {
       const translations: Record<string, string> = {
         "domainManager.whitelistDomains": "白名单域名",
         "domainManager.whitelistHelp": "白名单中的域名Cookie不会被清除",
@@ -23,13 +23,36 @@ vi.mock("@/hooks/useTranslation", () => ({
         "domainManager.addedToList": "已添加到列表",
         "domainManager.alreadyInWhitelist": "已在白名单中",
         "domainManager.alreadyInBlacklist": "已在黑名单中",
-        "domainManager.alreadyInList": "已在列表中",
+        "domainManager.alreadyInList": "已在{listType}中",
         "domainManager.invalidDomain": "无效的域名",
         "domainManager.deleted": "已删除",
+        "domainManager.ruleCount": "数量: {count}",
+        "domainManager.addDomain": "添加域名",
+        "domainManager.quickAdd": "快速添加",
+        "domainManager.currentDomainInList": "当前域名在列表中",
+        "domainManager.currentDomainNotInList": "当前域名不在列表中",
+        "domainManager.dangerZone": "危险区域",
+        "domainManager.clearBlacklistWarning": "清除黑名单Cookie警告",
+        "domainManager.domainList": "域名列表",
+        "domainManager.emptyWhitelist": "白名单为空",
+        "domainManager.emptyBlacklist": "黑名单为空",
+        "domainManager.emptyWhitelistHint": "白名单为空提示",
+        "domainManager.emptyBlacklistHint": "黑名单为空提示",
+        "domainManager.protectedTag": "保护",
+        "domainManager.cleanupTag": "清除",
+        "domainManager.removeDomain": "移除{domain}",
+        "tabs.whitelist": "白名单",
+        "tabs.blacklist": "黑名单",
         "common.add": "添加",
         "common.delete": "删除",
       };
-      return translations[key] || key;
+      let text = translations[key] || key;
+      if (params) {
+        for (const [k, v] of Object.entries(params)) {
+          text = text.replaceAll(`{${k}}`, String(v));
+        }
+      }
+      return text;
     },
   }),
 }));
@@ -235,6 +258,90 @@ describe("DomainManager", () => {
     fireEvent.click(addButton);
 
     expect(mockSetList).toHaveBeenCalled();
+    expect(mockOnMessage).toHaveBeenCalledWith("已添加到列表");
+  });
+
+  it("should show already in list message with list type for whitelist", () => {
+    (storageHook.useStorage as ReturnType<typeof vi.fn>).mockImplementation(() => [
+      ["example.com"],
+      mockSetList,
+    ]);
+
+    render(<DomainManager type="whitelist" currentDomain="" onMessage={mockOnMessage} />);
+
+    const input = screen.getByPlaceholderText("例如: google.com");
+    fireEvent.change(input, { target: { value: "example.com" } });
+
+    const addButton = screen.getByText("添加");
+    fireEvent.click(addButton);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("已在白名单中");
+    expect(mockSetList).not.toHaveBeenCalled();
+  });
+
+  it("should show already in list message with list type for blacklist", () => {
+    (storageHook.useStorage as ReturnType<typeof vi.fn>).mockImplementation(() => [
+      ["example.com"],
+      mockSetList,
+    ]);
+
+    render(<DomainManager type="blacklist" currentDomain="" onMessage={mockOnMessage} />);
+
+    const input = screen.getByPlaceholderText("例如: google.com");
+    fireEvent.change(input, { target: { value: "example.com" } });
+
+    const addButton = screen.getByText("添加");
+    fireEvent.click(addButton);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("已在黑名单中");
+    expect(mockSetList).not.toHaveBeenCalled();
+  });
+
+  it("should handle add domain via Enter key", () => {
+    render(
+      <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
+    );
+
+    const input = screen.getByPlaceholderText("例如: google.com");
+    fireEvent.change(input, { target: { value: "newdomain.com" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(mockSetList).toHaveBeenCalled();
+    expect(mockOnMessage).toHaveBeenCalledWith("已添加到列表");
+  });
+
+  it("should not add domain via Enter key when input is empty", () => {
+    render(
+      <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
+    );
+
+    const input = screen.getByPlaceholderText("例如: google.com");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(mockSetList).not.toHaveBeenCalled();
+  });
+
+  it("should show added to list message with list type for whitelist", () => {
+    render(<DomainManager type="whitelist" currentDomain="" onMessage={mockOnMessage} />);
+
+    const input = screen.getByPlaceholderText("例如: google.com");
+    fireEvent.change(input, { target: { value: "newdomain.com" } });
+
+    const addButton = screen.getByText("添加");
+    fireEvent.click(addButton);
+
+    expect(mockOnMessage).toHaveBeenCalledWith("已添加到列表");
+  });
+
+  it("should show added to list message with list type for blacklist", () => {
+    render(<DomainManager type="blacklist" currentDomain="" onMessage={mockOnMessage} />);
+
+    const input = screen.getByPlaceholderText("例如: google.com");
+    fireEvent.change(input, { target: { value: "newdomain.com" } });
+
+    const addButton = screen.getByText("添加");
+    fireEvent.click(addButton);
+
     expect(mockOnMessage).toHaveBeenCalledWith("已添加到列表");
   });
 });
