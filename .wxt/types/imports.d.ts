@@ -19,11 +19,14 @@ declare global {
   const State: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/components/ErrorBoundary').State
   const assessCookieRisk: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').assessCookieRisk
   const browser: typeof import('wxt/browser').browser
+  const buildDomainString: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').buildDomainString
+  const buildNonEmptyOrigins: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').buildNonEmptyOrigins
   const buildOrigins: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').buildOrigins
   const cleanupExpiredCookies: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/cleanup').cleanupExpiredCookies
   const clearBrowserData: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').clearBrowserData
   const clearCookies: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').clearCookies
   const clearSingleCookie: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').clearSingleCookie
+  const createCookie: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').createCookie
   const createIframeUi: typeof import('wxt/utils/content-script-ui/iframe').createIframeUi
   const createIntegratedUi: typeof import('wxt/utils/content-script-ui/integrated').createIntegratedUi
   const createShadowRootUi: typeof import('wxt/utils/content-script-ui/shadow-root').createShadowRootUi
@@ -34,7 +37,9 @@ declare global {
   const defineWxtPlugin: typeof import('wxt/utils/define-wxt-plugin').defineWxtPlugin
   const editCookie: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').editCookie
   const fakeBrowser: typeof import('wxt/testing').fakeBrowser
+  const formatCookieSameSite: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').formatCookieSameSite
   const formatLogTime: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').formatLogTime
+  const fromChromeSameSite: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').fromChromeSameSite
   const getActionColor: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').getActionColor
   const getActionText: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').getActionText
   const getAppConfig: typeof import('wxt/utils/app-config').getAppConfig
@@ -53,9 +58,11 @@ declare global {
   const performCleanup: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/cleanup').performCleanup
   const performCleanupWithFilter: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/cleanup').performCleanupWithFilter
   const storage: typeof import('wxt/utils/storage').storage
+  const toChromeSameSite: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').toChromeSameSite
   const toggleSetValue: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index').toggleSetValue
   const useAppConfig: typeof import('wxt/utils/app-config').useAppConfig
   const useCallback: typeof import('react').useCallback
+  const useClearLog: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/hooks/useClearLog').useClearLog
   const useConfirmDialog: typeof import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/hooks/useConfirmDialog').useConfirmDialog
   const useContext: typeof import('react').useContext
   const useEffect: typeof import('react').useEffect
@@ -106,6 +113,6 @@ declare global {
   export type { CleanupOptions, CleanupResult } from 'D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/cleanup'
   import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/cleanup')
   // @ts-ignore
-  export type { ClearBrowserDataOptions, ClearCookiesOptions } from 'D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index'
+  export type { ClearBrowserDataOptions, ClearCookiesOptions, CookieRemoveDetails } from 'D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index'
   import('D:/treacn/Cookie_Manager_Pro/Cookie_Manager_Pro/src/utils/index')
 }

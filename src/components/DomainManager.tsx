@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useStorage } from "@/hooks/useStorage";
 import { WHITELIST_KEY, BLACKLIST_KEY } from "@/lib/store";
 import type { DomainList } from "@/types";
-import { validateDomain, normalizeDomain } from "@/utils";
+import { validateDomain, normalizeDomain, isInList } from "@/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {
@@ -19,6 +19,11 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
     []
   );
   const { t } = useTranslation();
+
+  const isCurrentDomainInList = useMemo(
+    () => currentDomain && isInList(currentDomain, list),
+    [currentDomain, list]
+  );
 
   const addDomain = useCallback(
     (domain: string) => {
@@ -59,49 +64,147 @@ export const DomainManager = ({ type, currentDomain, onMessage, onClearBlacklist
     [list, setList, onMessage, t]
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && inputValue.trim()) {
+        e.preventDefault();
+        addDomain(inputValue);
+      }
+    },
+    [addDomain, inputValue]
+  );
+
+  const handleAddCurrentDomain = useCallback(() => {
+    if (currentDomain) {
+      addDomain(currentDomain);
+    }
+  }, [addDomain, currentDomain]);
+
   return (
-    <div className="section">
-      <h3>
-        {type === "whitelist"
-          ? t("domainManager.whitelistDomains")
-          : t("domainManager.blacklistDomains")}
-      </h3>
-      <p className="help-text">
-        {type === "whitelist" ? t("domainManager.whitelistHelp") : t("domainManager.blacklistHelp")}
-      </p>
-      <div className="input-group">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder={t("domainManager.domainPlaceholder")}
-        />
-        <button onClick={() => addDomain(inputValue)} className="btn btn-primary">
-          {t("common.add")}
-        </button>
-      </div>
-      <button
-        onClick={() => addDomain(currentDomain)}
-        className="btn btn-secondary"
-        disabled={!currentDomain}
-      >
-        {t("domainManager.addCurrentWebsite")}
-      </button>
-      {type === "blacklist" && onClearBlacklist && (
-        <button onClick={onClearBlacklist} className="btn btn-danger btn-margin-top">
-          {t("domainManager.clearBlacklistCookies")}
-        </button>
-      )}
-      <ul className="domain-list">
-        {list.map((domain) => (
-          <li key={domain}>
-            <span>{domain}</span>
-            <button className="remove-btn" onClick={() => removeDomain(domain)}>
-              {t("common.delete")}
+    <div className={`rule-manager rule-manager-${type}`}>
+      <section className="rule-summary panel" data-testid="rule-summary">
+        <div className="panel-header">
+          <h3>
+            {type === "whitelist"
+              ? t("domainManager.whitelistDomains")
+              : t("domainManager.blacklistDomains")}
+          </h3>
+          <span className="rule-count">{t("domainManager.ruleCount", { count: list.length })}</span>
+        </div>
+        <p className="rule-description">
+          {type === "whitelist"
+            ? t("domainManager.whitelistHelp")
+            : t("domainManager.blacklistHelp")}
+        </p>
+        {currentDomain && (
+          <div
+            className={`current-domain-status ${isCurrentDomainInList ? "in-list" : "not-in-list"}`}
+          >
+            <span className="status-icon">{isCurrentDomainInList ? "\u2713" : "\u25CB"}</span>
+            <span className="status-text">
+              {isCurrentDomainInList
+                ? t("domainManager.currentDomainInList")
+                : t("domainManager.currentDomainNotInList")}
+            </span>
+            <span className="status-domain">{currentDomain}</span>
+          </div>
+        )}
+      </section>
+
+      <section className="rule-input-panel panel">
+        <div className="panel-header">
+          <h3>{t("domainManager.addDomain")}</h3>
+        </div>
+        <div className="input-group">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t("domainManager.domainPlaceholder")}
+            className="rule-input"
+            data-testid="rule-input"
+          />
+          <button
+            onClick={() => addDomain(inputValue)}
+            className="btn btn-primary"
+            disabled={!inputValue.trim()}
+          >
+            {t("common.add")}
+          </button>
+        </div>
+        {currentDomain && (
+          <div className="quick-add-section">
+            <span className="quick-add-label">{t("domainManager.quickAdd")}:</span>
+            <button
+              onClick={handleAddCurrentDomain}
+              className="btn btn-secondary btn-sm"
+              disabled={!!isCurrentDomainInList}
+            >
+              {currentDomain}
             </button>
-          </li>
-        ))}
-      </ul>
+          </div>
+        )}
+      </section>
+
+      {type === "blacklist" && onClearBlacklist && (
+        <section className="rule-danger-panel panel">
+          <div className="panel-header">
+            <h3 className="danger-title">{t("domainManager.dangerZone")}</h3>
+          </div>
+          <p className="danger-description">{t("domainManager.clearBlacklistWarning")}</p>
+          <button
+            onClick={onClearBlacklist}
+            className="btn btn-danger btn-block"
+            data-testid="rule-danger-action"
+          >
+            {t("domainManager.clearBlacklistCookies")}
+          </button>
+        </section>
+      )}
+
+      <section className="rule-list panel">
+        <div className="panel-header">
+          <h3>{t("domainManager.domainList")}</h3>
+        </div>
+        {list.length === 0 ? (
+          <div className="rule-list-empty">
+            <span className="empty-icon">{type === "whitelist" ? "*" : "!"}</span>
+            <p className="empty-text">
+              {type === "whitelist"
+                ? t("domainManager.emptyWhitelist")
+                : t("domainManager.emptyBlacklist")}
+            </p>
+            <p className="empty-hint">
+              {type === "whitelist"
+                ? t("domainManager.emptyWhitelistHint")
+                : t("domainManager.emptyBlacklistHint")}
+            </p>
+          </div>
+        ) : (
+          <ul className="rule-items">
+            {list.map((domain) => (
+              <li key={domain} className="rule-item" data-testid="rule-item">
+                <div className="rule-item-content">
+                  <span className="rule-domain">{domain}</span>
+                  <span className="rule-type-tag">
+                    {type === "whitelist"
+                      ? t("domainManager.protectedTag")
+                      : t("domainManager.cleanupTag")}
+                  </span>
+                </div>
+                <button
+                  className="rule-remove-btn"
+                  onClick={() => removeDomain(domain)}
+                  aria-label={t("domainManager.removeDomain", { domain })}
+                >
+                  {t("common.delete")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 };

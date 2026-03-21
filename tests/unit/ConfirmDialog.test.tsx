@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
+vi.mock("@/hooks/useTranslation", () => ({
+  useTranslation: () => ({
+    t: (key: string) =>
+      ({
+        "common.confirm": "确定",
+        "common.cancel": "取消",
+      })[key] ?? key,
+  }),
+}));
+
 describe("ConfirmDialog", () => {
   const mockOnConfirm = vi.fn();
   const mockOnCancel = vi.fn();
@@ -42,8 +52,8 @@ describe("ConfirmDialog", () => {
 
     expect(screen.getByText("Test Title")).toBeTruthy();
     expect(screen.getByText("Test Message")).toBeTruthy();
-    expect(screen.getByText("确定")).toBeTruthy();
-    expect(screen.getByText("取消")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "确定" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "取消" })).toBeTruthy();
   });
 
   it("should render with custom button text", () => {
@@ -74,7 +84,7 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    fireEvent.click(screen.getByText("确定"));
+    fireEvent.click(screen.getByRole("button", { name: "确定" }));
     expect(mockOnConfirm).toHaveBeenCalledOnce();
   });
 
@@ -89,7 +99,7 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    fireEvent.click(screen.getByText("取消"));
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
     expect(mockOnCancel).toHaveBeenCalledOnce();
   });
 
@@ -104,7 +114,7 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    const overlay = document.querySelector(".confirm-overlay");
+    const overlay = document.querySelector(".overlay-backdrop");
     if (overlay) {
       fireEvent.click(overlay);
       expect(mockOnCancel).toHaveBeenCalledOnce();
@@ -122,7 +132,7 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    const dialog = document.querySelector(".confirm-dialog");
+    const dialog = document.querySelector(".modal-shell");
     if (dialog) {
       fireEvent.click(dialog);
       expect(mockOnCancel).not.toHaveBeenCalled();
@@ -186,8 +196,8 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    const title = screen.getByText("Test Title");
-    expect(title.className).toContain("danger");
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("danger");
   });
 
   it("should have correct dialog attributes", () => {
@@ -203,6 +213,5 @@ describe("ConfirmDialog", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeTruthy();
-    expect(dialog.tagName.toLowerCase()).toBe("dialog");
   });
 });

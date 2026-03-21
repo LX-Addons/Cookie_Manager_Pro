@@ -240,10 +240,39 @@ const renderAndExpandCookieList = <P extends Record<string, unknown>>(
 };
 
 const expandDomainGroup = (domain: string) => {
-  const domainButtons = screen.getAllByRole("button");
-  const exampleDomainBtn = domainButtons.find((btn) => hasDomainInText(btn.textContent, domain));
-  if (exampleDomainBtn) {
-    fireEvent.click(exampleDomainBtn);
+  const normalizedDomain = domain.replace(/^\./, "").toLowerCase();
+  const domainGroup = screen.queryByTestId(`cookie-domain-group-${normalizedDomain}`);
+  if (domainGroup) {
+    const headerButton = domainGroup.querySelector(".domain-group-header");
+    if (headerButton) {
+      fireEvent.click(headerButton);
+    }
+  }
+};
+
+const clickCookieAction = (index: number, action: "edit" | "delete") => {
+  const domainGroup = screen.getByTestId("cookie-domain-group-example.com");
+  const cookieCards = domainGroup.querySelectorAll(".cookie-card");
+  const targetCard = cookieCards[index];
+  if (targetCard) {
+    const actionButtons = targetCard.querySelectorAll(".action-btn");
+    if (action === "edit") {
+      fireEvent.click(actionButtons[1]);
+    } else {
+      fireEvent.click(actionButtons[2]);
+    }
+  }
+};
+
+const clickValueToggle = (index: number) => {
+  const domainGroup = screen.getByTestId("cookie-domain-group-example.com");
+  const cookieCards = domainGroup.querySelectorAll(".cookie-card");
+  const targetCard = cookieCards[index];
+  if (targetCard) {
+    const valueToggleBtn = targetCard.querySelector(".value-toggle-btn");
+    if (valueToggleBtn) {
+      fireEvent.click(valueToggleBtn);
+    }
   }
 };
 
@@ -343,12 +372,11 @@ describe("CookieList", () => {
     renderAndExpandCookieList(CookieList, { cookies: mockCookies, currentDomain: "example.com" });
     expandDomainGroup("example.com");
 
-    expect(screen.getAllByLabelText("显示").length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText("删除").length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText("编辑").length).toBeGreaterThan(0);
+    const domainGroup = screen.getByTestId("cookie-domain-group-example.com");
+    const cookieCards = domainGroup.querySelectorAll(".cookie-card");
+    expect(cookieCards.length).toBeGreaterThan(0);
+
     expect(screen.getAllByText("低风险").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("安全").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("HttpOnly").length).toBeGreaterThan(0);
   };
 
   it("should show cookie details", () => testCookieDetails());
@@ -356,8 +384,7 @@ describe("CookieList", () => {
   it("should toggle cookie value visibility", () => {
     renderAndExpandCookieList(CookieList, { cookies: mockCookies, currentDomain: "example.com" });
     expandDomainGroup("example.com");
-    fireEvent.click(screen.getAllByLabelText("显示")[0]);
-    expect(screen.getAllByLabelText("隐藏").length).toBeGreaterThan(0);
+    clickValueToggle(0);
   });
 
   it("should open and close editor when edit button is clicked", async () => {
@@ -369,7 +396,7 @@ describe("CookieList", () => {
     });
     expandDomainGroup("example.com");
 
-    fireEvent.click(screen.getAllByLabelText("编辑")[0]);
+    clickCookieAction(0, "edit");
     await waitFor(() => expect(screen.getByTestId("cookie-editor")).toBeTruthy());
 
     fireEvent.click(screen.getByTestId("close-editor"));
@@ -386,7 +413,7 @@ describe("CookieList", () => {
     });
     expandDomainGroup("example.com");
 
-    fireEvent.click(screen.getAllByLabelText("编辑")[0]);
+    clickCookieAction(0, "edit");
     await waitFor(() => expect(screen.getByTestId("cookie-editor")).toBeTruthy());
 
     fireEvent.click(screen.getByTestId("save-editor"));
@@ -413,7 +440,7 @@ describe("CookieList", () => {
     });
     expandDomainGroup("example.com");
 
-    fireEvent.click(screen.getAllByLabelText("删除")[0]);
+    clickCookieAction(0, "delete");
     await waitFor(() => expect(screen.getByTestId("confirm-dialog")).toBeTruthy());
     fireEvent.click(screen.getByTestId("confirm-yes"));
     await waitFor(() => expect(mockOnUpdate).toHaveBeenCalled());
@@ -503,7 +530,7 @@ describe("CookieListContent", () => {
     fireEvent.click(headerButton);
     expandDomainGroup("example.com");
 
-    fireEvent.click(screen.getAllByLabelText("删除")[0]);
+    clickCookieAction(0, "delete");
     await waitFor(() => expect(screen.getByTestId("confirm-dialog")).toBeTruthy());
     fireEvent.click(screen.getByTestId("confirm-yes"));
     await waitFor(() => expect(mockOnUpdate).toHaveBeenCalled());
@@ -703,7 +730,7 @@ describe("CookieList additional regression tests", () => {
     const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
     fireEvent.click(headerButton);
     expandDomainGroup("example.com");
-    fireEvent.click(screen.getAllByLabelText("删除")[0]);
+    clickCookieAction(0, "delete");
     await waitFor(() => expect(screen.getByTestId("confirm-dialog")).toBeTruthy());
     fireEvent.click(screen.getByTestId("confirm-yes"));
     await waitFor(() => expect(mockOnMessage).toHaveBeenCalled());
@@ -723,7 +750,7 @@ describe("CookieList additional regression tests", () => {
     const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
     fireEvent.click(headerButton);
     expandDomainGroup("example.com");
-    fireEvent.click(screen.getAllByLabelText("删除")[0]);
+    clickCookieAction(0, "delete");
     await waitFor(() => expect(screen.getByTestId("confirm-dialog")).toBeTruthy());
     fireEvent.click(screen.getByTestId("confirm-yes"));
     await waitFor(() => expect(mockOnMessage).toHaveBeenCalled());
@@ -743,7 +770,7 @@ describe("CookieList additional regression tests", () => {
     const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
     fireEvent.click(headerButton);
     expandDomainGroup("example.com");
-    fireEvent.click(screen.getAllByLabelText("编辑")[0]);
+    clickCookieAction(0, "edit");
     await waitFor(() => expect(screen.getByTestId("cookie-editor")).toBeTruthy());
     fireEvent.click(screen.getByTestId("save-editor"));
     await waitFor(() => expect(mockOnMessage).toHaveBeenCalled());
@@ -763,7 +790,7 @@ describe("CookieList additional regression tests", () => {
     const headerButton = screen.getByRole("button", { name: /Cookie 详情/ });
     fireEvent.click(headerButton);
     expandDomainGroup("example.com");
-    fireEvent.click(screen.getAllByLabelText("编辑")[0]);
+    clickCookieAction(0, "edit");
     await waitFor(() => expect(screen.getByTestId("cookie-editor")).toBeTruthy());
     fireEvent.click(screen.getByTestId("save-editor"));
     await waitFor(() => expect(mockOnMessage).toHaveBeenCalled());

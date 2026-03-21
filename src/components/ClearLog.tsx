@@ -3,9 +3,11 @@ import { CLEAR_LOG_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, LOG_RETENTION_MAP } from
 import type { ClearLogEntry, Settings } from "@/types";
 import { LogRetention } from "@/types";
 import { getCookieTypeName, getActionText, formatLogTime } from "@/utils";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ConfirmDialogWrapper, type ShowConfirmFn } from "@/components/ConfirmDialogWrapper";
 import { useTranslation } from "@/hooks/useTranslation";
+
+type ActionFilter = "all" | "clear" | "edit" | "delete" | "import" | "export";
 
 interface Props {
   onMessage: (msg: string) => void;
@@ -18,7 +20,17 @@ interface ClearLogContentProps extends Props {
 const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
   const [logs, setLogs] = useStorage<ClearLogEntry[]>(CLEAR_LOG_KEY, []);
   const [settings] = useStorage<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS);
+  const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
   const { t } = useTranslation();
+
+  const filterLabelKeyMap: Record<ActionFilter, string> = {
+    all: "clearLog.filterAll",
+    clear: "clearLog.filterClear",
+    edit: "clearLog.filterEdit",
+    delete: "clearLog.filterDelete",
+    import: "clearLog.filterImport",
+    export: "clearLog.filterExport",
+  };
 
   const clearAllLogs = () => {
     showConfirm(t("clearLog.clearLogs"), t("clearLog.confirmClearLogs"), "danger", () => {
@@ -63,48 +75,91 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp - a.timestamp), [logs]);
 
+  const filteredLogs = useMemo(() => {
+    if (actionFilter === "all") return sortedLogs;
+    return sortedLogs.filter((log) => log.action === actionFilter);
+  }, [sortedLogs, actionFilter]);
+
   return (
     <div className="log-container">
-      <div className="section">
-        <div className="log-header">
-          <h3>{t("clearLog.clearLogs")}</h3>
-          <div className="log-actions">
-            <button onClick={clearOldLogs} className="btn btn-secondary btn-sm">
-              {t("clearLog.clearExpired")}
-            </button>
-            <button onClick={exportLogs} className="btn btn-primary btn-sm">
-              {t("clearLog.exportLogs")}
-            </button>
-            <button onClick={clearAllLogs} className="btn btn-danger btn-sm">
-              {t("clearLog.clearAllLogs")}
-            </button>
-          </div>
+      <section className="log-summary-card panel">
+        <div className="log-summary-header">
+          <h3 className="log-summary-title">{t("clearLog.logOverview")}</h3>
+          <span className="log-summary-count">
+            {t("clearLog.totalEntries", { count: logs.length })}
+          </span>
         </div>
-      </div>
+      </section>
 
-      {sortedLogs.length === 0 ? (
-        <div className="empty-log">
-          <p>{t("clearLog.noLogs")}</p>
+      <section className="log-toolbar panel" data-testid="log-toolbar">
+        <div className="log-filter-tabs" data-testid="log-filter">
+          {(["all", "clear", "edit", "delete", "import", "export"] as ActionFilter[]).map(
+            (filter) => (
+              <button
+                key={filter}
+                className={`log-filter-tab ${actionFilter === filter ? "active" : ""}`}
+                onClick={() => setActionFilter(filter)}
+                aria-label={t(filterLabelKeyMap[filter])}
+              >
+                {t(filterLabelKeyMap[filter])}
+              </button>
+            )
+          )}
         </div>
+        <div className="log-actions">
+          <button onClick={clearOldLogs} className="btn btn-secondary btn-sm">
+            {t("clearLog.clearExpired")}
+          </button>
+          <button onClick={exportLogs} className="btn btn-primary btn-sm">
+            {t("clearLog.exportLogs")}
+          </button>
+          <button onClick={clearAllLogs} className="btn btn-danger btn-sm">
+            {t("clearLog.clearAllLogs")}
+          </button>
+        </div>
+      </section>
+
+      {filteredLogs.length === 0 ? (
+        <section className="log-empty panel">
+          <div className="log-empty-icon">≡</div>
+          <h4 className="log-empty-title">{t("clearLog.emptyLogs")}</h4>
+          <p className="log-empty-hint">{t("clearLog.emptyLogsHint")}</p>
+        </section>
       ) : (
-        <ul className="log-list">
-          {sortedLogs.map((log) => (
-            <li key={log.id} className="log-item">
-              <div className="log-info">
-                <div className="log-domain">{log.domain}</div>
-                <div className="log-details">
-                  <span className={`log-type log-type-${log.action}`}>
+        <section className="log-timeline">
+          {filteredLogs.map((log) => (
+            <div key={log.id} className="log-entry panel" data-testid="log-entry">
+              <div className="log-entry-timeline">
+                <div className={`log-entry-dot log-action-${log.action}`}></div>
+                <div className="log-entry-line"></div>
+              </div>
+              <div className="log-entry-content">
+                <div className="log-entry-header">
+                  <span className={`log-action-badge log-action-${log.action}`}>
                     {getActionText(log.action, t)}
                   </span>
-                  <span className="log-type">{getCookieTypeName(log.cookieType, t)}</span>
-                  <span className="log-count">{t("common.count", { count: log.count })}</span>
-                  <span className="log-time">{formatLogTime(log.timestamp, settings.locale)}</span>
+                  <span className="log-entry-time">
+                    {formatLogTime(log.timestamp, settings.locale)}
+                  </span>
                 </div>
-                {log.details && <div className="log-details-text">{log.details}</div>}
+                <div className="log-entry-domain">{log.domain}</div>
+                <div className="log-entry-meta">
+                  <span className="log-entry-meta-item">
+                    <span className="log-entry-meta-label">{t("clearLog.count")}:</span>
+                    <span className="log-entry-meta-value">{log.count}</span>
+                  </span>
+                  <span className="log-entry-meta-item">
+                    <span className="log-entry-meta-label">{t("clearLog.cookieType")}:</span>
+                    <span className="log-entry-meta-value">
+                      {getCookieTypeName(log.cookieType, t)}
+                    </span>
+                  </span>
+                </div>
+                {log.details && <div className="log-entry-details">{log.details}</div>}
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </section>
       )}
     </div>
   );

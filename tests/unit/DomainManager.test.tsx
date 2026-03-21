@@ -98,7 +98,9 @@ describe("DomainManager", () => {
       <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
     );
 
-    const addButton = screen.getByText("添加当前网站");
+    const buttons = screen.getAllByText("example.com");
+    const addButton = buttons.find((btn) => btn.tagName === "BUTTON") as HTMLButtonElement;
+    expect(addButton).toBeTruthy();
     fireEvent.click(addButton);
 
     expect(mockSetList).toHaveBeenCalled();
@@ -108,8 +110,7 @@ describe("DomainManager", () => {
   it("should disable add current domain button when no current domain", () => {
     render(<DomainManager type="whitelist" currentDomain="" onMessage={mockOnMessage} />);
 
-    const addButton = screen.getByText("添加当前网站") as HTMLButtonElement;
-    expect(addButton.disabled).toBe(true);
+    expect(screen.queryByText("example.com")).not.toBeTruthy();
   });
 
   it("should show clear blacklist button for blacklist type", () => {
@@ -162,7 +163,9 @@ describe("DomainManager", () => {
       <DomainManager type="blacklist" currentDomain="example.com" onMessage={mockOnMessage} />
     );
 
-    const addButton = screen.getByText("添加当前网站");
+    const buttons = screen.getAllByText("example.com");
+    const addButton = buttons.find((btn) => btn.tagName === "BUTTON") as HTMLButtonElement;
+    expect(addButton).toBeTruthy();
     fireEvent.click(addButton);
 
     expect(mockSetList).toHaveBeenCalled();
@@ -179,10 +182,10 @@ describe("DomainManager", () => {
       <DomainManager type="whitelist" currentDomain="example.com" onMessage={mockOnMessage} />
     );
 
-    const addButton = screen.getByText("添加当前网站");
-    fireEvent.click(addButton);
-
-    expect(mockOnMessage).toHaveBeenCalledWith("已在列表中");
+    const buttons = screen.getAllByText("example.com");
+    const addButton = buttons.find((btn) => btn.tagName === "BUTTON") as HTMLButtonElement;
+    expect(addButton).toBeTruthy();
+    expect(addButton.disabled).toBe(true);
     expect(mockSetList).not.toHaveBeenCalled();
   });
 
@@ -196,10 +199,10 @@ describe("DomainManager", () => {
       <DomainManager type="blacklist" currentDomain="example.com" onMessage={mockOnMessage} />
     );
 
-    const addButton = screen.getByText("添加当前网站");
-    fireEvent.click(addButton);
-
-    expect(mockOnMessage).toHaveBeenCalledWith("已在列表中");
+    const buttons = screen.getAllByText("example.com");
+    const addButton = buttons.find((btn) => btn.tagName === "BUTTON") as HTMLButtonElement;
+    expect(addButton).toBeTruthy();
+    expect(addButton.disabled).toBe(true);
     expect(mockSetList).not.toHaveBeenCalled();
   });
 

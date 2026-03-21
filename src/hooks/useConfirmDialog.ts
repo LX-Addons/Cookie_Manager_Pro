@@ -3,8 +3,11 @@ import { useState, useCallback } from "react";
 interface ConfirmState {
   isOpen: boolean;
   title: string;
+  description?: string;
   message: string;
-  variant: "danger" | "warning";
+  confirmText?: string;
+  cancelText?: string;
+  variant: "danger" | "warning" | "info" | "success";
   onConfirm: () => void;
 }
 
@@ -13,8 +16,13 @@ interface UseConfirmDialogReturn {
   showConfirm: (
     title: string,
     message: string,
-    variant: "danger" | "warning",
-    onConfirm: () => void
+    variant: "danger" | "warning" | "info" | "success",
+    onConfirm: () => void,
+    options?: {
+      description?: string;
+      confirmText?: string;
+      cancelText?: string;
+    }
   ) => void;
   closeConfirm: () => void;
   handleConfirm: () => void;
@@ -30,8 +38,27 @@ export const useConfirmDialog = (): UseConfirmDialogReturn => {
   });
 
   const showConfirm = useCallback(
-    (title: string, message: string, variant: "danger" | "warning", onConfirm: () => void) => {
-      setConfirmState({ isOpen: true, title, message, variant, onConfirm });
+    (
+      title: string,
+      message: string,
+      variant: "danger" | "warning" | "info" | "success",
+      onConfirm: () => void,
+      options?: {
+        description?: string;
+        confirmText?: string;
+        cancelText?: string;
+      }
+    ) => {
+      setConfirmState({
+        isOpen: true,
+        title,
+        message,
+        variant,
+        onConfirm,
+        description: options?.description,
+        confirmText: options?.confirmText,
+        cancelText: options?.cancelText,
+      });
     },
     []
   );

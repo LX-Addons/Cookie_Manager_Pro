@@ -587,3 +587,35 @@ export const validateDomain = (
   }
   return { valid: true };
 };
+
+const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (result) {
+    return {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16),
+    };
+  }
+  return { r: 0, g: 0, b: 0 };
+};
+
+const rgbToHex = (r: number, g: number, b: number): string => {
+  return (
+    "#" +
+    [r, g, b]
+      .map((x) => {
+        const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+      })
+      .join("")
+  );
+};
+
+export const adjustColorLightness = (hex: string, amount: number): string => {
+  const rgb = hexToRgb(hex);
+  return rgbToHex(rgb.r + amount, rgb.g + amount, rgb.b + amount);
+};
+
+export const getHoverColor = (hex: string): string => adjustColorLightness(hex, -15);
+export const getActiveColor = (hex: string): string => adjustColorLightness(hex, -30);

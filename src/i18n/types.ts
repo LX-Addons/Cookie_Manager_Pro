@@ -63,7 +63,9 @@ export interface Translations {
     workMode: string;
     workModeDesc: string;
     whitelistMode: string;
+    whitelistModeShort: string;
     blacklistMode: string;
+    blacklistModeShort: string;
     cookieClearType: string;
     cookieClearTypeDesc: string;
     clearSessionOnly: string;
@@ -141,6 +143,7 @@ export interface Translations {
   clearLog: {
     clearLogs: string;
     clearExpired: string;
+    cookieType: string;
     exportLogs: string;
     clearAllLogs: string;
     confirmClearLogs: string;

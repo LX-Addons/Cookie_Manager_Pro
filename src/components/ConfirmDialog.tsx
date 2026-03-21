@@ -1,26 +1,44 @@
 import { useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ConfirmDialogProps {
   readonly isOpen: boolean;
   readonly title: string;
+  readonly description?: string;
   readonly message: string;
   readonly confirmText?: string;
   readonly cancelText?: string;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
-  readonly variant?: "danger" | "warning";
+  readonly variant?: "danger" | "warning" | "info" | "success";
 }
+
+const getIconForVariant = (variant: string) => {
+  switch (variant) {
+    case "danger":
+      return "!";
+    case "warning":
+      return "!";
+    case "success":
+      return "✓";
+    case "info":
+    default:
+      return "i";
+  }
+};
 
 export function ConfirmDialog({
   isOpen,
   title,
+  description,
   message,
-  confirmText = "确定",
-  cancelText = "取消",
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   variant = "warning",
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleOverlayClick = useCallback(
@@ -51,31 +69,61 @@ export function ConfirmDialog({
 
   if (!isOpen) return null;
 
+  const getConfirmButtonClass = () => {
+    switch (variant) {
+      case "danger":
+        return "btn-danger";
+      case "success":
+        return "btn-success";
+      case "info":
+        return "btn-primary";
+      case "warning":
+      default:
+        return "btn-warning";
+    }
+  };
+
   return (
     <div
-      className="confirm-overlay"
+      className="overlay-backdrop"
       onClick={handleOverlayClick}
       onKeyDown={(e) => e.key === "Escape" && onCancel()}
       role="presentation"
     >
-      <dialog className="confirm-dialog" open>
-        <h3 id="confirm-title" className={`confirm-title ${variant === "danger" ? "danger" : ""}`}>
-          {title}
-        </h3>
-        <p className="confirm-message">{message}</p>
-        <div className="confirm-actions">
+      <div
+        className="modal-shell"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-body"
+      >
+        <div className="modal-header">
+          <div className={`modal-icon ${variant}`}>{getIconForVariant(variant)}</div>
+          <div className="modal-title-section">
+            <h3 id="modal-title" className="modal-title">
+              {title}
+            </h3>
+            {description && <p className="modal-description">{description}</p>}
+          </div>
+        </div>
+        <div className="modal-body">
+          <p id="modal-body" className="modal-body-text">
+            {message}
+          </p>
+        </div>
+        <div className="modal-actions">
           <button className="btn btn-secondary" onClick={onCancel}>
-            {cancelText}
+            {cancelText ?? t("common.cancel")}
           </button>
           <button
             ref={confirmBtnRef}
-            className={`btn ${variant === "danger" ? "btn-danger" : "btn-warning"}`}
+            className={`btn ${getConfirmButtonClass()}`}
             onClick={onConfirm}
           >
-            {confirmText}
+            {confirmText ?? t("common.confirm")}
           </button>
         </div>
-      </dialog>
+      </div>
     </div>
   );
 }
