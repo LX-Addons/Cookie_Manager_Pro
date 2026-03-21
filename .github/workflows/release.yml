@@ -149,6 +149,8 @@ jobs:
           const repoUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`;
           const currentTag = `v${version}`;
 
+          const isValidTag = (tag) => /^v\d+\.\d+\.\d+(-[\w.]+)?$/.test(tag);
+
           const runRaw = (command) => {
             try {
               return execSync(command, {
@@ -180,7 +182,7 @@ jobs:
           };
 
           const rawCommitsBuffer = runRaw(
-            previousTag
+            previousTag && isValidTag(previousTag)
               ? `git log ${previousTag}..HEAD --no-merges --format=%B---COMMIT_SEP---`
               : 'git log HEAD --no-merges --format=%B---COMMIT_SEP--- -n 50',
           );
@@ -202,8 +204,13 @@ jobs:
             .map((s) => s.trim())
             .filter(Boolean);
 
+          const conventionalCommitPattern = /^[a-z]+(\([^)]+\))?!?:\s*.+/i;
+
           const commitSubjects = commitBodies.flatMap((body) =>
-            body.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
+            body
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter((line) => conventionalCommitPattern.test(line)),
           );
 
           for (const rawSubject of commitSubjects) {
