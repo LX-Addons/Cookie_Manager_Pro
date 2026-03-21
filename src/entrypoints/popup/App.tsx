@@ -509,6 +509,7 @@ function IndexPopup() {
                   onClick={quickClearCurrent}
                   className="btn btn-primary btn-block"
                   disabled={!currentDomain}
+                  data-testid="clear-current-btn"
                 >
                   {t("popup.clearCurrent")}
                 </button>
@@ -517,12 +518,17 @@ function IndexPopup() {
                     onClick={quickAddToRule}
                     className="btn btn-secondary"
                     disabled={!currentDomain}
+                    data-testid="add-to-rule-btn"
                   >
                     {settings.mode === ModeType.WHITELIST
                       ? t("popup.addToWhitelist")
                       : t("popup.addToBlacklist")}
                   </button>
-                  <button onClick={quickClearAll} className="btn btn-danger">
+                  <button
+                    onClick={quickClearAll}
+                    className="btn btn-danger"
+                    data-testid="clear-all-btn"
+                  >
                     {t("popup.clearAllCookies")}
                   </button>
                 </div>

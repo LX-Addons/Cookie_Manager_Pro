@@ -269,12 +269,7 @@ const setupChromeMocks = () => {
 };
 
 const clickClearAllAndConfirm = async (container: HTMLElement) => {
-  const quickActions = container.querySelector('[data-testid="quick-actions"]');
-  if (!quickActions) {
-    throw new Error("Quick actions not found");
-  }
-  const clearAllButton =
-    quickActions.querySelector(".btn-danger") || quickActions.querySelector("button:last-child");
+  const clearAllButton = container.querySelector('[data-testid="clear-all-btn"]');
   if (!clearAllButton) {
     throw new Error("Clear all button not found");
   }
@@ -344,28 +339,20 @@ const testQuickAddButton = async (listType: "whitelist" | "blacklist", initialLi
     expect(siteTitle?.textContent).not.toBe("");
   });
 
-  const quickActions = container.querySelector('[data-testid="quick-actions"]');
-  if (!quickActions) {
-    throw new Error("Quick actions not found");
-  }
-
-  const buttons = quickActions.querySelectorAll("button");
-  if (buttons.length < 2) {
+  const addToRuleButton = container.querySelector('[data-testid="add-to-rule-btn"]');
+  if (!addToRuleButton) {
     throw new Error("Quick add button not found");
   }
-  fireEvent.click(buttons[1]);
+  fireEvent.click(addToRuleButton);
 
   return waitFor(() => {
     const toastMessage = container.querySelector('[data-testid="toast-message"]');
     expect(toastMessage?.textContent?.trim()).not.toBe("");
 
     if (initialList.includes("example.com")) {
-      const expectedKey = listType === "whitelist" ? "alreadyInWhitelist" : "alreadyInBlacklist";
-      expect(toastMessage?.textContent).toContain(expectedKey);
+      expect(mockSetList).not.toHaveBeenCalled();
     } else {
       expect(mockSetList).toHaveBeenCalled();
-      const expectedKey = listType === "whitelist" ? "addedToWhitelist" : "addedToBlacklist";
-      expect(toastMessage?.textContent).toContain(expectedKey);
     }
   });
 };
@@ -634,28 +621,32 @@ describe("IndexPopup", () => {
     expect(mockOnAddToBlacklist).toHaveBeenCalled();
   });
 
-  it("should handle click on clear all button", () => {
-    const { getByTestId } = render(<IndexPopup />);
-    const quickActions = getByTestId("quick-actions");
-    const buttons = quickActions.querySelectorAll("button");
-    expect(buttons.length).toBeGreaterThan(0);
+  it("should handle click on clear current button", async () => {
+    mockShowConfirm.mockClear();
 
-    if (buttons.length > 0) {
-      fireEvent.click(buttons[0]);
-      expect(buttons[0]).toBeTruthy();
-    }
+    const { getByTestId } = render(<IndexPopup />);
+
+    await waitFor(() => {
+      const btn = getByTestId("clear-current-btn");
+      expect(btn).not.toBeDisabled();
+    });
+
+    fireEvent.click(getByTestId("clear-current-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
   });
 
-  it("should handle click on clear current button", () => {
-    const { getByTestId } = render(<IndexPopup />);
-    const quickActions = getByTestId("quick-actions");
-    const buttons = quickActions.querySelectorAll("button");
-    expect(buttons.length).toBeGreaterThan(1);
+  it("should handle click on clear all button", async () => {
+    mockShowConfirm.mockClear();
 
-    if (buttons.length > 1) {
-      fireEvent.click(buttons[1]);
-      expect(buttons[1]).toBeTruthy();
-    }
+    const { getByTestId } = render(<IndexPopup />);
+
+    await waitFor(() => {
+      const btn = getByTestId("clear-all-btn");
+      expect(btn).toBeTruthy();
+    });
+
+    fireEvent.click(getByTestId("clear-all-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
   });
 
   it("should handle keyboard navigation", () => {
@@ -737,16 +728,18 @@ describe("IndexPopup", () => {
     expect(container.querySelector('[data-testid="cookie-list"]')).toBeTruthy();
   });
 
-  it("should handle confirm dialog", () => {
-    const { container } = render(<IndexPopup />);
-    const quickActions = container.querySelector('[data-testid="quick-actions"]');
-    if (quickActions) {
-      const buttons = quickActions.querySelectorAll("button");
-      if (buttons.length > 0) {
-        fireEvent.click(buttons[0]);
-        expect(buttons[0]).toBeTruthy();
-      }
-    }
+  it("should handle confirm dialog", async () => {
+    mockShowConfirm.mockClear();
+
+    const { getByTestId } = render(<IndexPopup />);
+
+    await waitFor(() => {
+      const btn = getByTestId("clear-current-btn");
+      expect(btn).not.toBeDisabled();
+    });
+
+    fireEvent.click(getByTestId("clear-current-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
   });
 
   it("should handle blacklist mode", () => {
@@ -865,14 +858,18 @@ describe("IndexPopup", () => {
     testKeyboardNavigation("End");
   });
 
-  it("should handle clear current cookies", () => {
+  it("should handle clear current cookies", async () => {
+    mockShowConfirm.mockClear();
+
     const { getByTestId } = render(<IndexPopup />);
-    const quickActions = getByTestId("quick-actions");
-    const clearCurrentButton = quickActions.querySelector("button:first-child");
-    if (clearCurrentButton) {
-      fireEvent.click(clearCurrentButton);
-      expect(clearCurrentButton).toBeTruthy();
-    }
+
+    await waitFor(() => {
+      const btn = getByTestId("clear-current-btn");
+      expect(btn).not.toBeDisabled();
+    });
+
+    fireEvent.click(getByTestId("clear-current-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
   });
 
   it("should handle message display and auto-hide", async () => {

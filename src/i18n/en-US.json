@@ -278,6 +278,7 @@
     "filterDomainAll": "All Domains",
     "filterDomainCurrent": "Current Site Only",
     "filterDomainThirdParty": "Third Party Only",
+    "filterDomainDisabled": "Cannot get domain from current page, domain scope filter is unavailable",
     "filterResult": "Showing {count}/{total}",
     "clearFilters": "Reset Filters",
     "noMatchingCookies": "No matching cookies",

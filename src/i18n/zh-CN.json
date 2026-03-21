@@ -278,6 +278,7 @@
     "filterDomainAll": "全部域名",
     "filterDomainCurrent": "仅当前站点",
     "filterDomainThirdParty": "仅第三方",
+    "filterDomainDisabled": "当前页面无法获取域名，域范围筛选不可用",
     "filterResult": "显示 {count}/{total} 个",
     "clearFilters": "重置筛选",
     "noMatchingCookies": "没有匹配的 Cookie",

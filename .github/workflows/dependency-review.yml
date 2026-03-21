@@ -134,6 +134,12 @@ jobs:
         run: |
           AUDIT_STATUS="${{ steps.audit.outputs.audit_status }}"
           LICENSE_STATUS="${{ steps.license.outputs.license_status }}"
+          
+          if [ -z "$LICENSE_STATUS" ]; then
+            echo "⚠️ 许可证检查未产生结果，可能存在执行异常"
+            exit 1
+          fi
+          
           if [ "$AUDIT_STATUS" != "clean" ] && [ "$AUDIT_STATUS" != "registry_error" ]; then
             echo "❌ 安全审计发现漏洞"
             exit 1

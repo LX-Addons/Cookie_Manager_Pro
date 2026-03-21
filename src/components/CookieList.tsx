@@ -144,6 +144,12 @@ export const CookieListContent = memo(
       setVisibleValues((prev) => new Set([...prev].filter((key) => validKeys.has(key))));
     }, [cookies]);
 
+    useEffect(() => {
+      if (!showCookieRisk && riskFilter !== "all") {
+        setRiskFilter("all");
+      }
+    }, [showCookieRisk, riskFilter]);
+
     const filteredGroupedCookies = useMemo(() => {
       const grouped = new Map<string, Cookie[]>();
       for (const cookie of filteredCookies) {
@@ -446,17 +452,19 @@ export const CookieListContent = memo(
                     />
                   </div>
                   <div className="filter-row">
-                    <select
-                      value={riskFilter}
-                      onChange={(e) => setRiskFilter(e.target.value as RiskFilter)}
-                      className="filter-select"
-                      aria-label={t("cookieList.filterRiskAll")}
-                    >
-                      <option value="all">{t("cookieList.filterRiskAll")}</option>
-                      <option value="low">{t("cookieList.filterRiskLow")}</option>
-                      <option value="medium">{t("cookieList.filterRiskMedium")}</option>
-                      <option value="high">{t("cookieList.filterRiskHigh")}</option>
-                    </select>
+                    {(showCookieRisk ?? true) && (
+                      <select
+                        value={riskFilter}
+                        onChange={(e) => setRiskFilter(e.target.value as RiskFilter)}
+                        className="filter-select"
+                        aria-label={t("cookieList.filterRiskAll")}
+                      >
+                        <option value="all">{t("cookieList.filterRiskAll")}</option>
+                        <option value="low">{t("cookieList.filterRiskLow")}</option>
+                        <option value="medium">{t("cookieList.filterRiskMedium")}</option>
+                        <option value="high">{t("cookieList.filterRiskHigh")}</option>
+                      </select>
+                    )}
                     <select
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
@@ -471,6 +479,8 @@ export const CookieListContent = memo(
                       value={domainScopeFilter}
                       onChange={(e) => setDomainScopeFilter(e.target.value as DomainScopeFilter)}
                       className="filter-select"
+                      disabled={!currentDomain}
+                      title={!currentDomain ? t("cookieList.filterDomainDisabled") : undefined}
                       aria-label={t("cookieList.filterDomainAll")}
                     >
                       <option value="all">{t("cookieList.filterDomainAll")}</option>

@@ -49,10 +49,14 @@ export function ConfirmDialog({
     if (!dialog) return;
 
     if (isOpen) {
-      dialog.showModal();
-      confirmBtnRef.current?.focus();
+      if (!dialog.open) {
+        dialog.showModal();
+        confirmBtnRef.current?.focus();
+      }
     } else {
-      dialog.close();
+      if (dialog.open) {
+        dialog.close();
+      }
     }
   }, [isOpen]);
 

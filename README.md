@@ -117,7 +117,6 @@ Cookie_Manager_Pro/
 │       └── index.ts                    # 工具函数入口
 │
 ├── 📂 tests/                           # 🧪 测试文件
-│   ├── 📂 e2e/                         # E2E 端到端测试
 │   ├── 📂 unit/                        # 单元测试
 │   ├── 📂 utils/                       # 测试工具函数
 │   └── setup.ts                        # 测试配置
@@ -130,7 +129,6 @@ Cookie_Manager_Pro/
 ├── 📄 tsconfig.json                    # TypeScript 配置
 ├── 📄 wxt.config.ts                    # WXT 框架配置
 ├── 📄 vitest.config.ts                 # Vitest 测试配置
-├── 📄 playwright.config.ts             # Playwright 配置
 ├── 📄 eslint.config.js                 # ESLint 规则配置
 ├── 📄 .prettierrc.json                 # Prettier 格式化配置
 └── 📄 README.md                        # 项目说明文档
@@ -149,7 +147,7 @@ Cookie_Manager_Pro/
 | `src/lib/` | 核心库 | 常量、存储 |
 | `src/types/` | 类型定义 | TypeScript 类型 |
 | `src/utils/` | 工具函数 | 清理逻辑等 |
-| `tests/` | 测试文件 | 单元测试、E2E |
+| `tests/` | 测试文件 | 单元测试 |
 | `.github/` | CI/CD | 自动化工作流 |
 
 </details>
@@ -166,7 +164,6 @@ Cookie_Manager_Pro/
 | **@wxt-dev/module-react** |  1.2.2  | WXT React 模块     |
 |       **Manifest**        |   V3    | Chrome 扩展规范    |
 |        **Vitest**         |  4.1.0  | 单元测试框架       |
-|      **Playwright**       | 1.58.2  | E2E 测试框架       |
 
 ---
 

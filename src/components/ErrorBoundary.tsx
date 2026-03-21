@@ -31,7 +31,12 @@ function ErrorBoundaryContent({
         </div>
         <h3 className="error-title">{t("errorBoundary.error")}</h3>
         <p className="error-message">{error?.message || t("errorBoundary.errorMessage")}</p>
-        <button onClick={onRetry} className="btn btn-primary" aria-label={t("errorBoundary.retry")}>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="btn btn-primary"
+          aria-label={t("errorBoundary.retry")}
+        >
           {t("errorBoundary.retry")}
         </button>
       </div>

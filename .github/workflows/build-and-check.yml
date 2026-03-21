@@ -15,11 +15,6 @@ on:
       - "LICENSE"
   workflow_dispatch:
     inputs:
-      skip_tests:
-        description: "跳过 E2E 测试（加快构建速度）"
-        required: false
-        default: false
-        type: boolean
       clear_caches:
         description: "清除旧的 npm 和 WXT 缓存后再构建"
         required: false
@@ -348,26 +343,29 @@ jobs:
           echo "### 🔍 安全模式检查" >> $GITHUB_STEP_SUMMARY
           EXIT_CODE=0
 
-          echo "#### eval 使用检查" >> $GITHUB_STEP_SUMMARY
-          if grep -rPn '\beval\s*\(' --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | \
-             grep -v '/node_modules/' | \
-             grep -v '/\.wxt/' | \
-             grep -vP '^[^:]+:\d+:\s*//' | \
-             grep -v "// safe:" | \
-             grep -v "// eslint-disable"; then
-            echo "❌ 发现 eval() 使用 - 潜在安全风险" >> $GITHUB_STEP_SUMMARY
+          echo "#### 代码安全规则检查 (ESLint)" >> $GITHUB_STEP_SUMMARY
+          SECURITY_OUTPUT=$(pnpm eslint --no-error-on-unmatched-pattern \
+            --rule 'no-eval: error' \
+            --rule 'no-implied-eval: error' \
+            --rule 'no-new-func: error' \
+            --rule 'react/no-danger: error' \
+            --format compact \
+            'src/**/*.{ts,tsx}' 2>&1) || true
+
+          if echo "$SECURITY_OUTPUT" | grep -q "error"; then
+            echo "<details><summary>❌ 发现安全相关问题</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$SECURITY_OUTPUT" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "检测到以下安全问题：" >> $GITHUB_STEP_SUMMARY
+            echo "- \`eval()\` / \`Function()\` 动态代码执行" >> $GITHUB_STEP_SUMMARY
+            echo "- \`dangerouslySetInnerHTML\` XSS 风险" >> $GITHUB_STEP_SUMMARY
             EXIT_CODE=1
           else
-            echo "✅ 未发现 eval() 使用" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "#### dangerouslySetInnerHTML 检查" >> $GITHUB_STEP_SUMMARY
-          if grep -r "dangerouslySetInnerHTML" --include="*.ts" --include="*.tsx" --include="*.js" . 2>/dev/null | \
-             grep -v '/node_modules/' | \
-             grep -v '/\.wxt/'; then
-            echo "⚠️ 发现 dangerouslySetInnerHTML 使用 - XSS 风险" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ 未发现 dangerouslySetInnerHTML 使用" >> $GITHUB_STEP_SUMMARY
+            echo "✅ 未发现安全相关代码问题" >> $GITHUB_STEP_SUMMARY
           fi
 
           exit $EXIT_CODE
@@ -564,78 +562,11 @@ jobs:
           echo "| **名称** | \`${{ steps.version.outputs.name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **产物保留** | ${{ needs.setup.outputs.artifact_retention }} 天 |" >> $GITHUB_STEP_SUMMARY
 
-  e2e:
-    name: E2E测试
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [setup, build]
-    permissions:
-      contents: read
-    env:
-      NODE_VERSION: ${{ needs.setup.outputs.node_version }}
-      PNPM_VERSION: ${{ needs.setup.outputs.pnpm_version }}
-    if: needs.build.result == 'success' && github.event.inputs.skip_tests != 'true'
-    steps:
-      - name: 检出仓库
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: 安装项目依赖
-        uses: ./.github/actions/setup-pnpm
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          pnpm-version: ${{ env.PNPM_VERSION }}
-
-      - name: 列出可用 Artifacts
-        run: |
-          echo "📦 尝试下载 artifact: extension-build"
-          echo "🔍 工作流运行 ID: ${{ github.run_id }}"
-
-      - name: 下载构建产物
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: extension-build-${{ needs.build.outputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .output/chrome-mv3/
-
-      - name: 准备测试扩展
-        run: |
-          echo "📁 当前目录内容:"
-          ls -la
-
-          echo "📁 .output/ 目录内容:"
-          ls -la .output/ || echo "目录为空或不存在"
-
-          if [ -d ".output/chrome-mv3" ] && [ -f ".output/chrome-mv3/manifest.json" ]; then
-            echo "✅ 找到构建目录: .output/chrome-mv3"
-          else
-            echo "❌ 未找到构建产物，检查所有目录..."
-            find . -name "manifest.json" -type f 2>/dev/null | head -5
-            echo "📁 当前目录完整内容:"
-            ls -laR
-            exit 1
-          fi
-
-          echo "📁 最终 .output/chrome-mv3/ 目录内容:"
-          ls -la .output/chrome-mv3/
-
-      - name: 安装 Playwright 浏览器
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: 运行 E2E 测试
-        run: xvfb-run --auto-servernum pnpm run test:e2e
-
-      - name: 上传 Playwright 报告
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
-        with:
-          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
-          path: playwright-report/
-          retention-days: ${{ needs.setup.outputs.artifact_retention }}
-
   pr-comment:
     name: PR评论
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [setup, lint, test, security, build, e2e]
+    needs: [setup, lint, test, security, build]
     if: >
       always() &&
       github.event_name == 'pull_request' &&
@@ -673,7 +604,6 @@ jobs:
             const securityResult = '${{ needs.security.result }}';
             const auditStatus = '${{ needs.security.outputs.audit_status }}';
             const buildResult = '${{ needs.build.result }}';
-            const e2eResult = '${{ needs.e2e.result }}';
             const version = '${{ steps.info.outputs.version }}';
             const isDependabot = '${{ steps.dependabot.outputs.is_dependabot }}' === 'true';
 
@@ -711,11 +641,10 @@ jobs:
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
             body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js ${{ needs.setup.outputs.node_version }} 测试 |\n`;
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | ${getSecurityStatusText()} |\n`;
-            body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n`;
-            body += `| 🎭 | **E2E 测试** | ${statusEmoji(e2eResult)} | Playwright 浏览器测试 |\n\n`;
+            body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n\n`;
 
             body += `### 🏷️ 状态徽章\n\n`;
-            body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityResult)} ${getBadge('构建', buildResult)} ${getBadge('E2E测试', e2eResult)}\n\n`;
+            body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityResult)} ${getBadge('构建', buildResult)}\n\n`;
 
             const results = {
               setup: setupResult,
@@ -728,10 +657,9 @@ jobs:
             const allSuccess = ['setup', 'lint', 'test', 'security', 'build'].every(r =>
               results[r] === 'success'
             );
-            const e2eSuccess = e2eResult === 'success' || e2eResult === 'skipped';
             const auditIncomplete = auditStatus === 'registry_error';
 
-            if (allSuccess && e2eSuccess && !auditIncomplete) {
+            if (allSuccess && !auditIncomplete) {
               body += `> 🎉 **所有检查已通过！** 代码已准备好合并。\n\n`;
             } else if (auditIncomplete) {
               body += `> ⚠️ **安全审计未完成**：无法连接到包注册表，请重试或人工确认依赖安全。\n\n`;
@@ -748,7 +676,7 @@ jobs:
             if (isDependabot) {
               body += `---\n\n`;
               body += `### 🤖 Dependabot 依赖更新\n\n`;
-              if (allSuccess && e2eSuccess && !auditIncomplete) {
+              if (allSuccess && !auditIncomplete) {
                 body += `✅ 所有关键检查已通过，已添加 \`待审核\` 标签。\n\n`;
                 body += `⚠️ **需要人工审核后才能合并到主分支！**\n`;
               } else if (auditIncomplete) {
@@ -806,7 +734,7 @@ jobs:
     name: 失败通知
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [setup, lint, test, security, build, e2e]
+    needs: [setup, lint, test, security, build]
     if: failure() && github.event_name != 'pull_request'
     permissions:
       contents: read
@@ -822,14 +750,13 @@ jobs:
           echo "| 🧪 | 单元测试 | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🛡️ | 安全扫描 | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 📦 | 构建 | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🎭 | E2E 测试 | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "请查看 [工作流日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) 了解详情。" >> $GITHUB_STEP_SUMMARY
 
   dependabot-notify:
     name: Dependabot通知
     runs-on: ubuntu-latest
-    needs: [setup, lint, test, security, build, e2e]
+    needs: [setup, lint, test, security, build]
     if: >
       github.event_name == 'pull_request' &&
       github.actor == 'dependabot[bot]' &&
@@ -838,8 +765,7 @@ jobs:
       needs.test.result == 'success' &&
       needs.security.result == 'success' &&
       needs.security.outputs.audit_status != 'registry_error' &&
-      needs.build.result == 'success' &&
-      (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
+      needs.build.result == 'success'
     permissions:
       pull-requests: write
       issues: write

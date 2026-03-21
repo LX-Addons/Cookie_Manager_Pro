@@ -61,8 +61,11 @@ export default [
       "no-console": "off",
       "prettier/prettier": "error",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      // 允许在 effect 中调用 setState，用于同步外部系统状态
       "react-hooks/set-state-in-effect": "off",
+      "no-eval": "error",
+      "no-implied-eval": "error",
+      "no-new-func": "error",
+      "react/no-danger": "error",
     },
     settings: {
       react: {

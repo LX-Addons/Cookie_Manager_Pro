@@ -65,7 +65,7 @@ body {
   overflow: hidden;
 }
 
-@media (min-resolution: 192dpi), (-webkit-min-device-pixel-ratio: 2) {
+@media (min-resolution: 2dppx) {
   html {
     -webkit-font-smoothing: antialiased;
   }
