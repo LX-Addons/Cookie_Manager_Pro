@@ -131,15 +131,14 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Normal content")).toBeTruthy();
   });
 
-  it("should render error boundary with emoji icon", () => {
+  it("should render error boundary with error icon", () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
 
-    const heading = screen.getByRole("heading", { level: 2 });
-    expect(heading).toContainHTML("⚠️");
+    expect(screen.getByText("!")).toBeTruthy();
   });
 
   it("should handle error without stack trace", () => {
@@ -206,6 +205,6 @@ describe("ErrorBoundary", () => {
     );
 
     const errorBoundary = screen.getByRole("alert");
-    expect(errorBoundary.classList.contains("error-boundary")).toBeTruthy();
+    expect(errorBoundary.classList.contains("error-panel")).toBeTruthy();
   });
 });

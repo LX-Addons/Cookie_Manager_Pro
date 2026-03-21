@@ -10,6 +10,8 @@ interface Props<T extends string> {
   }>;
   placeholder?: string;
   disabled?: boolean;
+  label?: string;
+  description?: string;
 }
 
 const SelectInner = <T extends string>({
@@ -19,26 +21,38 @@ const SelectInner = <T extends string>({
   options,
   placeholder,
   disabled = false,
+  label,
+  description,
 }: Props<T>) => {
+  const id = `${name}-select`;
   return (
-    <select
-      name={name}
-      className="select-input"
-      value={value}
-      onChange={(e) => onChange(e.target.value as T)}
-      disabled={disabled}
-    >
-      {placeholder && (
-        <option value="" disabled>
-          {placeholder}
-        </option>
+    <div className="select-wrapper">
+      {label && (
+        <label htmlFor={id} className="select-label">
+          {label}
+        </label>
       )}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+      {description && <p className="select-description">{description}</p>}
+      <select
+        id={id}
+        name={name}
+        className="select-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        disabled={disabled}
+      >
+        {placeholder && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 };
 

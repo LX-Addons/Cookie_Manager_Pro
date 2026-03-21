@@ -9,8 +9,13 @@ interface ConfirmDialogWrapperProps {
 export type ShowConfirmFn = (
   title: string,
   message: string,
-  variant: "danger" | "warning",
-  onConfirm: () => void
+  variant: "danger" | "warning" | "info" | "success",
+  onConfirm: () => void,
+  options?: {
+    description?: string;
+    confirmText?: string;
+    cancelText?: string;
+  }
 ) => void;
 
 export const ConfirmDialogWrapper = ({ children }: ConfirmDialogWrapperProps) => {
@@ -22,7 +27,10 @@ export const ConfirmDialogWrapper = ({ children }: ConfirmDialogWrapperProps) =>
       <ConfirmDialog
         isOpen={confirmState.isOpen}
         title={confirmState.title}
+        description={confirmState.description}
         message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
         variant={confirmState.variant}
         onConfirm={handleConfirm}
         onCancel={closeConfirm}

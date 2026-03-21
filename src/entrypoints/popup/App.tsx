@@ -18,6 +18,8 @@ import {
   isTrackingCookie,
   isThirdPartyCookie,
   buildDomainString,
+  getHoverColor,
+  getActiveColor,
 } from "@/utils";
 import { performCleanupWithFilter } from "@/utils/cleanup";
 import { MESSAGE_DURATION, DEBOUNCE_DELAY_MS } from "@/lib/constants";
@@ -44,6 +46,7 @@ function IndexPopup() {
   });
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const { confirmState, showConfirm, closeConfirm, handleConfirm } = useConfirmDialog();
 
@@ -61,40 +64,70 @@ function IndexPopup() {
     return themeMode;
   }, [settings.themeMode, systemTheme]);
 
+  const isCurrentInWhitelist = useMemo(
+    () => currentDomain && isInList(currentDomain, whitelist),
+    [currentDomain, whitelist]
+  );
+
+  const isCurrentInBlacklist = useMemo(
+    () => currentDomain && isInList(currentDomain, blacklist),
+    [currentDomain, blacklist]
+  );
+
+  const siteStatus = useMemo(() => {
+    if (!currentDomain) return "unknown";
+    if (settings.mode === ModeType.WHITELIST) {
+      return isCurrentInWhitelist ? "protected" : "normal";
+    }
+    return isCurrentInBlacklist ? "priority-cleanup" : "normal";
+  }, [currentDomain, settings.mode, isCurrentInWhitelist, isCurrentInBlacklist]);
+
+  const riskLevel = useMemo(() => {
+    if (stats.tracking > 0) return "high";
+    if (stats.thirdParty > 0) return "medium";
+    return "low";
+  }, [stats.tracking, stats.thirdParty]);
+
   const tabs = useMemo(
     () => [
-      { id: "manage", label: t("tabs.manage"), icon: "🏠" },
+      { id: "manage", label: t("tabs.manage") },
       {
         id: "rules",
         label: settings.mode === ModeType.WHITELIST ? t("tabs.whitelist") : t("tabs.blacklist"),
-        icon: "📝",
       },
-      { id: "settings", label: t("tabs.settings"), icon: "⚙️" },
-      { id: "log", label: t("tabs.log"), icon: "📋" },
+      { id: "settings", label: t("tabs.settings") },
+      { id: "log", label: t("tabs.log") },
     ],
     [settings.mode, t]
   );
 
   const handleTabKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const currentIndex = tabs.findIndex((t) => t.id === activeTab);
+      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+      let newTabId: string | null = null;
+
       if (e.key === "ArrowRight") {
         e.preventDefault();
         const nextIndex = (currentIndex + 1) % tabs.length;
-        setActiveTab(tabs[nextIndex].id);
+        newTabId = tabs[nextIndex].id;
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-        setActiveTab(tabs[prevIndex].id);
+        newTabId = tabs[prevIndex].id;
       } else if (e.key === "Home") {
         e.preventDefault();
-        setActiveTab(tabs[0].id);
+        newTabId = tabs[0].id;
       } else if (e.key === "End") {
         e.preventDefault();
         const lastTab = tabs.at(-1);
         if (lastTab) {
-          setActiveTab(lastTab.id);
+          newTabId = lastTab.id;
         }
+      }
+
+      if (newTabId && newTabId !== activeTab) {
+        setActiveTab(newTabId);
+        tabRefs.current[newTabId]?.focus();
       }
     },
     [activeTab, tabs]
@@ -199,8 +232,10 @@ function IndexPopup() {
     ]
   );
 
-  const quickAddToWhitelist = useCallback(() => {
-    if (currentDomain) {
+  const quickAddToRule = useCallback(() => {
+    if (!currentDomain) return;
+
+    if (settings.mode === ModeType.WHITELIST) {
       const isNotInList = !isInList(currentDomain, whitelist);
       if (isNotInList) {
         setWhitelist([...whitelist, currentDomain]);
@@ -208,11 +243,7 @@ function IndexPopup() {
       } else {
         showMessage(t("popup.alreadyInWhitelist", { domain: currentDomain }));
       }
-    }
-  }, [currentDomain, whitelist, setWhitelist, showMessage, t]);
-
-  const quickAddToBlacklist = useCallback(() => {
-    if (currentDomain) {
+    } else {
       const isNotInList = !isInList(currentDomain, blacklist);
       if (isNotInList) {
         setBlacklist([...blacklist, currentDomain]);
@@ -221,7 +252,16 @@ function IndexPopup() {
         showMessage(t("popup.alreadyInBlacklist", { domain: currentDomain }));
       }
     }
-  }, [currentDomain, blacklist, setBlacklist, showMessage, t]);
+  }, [
+    currentDomain,
+    whitelist,
+    blacklist,
+    setWhitelist,
+    setBlacklist,
+    showMessage,
+    t,
+    settings.mode,
+  ]);
 
   const quickClearCurrent = useCallback(() => {
     showConfirm(
@@ -281,40 +321,82 @@ function IndexPopup() {
   const applyCustomTheme = useCallback((customTheme: SettingsType["customTheme"]) => {
     if (!customTheme) return;
     const root = document.documentElement;
+    const primaryHover = getHoverColor(customTheme.primary);
+    const primaryActive = getActiveColor(customTheme.primary);
+    const successHover = getHoverColor(customTheme.success);
+    const successActive = getActiveColor(customTheme.success);
+    const warningHover = getHoverColor(customTheme.warning);
+    const warningActive = getActiveColor(customTheme.warning);
+    const dangerHover = getHoverColor(customTheme.danger);
+    const dangerActive = getActiveColor(customTheme.danger);
+
     const themeVars: Record<string, string | undefined> = {
-      "--primary-500": customTheme.primary,
-      "--success-500": customTheme.success,
-      "--warning-500": customTheme.warning,
-      "--danger-500": customTheme.danger,
-      "--bg-primary": customTheme.bgPrimary,
-      "--bg-secondary": customTheme.bgSecondary,
+      "--accent-primary": customTheme.primary,
+      "--accent-success": customTheme.success,
+      "--accent-warning": customTheme.warning,
+      "--accent-danger": customTheme.danger,
+      "--surface-primary": customTheme.bgPrimary,
+      "--surface-secondary": customTheme.bgSecondary,
       "--text-primary": customTheme.textPrimary,
       "--text-secondary": customTheme.textSecondary,
+      "--primary-500": customTheme.primary,
+      "--primary-600": primaryHover,
+      "--primary-700": primaryActive,
+      "--success-500": customTheme.success,
+      "--success-600": successHover,
+      "--success-700": successActive,
+      "--warning-500": customTheme.warning,
+      "--warning-600": warningHover,
+      "--warning-700": warningActive,
+      "--danger-500": customTheme.danger,
+      "--danger-600": dangerHover,
+      "--danger-700": dangerActive,
+      "--bg-primary": customTheme.bgPrimary,
+      "--bg-secondary": customTheme.bgSecondary,
+      "--bg-card": customTheme.bgSecondary,
     };
     Object.entries(themeVars).forEach(([prop, value]) => {
       if (value) root.style.setProperty(prop, value);
     });
   }, []);
 
+  const clearCustomTheme = useCallback(() => {
+    const root = document.documentElement;
+    const customVars = [
+      "--accent-primary",
+      "--accent-success",
+      "--accent-warning",
+      "--accent-danger",
+      "--surface-primary",
+      "--surface-secondary",
+      "--text-primary",
+      "--text-secondary",
+      "--primary-500",
+      "--primary-600",
+      "--primary-700",
+      "--success-500",
+      "--success-600",
+      "--success-700",
+      "--warning-500",
+      "--warning-600",
+      "--warning-700",
+      "--danger-500",
+      "--danger-600",
+      "--danger-700",
+      "--bg-primary",
+      "--bg-secondary",
+      "--bg-card",
+    ];
+    customVars.forEach((prop) => root.style.removeProperty(prop));
+  }, []);
+
   useEffect(() => {
     if (settings.themeMode === ThemeMode.CUSTOM) {
       applyCustomTheme(settings.customTheme);
     } else {
-      // 清除自定义主题变量，恢复默认
-      const root = document.documentElement;
-      const themeVars = [
-        "--primary-500",
-        "--success-500",
-        "--warning-500",
-        "--danger-500",
-        "--bg-primary",
-        "--bg-secondary",
-        "--text-primary",
-        "--text-secondary",
-      ];
-      themeVars.forEach((prop) => root.style.removeProperty(prop));
+      clearCustomTheme();
     }
-  }, [settings.themeMode, settings.customTheme, applyCustomTheme]);
+  }, [settings.themeMode, settings.customTheme, applyCustomTheme, clearCustomTheme]);
 
   useEffect(() => {
     async function init() {
@@ -335,24 +417,31 @@ function IndexPopup() {
     init();
   }, []);
 
-  // 当 currentDomain 变化时更新 stats - 这是同步外部系统 (chrome.cookies) 到 React 状态的合理使用场景
   useEffect(() => {
     updateStats();
   }, [currentDomain, updateStats]);
 
   return (
     <ErrorBoundary>
-      <div className={`container theme-${theme}`}>
-        <header>
-          <h1>
-            <span aria-hidden="true">🍪</span> Cookie Manager Pro
-          </h1>
+      <div className={`app-shell theme-${theme}`}>
+        <header className="app-header">
+          <div className="app-brand">
+            <h1>{t("app.title")}</h1>
+          </div>
+          <div className="mode-badge">
+            {settings.mode === ModeType.WHITELIST
+              ? t("settings.whitelistModeShort")
+              : t("settings.blacklistModeShort")}
+          </div>
         </header>
 
         <div className="tabs" role="tablist" tabIndex={0} onKeyDown={handleTabKeyDown}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              ref={(el) => {
+                tabRefs.current[tab.id] = el;
+              }}
               data-testid={`tab-${tab.id}`}
               className={`tab-btn ${activeTab === tab.id ? "active" : ""}`}
               onClick={() => setActiveTab(tab.id)}
@@ -361,95 +450,109 @@ function IndexPopup() {
               aria-controls={`${tab.id}-panel`}
               tabIndex={activeTab === tab.id ? 0 : -1}
             >
-              <span className="tab-icon" aria-hidden="true">
-                {tab.icon}
-              </span>
               <span>{tab.label}</span>
             </button>
           ))}
         </div>
 
         {activeTab === "manage" && (
-          <div className="tab-content" role="tabpanel" id="manage-panel">
-            <div className="section">
-              <h3>
-                <span className="section-icon" aria-hidden="true">
-                  🌐
-                </span>
-                {t("popup.currentWebsite")}
-              </h3>
-              <div className="domain-info">{currentDomain || t("popup.unableToGetDomain")}</div>
-            </div>
+          <main className="tab-content" role="tabpanel" id="manage-panel">
+            <section className="site-summary panel" data-testid="site-summary">
+              <div className="panel-header">
+                <h2 className="site-title">{currentDomain || t("popup.unableToGetDomain")}</h2>
+                <div className="status-badges">
+                  {siteStatus === "protected" && (
+                    <span className="badge badge-success">{t("popup.protectedSite")}</span>
+                  )}
+                  {siteStatus === "priority-cleanup" && (
+                    <span className="badge badge-warning">{t("popup.priorityCleanupSite")}</span>
+                  )}
+                </div>
+              </div>
+              <p className="mode-summary">
+                {settings.mode === ModeType.WHITELIST
+                  ? t("popup.modeSummaryWhitelist")
+                  : t("popup.modeSummaryBlacklist")}
+              </p>
+            </section>
 
-            <div className="section">
-              <h3>
-                <span className="section-icon" aria-hidden="true">
-                  📊
+            <section className="insight-strip panel">
+              <div className="insight-grid" data-testid="insight-grid">
+                <div className="insight-item insight-primary">
+                  <span className="insight-value">{stats.current}</span>
+                  <span className="insight-label">{t("popup.currentSiteCookies")}</span>
+                </div>
+                <div className="insight-item">
+                  <span className="insight-value">{stats.thirdParty}</span>
+                  <span className="insight-label">{t("popup.thirdParty")}</span>
+                </div>
+                <div className="insight-item insight-danger">
+                  <span className="insight-value">{stats.tracking}</span>
+                  <span className="insight-label">{t("popup.tracking")}</span>
+                </div>
+              </div>
+              {(stats.thirdParty > 0 || stats.tracking > 0) && (
+                <div className={`risk-summary risk-${riskLevel}`}>
+                  {stats.tracking > 0
+                    ? t("popup.trackingDetected", { count: stats.tracking })
+                    : t("popup.thirdPartyDetected", { count: stats.thirdParty })}
+                </div>
+              )}
+            </section>
+
+            <section className="quick-actions-panel panel" data-testid="quick-actions">
+              <div className="panel-header">
+                <h3>{t("popup.quickManage")}</h3>
+              </div>
+              <div className="action-cluster">
+                <button
+                  onClick={quickClearCurrent}
+                  className="btn btn-primary btn-block"
+                  disabled={!currentDomain}
+                  data-testid="clear-current-btn"
+                >
+                  {t("popup.clearCurrent")}
+                </button>
+                <div className="action-row">
+                  <button
+                    onClick={quickAddToRule}
+                    className="btn btn-secondary"
+                    disabled={!currentDomain}
+                    data-testid="add-to-rule-btn"
+                  >
+                    {settings.mode === ModeType.WHITELIST
+                      ? t("popup.addToWhitelist")
+                      : t("popup.addToBlacklist")}
+                  </button>
+                  <button
+                    onClick={quickClearAll}
+                    className="btn btn-danger"
+                    data-testid="clear-all-btn"
+                  >
+                    {t("popup.clearAllCookies")}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="cookie-overview-panel panel">
+              <div className="panel-header">
+                <h3>{t("popup.cookieStats")}</h3>
+                <span className="stat-secondary">
+                  {t("popup.total")}: {stats.total}
                 </span>
-                {t("popup.cookieStats")}
-              </h3>
-              <div className="stats">
-                <div className="stat-item">
-                  <span className="stat-label">{t("popup.total")}</span>
-                  <span className="stat-value">{stats.total}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">{t("popup.current")}</span>
-                  <span className="stat-value">{stats.current}</span>
-                </div>
-                <div className="stat-item">
+              </div>
+              <div className="stats-secondary">
+                <div className="stat-item-small">
                   <span className="stat-label">{t("popup.session")}</span>
                   <span className="stat-value">{stats.session}</span>
                 </div>
-                <div className="stat-item">
+                <div className="stat-item-small">
                   <span className="stat-label">{t("popup.persistent")}</span>
                   <span className="stat-value">{stats.persistent}</span>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">{t("popup.thirdParty")}</span>
-                  <span className="stat-value">{stats.thirdParty}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">{t("popup.tracking")}</span>
-                  <span className="stat-value">{stats.tracking}</span>
-                </div>
               </div>
-            </div>
-
-            <div className="section">
-              <h3>
-                <span className="section-icon" aria-hidden="true">
-                  ⚡
-                </span>
-                {t("popup.quickActions")}
-              </h3>
-              <div className="button-group">
-                <button onClick={quickAddToWhitelist} className="btn btn-success">
-                  <span className="btn-icon" aria-hidden="true">
-                    ✓
-                  </span>
-                  {t("popup.addToWhitelist")}
-                </button>
-                <button onClick={quickAddToBlacklist} className="btn btn-secondary">
-                  <span className="btn-icon" aria-hidden="true">
-                    ✗
-                  </span>
-                  {t("popup.addToBlacklist")}
-                </button>
-                <button onClick={quickClearCurrent} className="btn btn-warning">
-                  <span className="btn-icon" aria-hidden="true">
-                    🧹
-                  </span>
-                  {t("popup.clearCurrent")}
-                </button>
-                <button onClick={quickClearAll} className="btn btn-danger">
-                  <span className="btn-icon" aria-hidden="true">
-                    🔥
-                  </span>
-                  {t("popup.clearAllCookies")}
-                </button>
-              </div>
-            </div>
+            </section>
 
             <CookieList
               cookies={currentCookies}
@@ -472,7 +575,7 @@ function IndexPopup() {
                 }
               }}
             />
-          </div>
+          </main>
         )}
 
         {activeTab === "rules" && (
@@ -541,7 +644,10 @@ function IndexPopup() {
         )}
 
         <div
-          className={`message ${message.isError ? "error" : ""} ${message.visible ? "visible" : ""}`}
+          className={`toast-container ${message.visible ? "visible" : ""} ${message.isError ? "error" : ""}`}
+          role={message.isError ? "alert" : "status"}
+          aria-live={message.isError ? "assertive" : "polite"}
+          data-testid="toast-message"
         >
           {message.text}
         </div>

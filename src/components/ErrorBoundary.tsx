@@ -23,12 +23,20 @@ function ErrorBoundaryContent({
 
   if (hasError) {
     return (
-      <div className="error-boundary" role="alert">
-        <h2>
-          <span aria-hidden="true">⚠️</span> {t("errorBoundary.error")}
-        </h2>
-        <p>{error?.message || t("errorBoundary.errorMessage")}</p>
-        <button onClick={onRetry} aria-label={t("errorBoundary.retry")}>
+      <div className="error-panel panel" role="alert">
+        <div className="error-icon-wrapper">
+          <span className="error-icon" aria-hidden="true">
+            !
+          </span>
+        </div>
+        <h3 className="error-title">{t("errorBoundary.error")}</h3>
+        <p className="error-message">{error?.message || t("errorBoundary.errorMessage")}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="btn btn-primary"
+          aria-label={t("errorBoundary.retry")}
+        >
           {t("errorBoundary.retry")}
         </button>
       </div>

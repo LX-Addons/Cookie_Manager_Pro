@@ -32,6 +32,16 @@ vi.mock("@/hooks/useStorage", () => ({
 
 vi.mock("@/hooks/useTranslation", () => {
   const translations: Record<string, string> = {
+    "settings.group.cleanupStrategy": "清理策略",
+    "settings.group.cleanupStrategyDesc": "配置 Cookie 清理的基本规则和高级选项",
+    "settings.group.automation": "自动化",
+    "settings.group.automationDesc": "设置自动清理的触发条件和时间间隔",
+    "settings.group.privacyRisk": "隐私与风险",
+    "settings.group.privacyRiskDesc": "增强隐私保护，识别潜在的追踪风险",
+    "settings.group.appearance": "外观与显示",
+    "settings.group.appearanceDesc": "自定义界面主题和视觉风格",
+    "settings.group.languageLogs": "语言与日志",
+    "settings.group.languageLogsDesc": "选择界面语言和日志保留时间",
     "common.cancel": "取消",
     "common.save": "保存",
     "common.saving": "保存中…",
@@ -74,6 +84,7 @@ vi.mock("@/hooks/useTranslation", () => {
     "settings.cleanupOnTabDiscard": "启用已丢弃/未加载标签的清理",
     "settings.privacyProtection": "隐私保护",
     "settings.privacyProtectionDesc": "增强您的在线隐私保护，识别并警示潜在的追踪行为",
+    "settings.privacyRisk": "隐私与风险",
     "settings.logRetention": "日志保留时间",
     "settings.logRetentionDesc": "设置清理日志的保留时间，超过此时间的日志将被自动删除",
     "settings.oneHour": "1小时",
@@ -87,14 +98,22 @@ vi.mock("@/hooks/useTranslation", () => {
     "settings.forever": "永久",
     "settings.enableAutoCleanup": "启用自动清理",
     "settings.cleanupOnTabClose": "标签关闭时清理",
+    "settings.cleanupOnTabCloseDesc": "关闭标签页时自动清理该站点的 Cookie",
     "settings.cleanupOnBrowserClose": "浏览器关闭时清理",
+    "settings.cleanupOnBrowserCloseDesc": "关闭浏览器时自动清理 Cookie",
     "settings.cleanupOnNavigate": "导航时清理",
+    "settings.cleanupOnNavigateDesc": "在同一标签页导航到其他网站时清理 Cookie",
+    "settings.cleanupOnTabDiscardDesc": "清理被浏览器丢弃/卸载的标签页的 Cookie",
     "settings.themeMode": "主题模式",
     "settings.themeModeDesc": "选择您喜欢的界面主题风格",
-    "settings.followBrowser": "跟随系统",
-    "settings.light": "浅色主题",
-    "settings.dark": "深色主题",
-    "settings.custom": "自定义主题",
+    "settings.followBrowser": "跟随浏览器",
+    "settings.followBrowserDesc": "自动跟随系统主题设置",
+    "settings.light": "亮色",
+    "settings.lightDesc": "使用浅色主题",
+    "settings.dark": "暗色",
+    "settings.darkDesc": "使用深色主题",
+    "settings.custom": "自定义",
+    "settings.customDesc": "自定义主题颜色",
     "settings.customTheme": "自定义主题",
     "settings.customThemeDesc": "自定义扩展的主题颜色",
     "settings.primaryColor": "主色调",
@@ -223,15 +242,15 @@ describe("Settings", () => {
   it("should render theme mode options", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByText("跟随系统")).toBeTruthy();
-    expect(screen.getByText("浅色主题")).toBeTruthy();
-    expect(screen.getByText("深色主题")).toBeTruthy();
+    expect(screen.getByText("跟随浏览器")).toBeTruthy();
+    expect(screen.getByText("亮色")).toBeTruthy();
+    expect(screen.getByText("暗色")).toBeTruthy();
   });
 
   it("should render custom theme option", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByText("自定义主题")).toBeTruthy();
+    expect(screen.getByLabelText("自定义")).toBeTruthy();
   });
 
   it("should render language option", () => {
@@ -336,7 +355,7 @@ describe("Settings", () => {
   it("should handle theme mode change", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    const darkRadio = screen.getByLabelText("深色主题");
+    const darkRadio = screen.getByLabelText("暗色");
     fireEvent.click(darkRadio);
 
     expect(mockSettings.themeMode).toBe(ThemeMode.DARK);
@@ -357,7 +376,7 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByLabelText("跟随系统")).toBeChecked();
+    expect(screen.getByLabelText("跟随浏览器")).toBeChecked();
   });
 
   it("should render with light theme mode", () => {
@@ -365,7 +384,7 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByLabelText("浅色主题")).toBeChecked();
+    expect(screen.getByLabelText("亮色")).toBeChecked();
   });
 
   it("should render with dark theme mode", () => {
@@ -373,7 +392,7 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByLabelText("深色主题")).toBeChecked();
+    expect(screen.getByLabelText("暗色")).toBeChecked();
   });
 
   it("should render log retention select", () => {
@@ -398,7 +417,7 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    expect(screen.getByLabelText("自定义主题")).toBeChecked();
+    expect(screen.getByLabelText("自定义")).toBeChecked();
   });
 
   it("should render custom theme color pickers", () => {
@@ -874,7 +893,7 @@ describe("Settings", () => {
     expect(screen.getByText("定时清理")).toBeTruthy();
     expect(screen.getByText("高级清理")).toBeTruthy();
     expect(screen.getByText("自动清理")).toBeTruthy();
-    expect(screen.getByText("隐私保护")).toBeTruthy();
+    expect(screen.getByText("隐私与风险")).toBeTruthy();
     expect(screen.getByText("日志保留时间")).toBeTruthy();
     expect(screen.getByText("主题模式")).toBeTruthy();
     expect(screen.getByText("语言")).toBeTruthy();
@@ -974,7 +993,7 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    const lightRadio = screen.getByLabelText("浅色主题");
+    const lightRadio = screen.getByLabelText("亮色");
     fireEvent.click(lightRadio);
 
     expect(mockSettings.themeMode).toBe(ThemeMode.LIGHT);
@@ -985,7 +1004,7 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    const darkRadio = screen.getByLabelText("深色主题");
+    const darkRadio = screen.getByLabelText("暗色");
     fireEvent.click(darkRadio);
 
     expect(mockSettings.themeMode).toBe(ThemeMode.DARK);
@@ -996,9 +1015,109 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    const autoRadio = screen.getByLabelText("跟随系统");
+    const autoRadio = screen.getByLabelText("跟随浏览器");
     fireEvent.click(autoRadio);
 
     expect(mockSettings.themeMode).toBe(ThemeMode.AUTO);
+  });
+
+  it("should handle custom theme primary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const primaryColorInput = screen.getByLabelText("主色调");
+    fireEvent.change(primaryColorInput, { target: { value: "#ff0000" } });
+
+    expect(mockSettings.customTheme.primary).toBe("#ff0000");
+  });
+
+  it("should handle custom theme success color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const successColorInput = screen.getByLabelText("成功色");
+    fireEvent.change(successColorInput, { target: { value: "#00ff00" } });
+
+    expect(mockSettings.customTheme.success).toBe("#00ff00");
+  });
+
+  it("should handle custom theme warning color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const warningColorInput = screen.getByLabelText("警告色");
+    fireEvent.change(warningColorInput, { target: { value: "#ffff00" } });
+
+    expect(mockSettings.customTheme.warning).toBe("#ffff00");
+  });
+
+  it("should handle custom theme danger color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const dangerColorInput = screen.getByLabelText("危险色");
+    fireEvent.change(dangerColorInput, { target: { value: "#ff0000" } });
+
+    expect(mockSettings.customTheme.danger).toBe("#ff0000");
+  });
+
+  it("should handle custom theme bgPrimary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const bgPrimaryColorInput = screen.getByLabelText("主背景色");
+    fireEvent.change(bgPrimaryColorInput, { target: { value: "#ffffff" } });
+
+    expect(mockSettings.customTheme.bgPrimary).toBe("#ffffff");
+  });
+
+  it("should handle custom theme bgSecondary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const bgSecondaryColorInput = screen.getByLabelText("次背景色");
+    fireEvent.change(bgSecondaryColorInput, { target: { value: "#f8fafc" } });
+
+    expect(mockSettings.customTheme.bgSecondary).toBe("#f8fafc");
+  });
+
+  it("should handle custom theme textPrimary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const textPrimaryColorInput = screen.getByLabelText("主文字色");
+    fireEvent.change(textPrimaryColorInput, { target: { value: "#0f172a" } });
+
+    expect(mockSettings.customTheme.textPrimary).toBe("#0f172a");
+  });
+
+  it("should handle custom theme textSecondary color change", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const textSecondaryColorInput = screen.getByLabelText("次文字色");
+    fireEvent.change(textSecondaryColorInput, { target: { value: "#475569" } });
+
+    expect(mockSettings.customTheme.textSecondary).toBe("#475569");
+  });
+
+  it("should handle custom theme when customTheme is undefined", () => {
+    mockSettings.themeMode = ThemeMode.CUSTOM;
+    mockSettings.customTheme = undefined as any;
+
+    render(<Settings onMessage={mockOnMessage} />);
+
+    const primaryColorInput = screen.getByLabelText("主色调");
+    fireEvent.change(primaryColorInput, { target: { value: "#ff0000" } });
+
+    expect(mockSettings.customTheme.primary).toBe("#ff0000");
   });
 });

@@ -1,7 +1,7 @@
 {
   "name": "cookie-manager-pro",
   "displayName": "Cookie Manager Pro",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "高级Cookie管理，支持白名单/黑名单功能和选择性Cookie清除",
   "type": "module",
   "packageManager": "pnpm@10.32.1",
@@ -17,9 +17,6 @@
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
     "changelog": "git-cliff --output CHANGELOG.md",
     "changelog:latest": "git-cliff --latest"
   },
@@ -29,7 +26,6 @@
     "wxt": "^0.20.20"
   },
   "devDependencies": {
-    "@playwright/test": "1.58.2",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
@@ -43,7 +39,7 @@
     "@vitest/coverage-istanbul": "4.1.0",
     "@vitest/ui": "4.1.0",
     "@wxt-dev/module-react": "^1.2.2",
-    "eslint": "~9.39.4",
+    "eslint": "~10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
@@ -51,18 +47,21 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "happy-dom": "^20.8.4",
-    "jsdom": "^29.0.0",
+    "jsdom": "^29.0.1",
     "license-checker-rseidelsohn": "4.4.2",
     "prettier": "^3.8.1",
-    "tar": "^7.5.11",
+    "tar": "^7.5.12",
     "typescript": "^5.9.3",
-    "vite": "^8.0.0",
+    "vite": "^8.0.1",
     "vitest": "4.1.0"
   },
-  "overrides": {
-    "msgpackr": "1.11.8",
-    "content-security-policy-parser": "0.6.0",
-    "svelte": "4.2.19",
-    "esbuild": "0.25.0"
+  "pnpm": {
+    "overrides": {
+      "msgpackr": "1.11.8",
+      "content-security-policy-parser": "0.6.0",
+      "svelte": "4.2.19",
+      "esbuild": "0.25.0",
+      "flatted": ">=3.4.2"
+    }
   }
 }

@@ -1,10 +1,13 @@
 name: "依赖审查"
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "beta"]
     paths:
       - "package.json"
       - "pnpm-lock.yaml"
+      - ".github/workflows/**"
+      - ".github/dependabot.yml"
+      - ".github/actions/**"
 
 permissions:
   contents: read
@@ -13,39 +16,37 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  PNPM_VERSION: "10.32.1"
-  NODE_VERSION: "24"
-
 jobs:
+  get-env:
+    name: 获取环境配置
+    uses: ./.github/workflows/setup-env.yml
+
   dependency-review:
+    needs: [get-env]
+    env:
+      PNPM_VERSION: ${{ needs.get-env.outputs.pnpm_version }}
+      NODE_VERSION: ${{ needs.get-env.outputs.node_version }}
     runs-on: ubuntu-latest
     steps:
       - name: "检出代码库"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: "安装 pnpm"
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: "设置 Node.js 环境"
-        uses: actions/setup-node@v6
+      - name: "安装项目依赖"
+        uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          install-args: --frozen-lockfile --ignore-scripts
 
       - name: "依赖审查"
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
         with:
           comment-summary-in-pr: never
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "安装依赖"
-        run: pnpm install --frozen-lockfile
-
       - name: "安全审计"
         id: audit
+        continue-on-error: true
         run: |
           echo "## 🔒 安全审计报告" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -57,7 +58,6 @@ jobs:
             echo "✅ 未发现已知漏洞" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=clean" >> $GITHUB_OUTPUT
           else
-            # 检查是否为 registry 错误（网络问题、5xx 等）
             if echo "$AUDIT_OUTPUT" | grep -qiE "(registry|network|ECONNRESET|ETIMEDOUT|ENOTFOUND|5[0-9]{2})"; then
               echo "❌ **审计失败：无法连接到包注册表**" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
@@ -66,7 +66,7 @@ jobs:
               echo "<details><summary>错误详情</summary>" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
-              echo "$AUDIT_OUTPUT" | head -50 >> $GITHUB_STEP_SUMMARY
+              printf '%s\n' "$AUDIT_OUTPUT" | sed -n '1,50p' >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
               echo "</details>" >> $GITHUB_STEP_SUMMARY
               echo "::error::安全审计失败：无法连接到包注册表，请重试"
@@ -74,17 +74,17 @@ jobs:
             else
               echo "⚠️ 发现漏洞：" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
-              echo "$AUDIT_OUTPUT" | head -50 >> $GITHUB_STEP_SUMMARY
+              printf '%s\n' "$AUDIT_OUTPUT" | sed -n '1,50p' >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "::error::发现安全漏洞，请查看审计报告并修复"
               echo "audit_status=warning" >> $GITHUB_OUTPUT
             fi
-            exit 1
           fi
 
       - name: "许可证检查"
         id: license
+        continue-on-error: true
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📜 许可证合规检查" >> $GITHUB_STEP_SUMMARY
@@ -105,11 +105,12 @@ jobs:
           else
             echo "❌ **检测到许可证违规！**" >> $GITHUB_STEP_SUMMARY
             echo "以下包使用了受限许可证（GPL/AGPL/LGPL），与隐私优先策略冲突：" >> $GITHUB_STEP_SUMMARY
-            printf '%s\n' "$LICENSE_OUTPUT" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            printf '%s\n' "$LICENSE_OUTPUT" | sed -n '1,30p' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
             echo "license_status=violation" >> $GITHUB_OUTPUT
             echo ""
             echo "::error::检测到许可证违规，存在 GPL/AGPL/LGPL 依赖，请检查并移除"
-            exit 1
           fi
 
       - name: "依赖体积检查"
@@ -127,3 +128,27 @@ jobs:
 
           echo "size=$NODE_MODULES_SIZE" >> $GITHUB_OUTPUT
           echo "count=$DEPENDENCY_COUNT" >> $GITHUB_OUTPUT
+
+      - name: "汇总依赖审查结果"
+        if: always()
+        run: |
+          AUDIT_STATUS="${{ steps.audit.outputs.audit_status }}"
+          LICENSE_STATUS="${{ steps.license.outputs.license_status }}"
+          
+          if [ -z "$LICENSE_STATUS" ]; then
+            echo "⚠️ 许可证检查未产生结果，可能存在执行异常"
+            exit 1
+          fi
+          
+          if [ "$AUDIT_STATUS" = "registry_error" ]; then
+            echo "❌ 安全审计因网络问题未完成，请重试"
+            exit 1
+          fi
+          if [ "$AUDIT_STATUS" != "clean" ]; then
+            echo "❌ 安全审计发现漏洞"
+            exit 1
+          fi
+          if [ "$LICENSE_STATUS" != "ok" ]; then
+            echo "❌ 许可证合规检查发现违规"
+            exit 1
+          fi

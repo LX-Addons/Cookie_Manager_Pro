@@ -1,81 +1,144 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useId } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ConfirmDialogProps {
   readonly isOpen: boolean;
   readonly title: string;
+  readonly description?: string;
   readonly message: string;
   readonly confirmText?: string;
   readonly cancelText?: string;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
-  readonly variant?: "danger" | "warning";
+  readonly variant?: "danger" | "warning" | "info" | "success";
 }
+
+const getIconForVariant = (variant: string) => {
+  switch (variant) {
+    case "danger":
+      return "!";
+    case "warning":
+      return "!";
+    case "success":
+      return "✓";
+    case "info":
+    default:
+      return "i";
+  }
+};
 
 export function ConfirmDialog({
   isOpen,
   title,
+  description,
   message,
-  confirmText = "确定",
-  cancelText = "取消",
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   variant = "warning",
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
-
-  const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        onCancel();
-      }
-    },
-    [onCancel]
-  );
+  const titleId = useId();
+  const descriptionId = useId();
+  const bodyId = useId();
+  const describedBy = description ? `${descriptionId} ${bodyId}` : bodyId;
 
   useEffect(() => {
-    if (isOpen && confirmBtnRef.current) {
-      confirmBtnRef.current.focus();
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+        confirmBtnRef.current?.focus();
+      }
+    } else {
+      if (dialog.open) {
+        dialog.close();
+      }
     }
   }, [isOpen]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      if (e.key === "Escape") {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleClose = () => {
+      if (isOpen) {
         onCancel();
       }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+
+    const handleClick = (e: MouseEvent) => {
+      if (e.target === dialog) {
+        onCancel();
+      }
+    };
+
+    dialog.addEventListener("close", handleClose);
+    dialog.addEventListener("click", handleClick);
+    return () => {
+      dialog.removeEventListener("close", handleClose);
+      dialog.removeEventListener("click", handleClick);
+    };
   }, [isOpen, onCancel]);
 
-  if (!isOpen) return null;
+  const getConfirmButtonClass = () => {
+    switch (variant) {
+      case "danger":
+        return "btn-danger";
+      case "success":
+        return "btn-success";
+      case "info":
+        return "btn-primary";
+      case "warning":
+      default:
+        return "btn-warning";
+    }
+  };
 
   return (
-    <div
-      className="confirm-overlay"
-      onClick={handleOverlayClick}
-      onKeyDown={(e) => e.key === "Escape" && onCancel()}
-      role="presentation"
+    <dialog
+      ref={dialogRef}
+      className="confirm-modal"
+      aria-labelledby={titleId}
+      aria-describedby={describedBy}
     >
-      <dialog className="confirm-dialog" open>
-        <h3 id="confirm-title" className={`confirm-title ${variant === "danger" ? "danger" : ""}`}>
-          {title}
-        </h3>
-        <p className="confirm-message">{message}</p>
-        <div className="confirm-actions">
-          <button className="btn btn-secondary" onClick={onCancel}>
-            {cancelText}
-          </button>
-          <button
-            ref={confirmBtnRef}
-            className={`btn ${variant === "danger" ? "btn-danger" : "btn-warning"}`}
-            onClick={onConfirm}
-          >
-            {confirmText}
-          </button>
+      <div className="modal-header">
+        <div className={`modal-icon ${variant}`} aria-hidden="true">
+          {getIconForVariant(variant)}
         </div>
-      </dialog>
-    </div>
+        <div className="modal-title-section">
+          <h3 id={titleId} className="modal-title">
+            {title}
+          </h3>
+          {description && (
+            <p id={descriptionId} className="modal-description">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="modal-body">
+        <p id={bodyId} className="modal-body-text">
+          {message}
+        </p>
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-secondary" onClick={onCancel}>
+          {cancelText ?? t("common.cancel")}
+        </button>
+        <button
+          ref={confirmBtnRef}
+          className={`btn ${getConfirmButtonClass()}`}
+          onClick={onConfirm}
+        >
+          {confirmText ?? t("common.confirm")}
+        </button>
+      </div>
+    </dialog>
   );
 }

@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
+vi.mock("@/hooks/useTranslation", () => ({
+  useTranslation: () => ({
+    t: (key: string) =>
+      ({
+        "common.confirm": "确定",
+        "common.cancel": "取消",
+      })[key] ?? key,
+  }),
+}));
+
 describe("ConfirmDialog", () => {
   const mockOnConfirm = vi.fn();
   const mockOnCancel = vi.fn();
@@ -15,7 +25,7 @@ describe("ConfirmDialog", () => {
     vi.clearAllMocks();
   });
 
-  it("should not render when isOpen is false", () => {
+  it("should not be open when isOpen is false", () => {
     render(
       <ConfirmDialog
         isOpen={false}
@@ -26,7 +36,9 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    expect(screen.queryByText("Test Title")).toBeNull();
+    const dialog = document.querySelector(".confirm-modal") as HTMLDialogElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.open).toBe(false);
   });
 
   it("should render with default props", () => {
@@ -42,8 +54,8 @@ describe("ConfirmDialog", () => {
 
     expect(screen.getByText("Test Title")).toBeTruthy();
     expect(screen.getByText("Test Message")).toBeTruthy();
-    expect(screen.getByText("确定")).toBeTruthy();
-    expect(screen.getByText("取消")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "确定" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "取消" })).toBeTruthy();
   });
 
   it("should render with custom button text", () => {
@@ -74,7 +86,7 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    fireEvent.click(screen.getByText("确定"));
+    fireEvent.click(screen.getByRole("button", { name: "确定" }));
     expect(mockOnConfirm).toHaveBeenCalledOnce();
   });
 
@@ -89,7 +101,7 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    fireEvent.click(screen.getByText("取消"));
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
     expect(mockOnCancel).toHaveBeenCalledOnce();
   });
 
@@ -104,11 +116,10 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    const overlay = document.querySelector(".confirm-overlay");
-    if (overlay) {
-      fireEvent.click(overlay);
-      expect(mockOnCancel).toHaveBeenCalledOnce();
-    }
+    const dialog = document.querySelector(".confirm-modal");
+    expect(dialog).not.toBeNull();
+    fireEvent.click(dialog as HTMLDivElement);
+    expect(mockOnCancel).toHaveBeenCalledOnce();
   });
 
   it("should not call onCancel when dialog content is clicked", () => {
@@ -122,14 +133,13 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    const dialog = document.querySelector(".confirm-dialog");
-    if (dialog) {
-      fireEvent.click(dialog);
-      expect(mockOnCancel).not.toHaveBeenCalled();
-    }
+    const modalBody = document.querySelector(".modal-body");
+    expect(modalBody).not.toBeNull();
+    fireEvent.click(modalBody as HTMLDivElement);
+    expect(mockOnCancel).not.toHaveBeenCalled();
   });
 
-  it("should call onCancel when Escape key is pressed", () => {
+  it("should call onCancel when dialog is closed via Escape", () => {
     render(
       <ConfirmDialog
         isOpen={true}
@@ -140,7 +150,11 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    const dialog = document.querySelector(".confirm-modal") as HTMLDialogElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.open).toBe(true);
+
+    fireEvent(dialog, new Event("close"));
     expect(mockOnCancel).toHaveBeenCalledOnce();
   });
 
@@ -186,8 +200,71 @@ describe("ConfirmDialog", () => {
       />
     );
 
-    const title = screen.getByText("Test Title");
-    expect(title.className).toContain("danger");
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("danger");
+  });
+
+  it("should render with warning variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="warning"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("warning");
+  });
+
+  it("should render with success variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="success"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("success");
+  });
+
+  it("should render with info variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="info"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const icon = document.querySelector(".modal-icon");
+    expect(icon?.className).toContain("info");
+  });
+
+  it("should render with description", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        description="Test Description"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(screen.getByText("Test Description")).toBeTruthy();
   });
 
   it("should have correct dialog attributes", () => {
@@ -203,6 +280,97 @@ describe("ConfirmDialog", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeTruthy();
-    expect(dialog.tagName.toLowerCase()).toBe("dialog");
+  });
+
+  it("should not show modal when isOpen is false", () => {
+    render(
+      <ConfirmDialog
+        isOpen={false}
+        title="Test Title"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const dialog = document.querySelector(".confirm-modal") as HTMLDialogElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.open).toBe(false);
+  });
+
+  it("should close modal when isOpen becomes false", () => {
+    const { rerender } = render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const dialog = document.querySelector(".confirm-modal") as HTMLDialogElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.open).toBe(true);
+
+    rerender(
+      <ConfirmDialog
+        isOpen={false}
+        title="Test Title"
+        message="Test Message"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(dialog.open).toBe(false);
+  });
+
+  it("should use success button class for success variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="success"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const confirmBtn = screen.getByRole("button", { name: "确定" });
+    expect(confirmBtn.className).toContain("btn-success");
+  });
+
+  it("should use primary button class for info variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="info"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const confirmBtn = screen.getByRole("button", { name: "确定" });
+    expect(confirmBtn.className).toContain("btn-primary");
+  });
+
+  it("should use warning button class for warning variant", () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test Title"
+        message="Test Message"
+        variant="warning"
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const confirmBtn = screen.getByRole("button", { name: "确定" });
+    expect(confirmBtn.className).toContain("btn-warning");
   });
 });

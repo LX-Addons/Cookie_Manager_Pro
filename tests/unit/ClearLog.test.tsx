@@ -27,7 +27,22 @@ vi.mock("@/hooks/useTranslation", () => ({
         "clearLog.logsExported": "日志已导出",
         "clearLog.confirmClearLogs": "确定要清除所有日志记录吗？",
         "clearLog.logRetentionForever": "日志保留设置为永久，无需清理",
-        "cookieTypes.all": "全部",
+        "clearLog.logOverview": "日志概览",
+        "clearLog.totalEntries": "共 {count} 条",
+        "clearLog.filterAll": "全部",
+        "clearLog.filterClear": "清除",
+        "clearLog.filterEdit": "编辑",
+        "clearLog.filterDelete": "删除",
+        "clearLog.filterImport": "导入",
+        "clearLog.filterExport": "导出",
+        "clearLog.emptyLogs": "暂无日志记录",
+        "clearLog.emptyLogsHint": "进行Cookie操作后会在这里显示日志",
+        "clearLog.cookieType": "Cookie 类型",
+        "cookieTypes.all": "所有Cookie",
+        "cookieTypes.session": "会话Cookie",
+        "cookieTypes.persistent": "持久Cookie",
+        "cookieList.cookieDetails": "Cookie 详情",
+        "cookieList.cookies": "个",
         "common.cancel": "取消",
         "common.confirm": "确定",
         "common.delete": "删除",
@@ -156,13 +171,13 @@ describe("ClearLog", () => {
   it("should render empty state when no logs", () => {
     const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
-    expect(screen.getByText("暂无清除日志记录")).toBeTruthy();
+    expect(screen.getByText("暂无日志记录")).toBeTruthy();
   });
 
   it("should render log header", () => {
     const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
-    expect(screen.getByText("清除日志")).toBeTruthy();
+    expect(screen.getByText("日志概览")).toBeTruthy();
     expect(screen.getByText("清除过期")).toBeTruthy();
     expect(screen.getByText("导出日志")).toBeTruthy();
     expect(screen.getByText("清除全部")).toBeTruthy();
@@ -314,7 +329,7 @@ describe("ClearLog", () => {
 
     render(<ClearLog onMessage={mockOnMessage} />);
     expect(screen.getByText("example.com")).toBeTruthy();
-    expect(screen.getByText("5 个")).toBeTruthy();
-    expect(screen.getByText("清除")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
+    expect(screen.getAllByText("清除").length).toBeGreaterThan(0);
   });
 });

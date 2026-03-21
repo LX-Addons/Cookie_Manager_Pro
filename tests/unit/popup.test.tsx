@@ -116,7 +116,14 @@ vi.mock("@/utils/cleanup", () => ({
 }));
 
 vi.mock("@/utils", () => ({
-  isDomainMatch: vi.fn((domain: string, currentDomain: string) => domain.includes(currentDomain)),
+  isDomainMatch: vi.fn((domain: string, currentDomain: string) => {
+    const normalizedDomain = domain.replace(/^\./, "").toLowerCase();
+    const normalizedCurrent = currentDomain.replace(/^\./, "").toLowerCase();
+    if (normalizedDomain === normalizedCurrent) return true;
+    if (normalizedCurrent.endsWith("." + normalizedDomain)) return true;
+    if (normalizedDomain.endsWith("." + normalizedCurrent)) return true;
+    return false;
+  }),
   isInList: vi.fn(() => false),
   isTrackingCookie: vi.fn(() => false),
   isThirdPartyCookie: vi.fn(() => false),
@@ -141,6 +148,8 @@ vi.mock("@/utils", () => ({
     return next;
   }),
   buildDomainString: vi.fn(() => "测试域名"),
+  getHoverColor: vi.fn((hex: string) => hex),
+  getActiveColor: vi.fn((hex: string) => hex),
 }));
 
 const DEFAULT_MATCH_MEDIA_OVERRIDES: Partial<MediaQueryList> = {};
@@ -260,7 +269,7 @@ const setupChromeMocks = () => {
 };
 
 const clickClearAllAndConfirm = async (container: HTMLElement) => {
-  const clearAllButton = container.querySelector(".button-group button.btn-danger");
+  const clearAllButton = container.querySelector('[data-testid="clear-all-btn"]');
   if (!clearAllButton) {
     throw new Error("Clear all button not found");
   }
@@ -301,21 +310,50 @@ const testTabSwitching = (tabTestId: string) => {
   }
 };
 
-const testQuickAddButton = (
-  listType: "whitelist" | "blacklist",
-  initialList: string[],
-  buttonSelector: string
-) => {
-  setupMockStorage({ [listType]: initialList });
+const testQuickAddButton = async (listType: "whitelist" | "blacklist", initialList: string[]) => {
+  const mockSetList = vi.fn();
+  const mode = listType === "whitelist" ? "whitelist" : "blacklist";
+
+  const { isInList } = await import("@/utils");
+  vi.mocked(isInList).mockImplementation((domain: string, list: string[]) => {
+    return list.some((item) => domain === item || domain.endsWith("." + item));
+  });
+
+  (storageHook.useStorage as Mock).mockImplementation((key: string, defaultValue: unknown) => {
+    if (key === `local:${listType}`) {
+      return [initialList, mockSetList];
+    }
+    if (key === "local:settings") {
+      return [{ ...DEFAULT_SETTINGS, mode }, vi.fn()];
+    }
+    if (key === "local:clearLog") {
+      return [[], vi.fn()];
+    }
+    return [defaultValue, vi.fn()];
+  });
+
   const { container } = render(<IndexPopup />);
 
+  await waitFor(() => {
+    const siteTitle = container.querySelector(".site-title");
+    expect(siteTitle?.textContent).not.toBe("");
+  });
+
+  const addToRuleButton = container.querySelector('[data-testid="add-to-rule-btn"]');
+  if (!addToRuleButton) {
+    throw new Error("Quick add button not found");
+  }
+  fireEvent.click(addToRuleButton);
+
   return waitFor(() => {
-    const button = container.querySelector(buttonSelector);
-    if (button) {
-      fireEvent.click(button);
+    const toastMessage = container.querySelector('[data-testid="toast-message"]');
+    expect(toastMessage?.textContent?.trim()).not.toBe("");
+
+    if (initialList.includes("example.com")) {
+      expect(mockSetList).not.toHaveBeenCalled();
+    } else {
+      expect(mockSetList).toHaveBeenCalled();
     }
-    const messageElement = container.querySelector(".message");
-    expect(messageElement).toBeTruthy();
   });
 };
 
@@ -388,14 +426,24 @@ describe("IndexPopup", () => {
     expect(container.querySelector("header")).toBeTruthy();
   });
 
-  it("should render cookie stats section", () => {
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector(".stats")).toBeTruthy();
+  it("should render site summary", () => {
+    const { getByTestId } = render(<IndexPopup />);
+    expect(getByTestId("site-summary")).toBeTruthy();
   });
 
-  it("should render action buttons", () => {
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector(".button-group")).toBeTruthy();
+  it("should render quick actions", () => {
+    const { getByTestId } = render(<IndexPopup />);
+    expect(getByTestId("quick-actions")).toBeTruthy();
+  });
+
+  it("should render insight grid", () => {
+    const { getByTestId } = render(<IndexPopup />);
+    expect(getByTestId("insight-grid")).toBeTruthy();
+  });
+
+  it("should render toast message", () => {
+    const { getByTestId } = render(<IndexPopup />);
+    expect(getByTestId("toast-message")).toBeTruthy();
   });
 
   it("should render tabs", () => {
@@ -411,15 +459,13 @@ describe("IndexPopup", () => {
 
   it("should handle empty cookies", async () => {
     (chrome.cookies.getAll as Mock).mockResolvedValue([]);
-    const { container, getByTestId } = render(<IndexPopup />);
+    const { getByTestId } = render(<IndexPopup />);
 
     await waitFor(() => {
       expect(getByTestId("cookie-count").textContent).toBe("0");
     });
 
-    expect(container.querySelector(".stats")).toBeTruthy();
-    const statValues = container.querySelectorAll(".stat-value");
-    expect(statValues.length).toBeGreaterThan(0);
+    expect(getByTestId("insight-grid")).toBeTruthy();
   });
 
   it("should handle tab without URL", async () => {
@@ -435,21 +481,18 @@ describe("IndexPopup", () => {
 
   it("should handle error when getting cookies", async () => {
     (chrome.cookies.getAll as Mock).mockRejectedValue(new Error("Failed"));
-    const { container } = render(<IndexPopup />);
+    const { getByTestId } = render(<IndexPopup />);
 
     await waitFor(() => {
-      const messageElement = container.querySelector(".message");
-      expect(messageElement).toBeTruthy();
+      const toastMessage = getByTestId("toast-message");
+      expect(toastMessage.getAttribute("role")).toBe("alert");
+      expect(toastMessage.textContent?.trim()).not.toBe("");
     });
-
-    const messageElement = container.querySelector(".message");
-    expect(messageElement?.classList.contains("error")).toBe(true);
   });
 
   it("should render all stat items", () => {
-    const { container } = render(<IndexPopup />);
-    const statValues = container.querySelectorAll(".stat-value");
-    expect(statValues.length).toBeGreaterThan(0);
+    const { getByTestId } = render(<IndexPopup />);
+    expect(getByTestId("insight-grid")).toBeTruthy();
   });
 
   it("should handle theme mode - auto", () => {
@@ -521,8 +564,8 @@ describe("IndexPopup", () => {
       },
     ];
     (chrome.cookies.getAll as Mock).mockResolvedValue(mockCookiesWithTracking);
-    const { container } = render(<IndexPopup />);
-    expect(container.querySelector(".stats")).toBeTruthy();
+    const { getByTestId } = render(<IndexPopup />);
+    expect(getByTestId("insight-grid")).toBeTruthy();
   });
 
   it("should handle click on tab", () => {
@@ -578,26 +621,32 @@ describe("IndexPopup", () => {
     expect(mockOnAddToBlacklist).toHaveBeenCalled();
   });
 
-  it("should handle click on clear all button", () => {
-    const { container } = render(<IndexPopup />);
-    const buttons = container.querySelectorAll(".button-group button");
-    expect(buttons.length).toBeGreaterThan(0);
+  it("should handle click on clear current button", async () => {
+    mockShowConfirm.mockClear();
 
-    if (buttons.length > 0) {
-      fireEvent.click(buttons[0]);
-      expect(buttons[0]).toBeTruthy();
-    }
+    const { getByTestId } = render(<IndexPopup />);
+
+    await waitFor(() => {
+      const btn = getByTestId("clear-current-btn");
+      expect(btn).not.toBeDisabled();
+    });
+
+    fireEvent.click(getByTestId("clear-current-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
   });
 
-  it("should handle click on clear current button", () => {
-    const { container } = render(<IndexPopup />);
-    const buttons = container.querySelectorAll(".button-group button");
-    expect(buttons.length).toBeGreaterThan(1);
+  it("should handle click on clear all button", async () => {
+    mockShowConfirm.mockClear();
 
-    if (buttons.length > 1) {
-      fireEvent.click(buttons[1]);
-      expect(buttons[1]).toBeTruthy();
-    }
+    const { getByTestId } = render(<IndexPopup />);
+
+    await waitFor(() => {
+      const btn = getByTestId("clear-all-btn");
+      expect(btn).toBeTruthy();
+    });
+
+    fireEvent.click(getByTestId("clear-all-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
   });
 
   it("should handle keyboard navigation", () => {
@@ -679,13 +728,18 @@ describe("IndexPopup", () => {
     expect(container.querySelector('[data-testid="cookie-list"]')).toBeTruthy();
   });
 
-  it("should handle confirm dialog", () => {
-    const { container } = render(<IndexPopup />);
-    const buttons = container.querySelectorAll(".button-group button");
-    if (buttons.length > 0) {
-      fireEvent.click(buttons[0]);
-      expect(buttons[0]).toBeTruthy();
-    }
+  it("should handle confirm dialog", async () => {
+    mockShowConfirm.mockClear();
+
+    const { getByTestId } = render(<IndexPopup />);
+
+    await waitFor(() => {
+      const btn = getByTestId("clear-current-btn");
+      expect(btn).not.toBeDisabled();
+    });
+
+    fireEvent.click(getByTestId("clear-current-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
   });
 
   it("should handle blacklist mode", () => {
@@ -705,10 +759,6 @@ describe("IndexPopup", () => {
     });
 
     const { container } = render(<IndexPopup />);
-
-    await waitFor(() => {
-      expect(container.querySelector(".button-group")).toBeTruthy();
-    });
 
     await clickClearAllAndConfirm(container);
 
@@ -732,10 +782,6 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
 
-    await waitFor(() => {
-      expect(container.querySelector(".button-group")).toBeTruthy();
-    });
-
     await clickClearAllAndConfirm(container);
 
     await waitFor(() => {
@@ -749,10 +795,6 @@ describe("IndexPopup", () => {
 
     const { container } = render(<IndexPopup />);
 
-    await waitFor(() => {
-      expect(container.querySelector(".button-group")).toBeTruthy();
-    });
-
     await clickClearAllAndConfirm(container);
 
     await waitFor(() => {
@@ -763,11 +805,11 @@ describe("IndexPopup", () => {
   });
 
   it("should show message when domain already in whitelist via quick add button", async () => {
-    await testQuickAddButton("whitelist", ["example.com"], ".btn-success");
+    await testQuickAddButton("whitelist", ["example.com"]);
   });
 
   it("should show message when domain already in blacklist via quick add button", async () => {
-    await testQuickAddButton("blacklist", ["example.com"], ".btn-secondary");
+    await testQuickAddButton("blacklist", ["example.com"]);
   });
 
   it("should handle tab switching to rules tab with whitelist mode", () => {
@@ -816,24 +858,37 @@ describe("IndexPopup", () => {
     testKeyboardNavigation("End");
   });
 
-  it("should handle clear current cookies", () => {
-    const { container } = render(<IndexPopup />);
-    const clearCurrentButton = container.querySelector(".btn-warning");
-    if (clearCurrentButton) {
-      fireEvent.click(clearCurrentButton);
-      expect(clearCurrentButton).toBeTruthy();
-    }
-  });
+  it("should handle clear current cookies", async () => {
+    mockShowConfirm.mockClear();
 
-  it("should handle message display and auto-hide", async () => {
-    const { container } = render(<IndexPopup />);
+    const { getByTestId } = render(<IndexPopup />);
 
     await waitFor(() => {
-      expect(container.querySelector(".container")).toBeTruthy();
+      const btn = getByTestId("clear-current-btn");
+      expect(btn).not.toBeDisabled();
     });
 
-    const messageElement = container.querySelector(".message");
-    expect(messageElement).toBeTruthy();
+    fireEvent.click(getByTestId("clear-current-btn"));
+    expect(mockShowConfirm).toHaveBeenCalled();
+  });
+
+  it("should handle message display", async () => {
+    const { getByTestId } = render(<IndexPopup />);
+
+    await waitFor(() => {
+      expect(getByTestId("site-summary")).toBeTruthy();
+    });
+
+    const toastMessage = getByTestId("toast-message");
+    expect(toastMessage.textContent?.trim()).toBe("");
+    expect(toastMessage.className).not.toContain("visible");
+
+    fireEvent.click(getByTestId("show-message"));
+
+    await waitFor(() => {
+      expect(toastMessage.textContent?.trim()).toBe("测试消息");
+      expect(toastMessage.className).toContain("visible");
+    });
   });
 
   it("should handle custom theme colors", () => {
@@ -876,11 +931,11 @@ describe("IndexPopup", () => {
   });
 
   it("should show message when domain is added to whitelist via quick add button", async () => {
-    await testQuickAddButton("whitelist", [], ".btn-success");
+    await testQuickAddButton("whitelist", []);
   });
 
   it("should show message when domain is added to blacklist via quick add button", async () => {
-    await testQuickAddButton("blacklist", [], ".btn-secondary");
+    await testQuickAddButton("blacklist", []);
   });
 
   it("should handle clear blacklist cookies in rules tab with blacklist mode", async () => {
@@ -935,14 +990,12 @@ describe("IndexPopup", () => {
       customTheme,
     });
 
-    const { container } = render(<IndexPopup />);
+    render(<IndexPopup />);
 
     await waitFor(() => {
-      expect(container.querySelector(".container")).toBeTruthy();
+      const root = document.documentElement;
+      expect(root.style.getPropertyValue("--accent-primary")).toBe(customTheme.primary);
     });
-
-    const root = document.documentElement;
-    expect(root.style.getPropertyValue("--primary-500")).toBe(customTheme.primary);
   });
 
   it("should clear custom theme variables when theme mode is not custom", async () => {
@@ -953,6 +1006,6 @@ describe("IndexPopup", () => {
     rerender(<IndexPopup />);
 
     const root = document.documentElement;
-    expect(root.style.getPropertyValue("--primary-500")).toBe("");
+    expect(root.style.getPropertyValue("--accent-primary")).toBe("");
   });
 });

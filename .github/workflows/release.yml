@@ -1,0 +1,311 @@
+name: 创建发布
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_release:
+        description: "输入 RELEASE 以确认创建发布"
+        required: true
+        default: ""
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  get-env:
+    name: 获取环境配置
+    uses: ./.github/workflows/setup-env.yml
+    permissions: {}
+
+  release:
+    name: 创建发布
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [get-env]
+    permissions:
+      contents: write
+    env:
+      NODE_VERSION: ${{ needs.get-env.outputs.node_version }}
+      PNPM_VERSION: ${{ needs.get-env.outputs.pnpm_version }}
+    steps:
+      - name: 校验发布条件
+        run: |
+          ALLOWED_BRANCHES='main beta release'
+
+          if [[ " $ALLOWED_BRANCHES " != *" ${{ github.ref_name }} "* ]]; then
+            echo "❌ 仅允许从 main、beta 或 release 分支创建发布，当前分支为 ${{ github.ref_name }}"
+            exit 1
+          fi
+
+          if [[ "${{ github.event.inputs.confirm_release }}" != "RELEASE" ]]; then
+            echo "❌ 请在手动触发时输入 RELEASE 进行二次确认"
+            exit 1
+          fi
+
+      - name: 检出仓库
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: 获取版本信息
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          DISPLAY_NAME=$(jq -r '.displayName // .name' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "display_name=$DISPLAY_NAME" >> $GITHUB_OUTPUT
+
+      - name: 校验版本号与发布通道匹配
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BRANCH="${{ github.ref }}"
+
+          if [ "$BRANCH" = "refs/heads/main" ]; then
+            if [[ "$VERSION" == *-* ]]; then
+              echo "❌ main 分支只能发布正式版本号，当前版本号 \`$VERSION\` 包含预发布后缀"
+              exit 1
+            fi
+            echo "✅ main 分支发布正式版本: $VERSION"
+          else
+            if [[ "$VERSION" != *-* ]]; then
+              echo "❌ beta/release 分支必须使用预发布版本号（如 1.2.3-beta.1），当前版本号 \`$VERSION\` 为正式版本号"
+              exit 1
+            fi
+            echo "✅ 预发布分支使用预发布版本号: $VERSION"
+          fi
+
+      - name: 检查标签是否存在
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 检查标签已存在提示
+        if: steps.check_tag.outputs.exists == 'true'
+        run: |
+          echo "⚠️ 标签 v${{ steps.version.outputs.version }} 已存在，跳过发布"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ⚠️ 发布已跳过" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "标签 \`v${{ steps.version.outputs.version }}\` 已存在，未创建新的发布。" >> $GITHUB_STEP_SUMMARY
+
+      - name: 安装项目依赖
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+
+      - name: 获取上一个版本标签
+        if: steps.check_tag.outputs.exists == 'false'
+        id: previous-tag
+        run: |
+          CURRENT_TAG="v${{ steps.version.outputs.version }}"
+          PREVIOUS_TAG=$(git tag --merged HEAD --sort=-v:refname | grep -E '^v[0-9]' | grep -vx "$CURRENT_TAG" | head -n 1 || true)
+          echo "tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+
+      - name: 构建扩展
+        if: steps.check_tag.outputs.exists == 'false'
+        run: pnpm run build
+
+      - name: 打包扩展
+        if: steps.check_tag.outputs.exists == 'false'
+        run: pnpm run zip
+
+      - name: 获取 zip 文件路径
+        if: steps.check_tag.outputs.exists == 'false'
+        id: release-zip
+        run: |
+          mapfile -t ZIP_FILES < <(find .output -name "*.zip" -type f | sort)
+          if [ "${#ZIP_FILES[@]}" -ne 1 ]; then
+            echo "❌ 期望恰好找到 1 个 zip 文件，实际为 ${#ZIP_FILES[@]}"
+            printf '%s\n' "${ZIP_FILES[@]}"
+            exit 1
+          fi
+          echo "zip_path=${ZIP_FILES[0]}" >> $GITHUB_OUTPUT
+          echo "✅ zip 文件路径：${ZIP_FILES[0]}"
+
+      - name: 生成发布说明
+        if: steps.check_tag.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DISPLAY_NAME: ${{ steps.version.outputs.display_name }}
+          PREVIOUS_TAG: ${{ steps.previous-tag.outputs.tag }}
+          RELEASE_KIND: ${{ github.ref == 'refs/heads/main' && '正式版' || '预发布版' }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { execSync } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+
+          const version = process.env.VERSION;
+          const displayName = process.env.DISPLAY_NAME;
+          const previousTag = process.env.PREVIOUS_TAG;
+          const releaseKind = process.env.RELEASE_KIND;
+          const repoUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`;
+          const currentTag = `v${version}`;
+
+          const run = (command) => {
+            try {
+              return execSync(command, {
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'pipe'],
+              }).trim();
+            } catch {
+              return '';
+            }
+          };
+
+          const normalizeWhitespace = (value) => value.replace(/\s+/g, ' ').trim();
+
+          const prettify = (text) => {
+            const cleaned = normalizeWhitespace(text)
+              .replace(/\s*\(#\d+\)\s*$/g, '')
+              .replace(/^(add|update|improve|optimize|refactor|fix)\b/i, (word) => {
+                const map = {
+                  add: '新增',
+                  update: '更新',
+                  improve: '改进',
+                  optimize: '优化',
+                  refactor: '重构',
+                  fix: '修复',
+                };
+                return map[word.toLowerCase()] ?? word;
+              });
+
+            return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+          };
+
+          const rawCommits = run(
+            previousTag
+              ? `git log ${previousTag}..HEAD --no-merges --format=%s`
+              : 'git log HEAD --no-merges --format=%s -n 50',
+          );
+
+          const categories = [
+            { title: '核心功能升级', intro: '本次版本带来以下重点能力与体验增强：', types: ['feat'], items: [] },
+            { title: '体验与界面优化', intro: '围绕使用流畅度与界面表现做了进一步打磨：', types: ['style', 'ui'], items: [] },
+            { title: '稳定性与问题修复', intro: '针对已知问题和边缘场景进行了修复与增强：', types: ['fix', 'hotfix'], items: [] },
+            { title: '工程与质量改进', intro: '在代码结构、测试、构建与依赖层面持续优化：', types: ['refactor', 'perf', 'test', 'docs', 'build', 'ci', 'chore', 'deps'], items: [] },
+            { title: '其他更新', intro: '此外还包含以下补充调整：', types: [], items: [] },
+          ];
+
+          const highlights = [];
+          const seen = new Set();
+          let commitCount = 0;
+
+          for (const rawSubject of rawCommits.split(/\r?\n/).filter(Boolean)) {
+            const subject = normalizeWhitespace(rawSubject);
+            if (!subject || /^merge pull request/i.test(subject)) {
+              continue;
+            }
+
+            commitCount += 1;
+            const match = subject.match(/^(?<type>[a-z]+)(\((?<scope>[^)]+)\))?(?<breaking>!)?:\s*(?<description>.+)$/i);
+            const type = match?.groups?.type?.toLowerCase() ?? 'other';
+            const description = prettify(match?.groups?.description ?? subject);
+            const key = `${type}:${description.toLowerCase()}`;
+
+            if (seen.has(key)) {
+              continue;
+            }
+            seen.add(key);
+
+            const target = categories.find((category) => category.types.includes(type)) ?? categories[categories.length - 1];
+            target.items.push(description);
+
+            if ((type === 'feat' || type === 'fix') && highlights.length < 3) {
+              highlights.push(description);
+            }
+          }
+
+          const nonEmptyCategories = categories.filter((category) => category.items.length > 0);
+          const summary = highlights.length > 0
+            ? highlights.map((item) => `- ${item}`)
+            : ['- 本次版本主要聚焦于整体稳定性、体验细节与工程质量提升。'];
+
+          const sections = nonEmptyCategories.length > 0
+            ? nonEmptyCategories.map((category) => [
+                `## ${category.title}`,
+                '',
+                category.intro,
+                '',
+                ...category.items.map((item) => `- ${item}`),
+              ].join('\n')).join('\n\n')
+            : [
+                '## 更新内容',
+                '',
+                '本次版本主要聚焦于稳定性、体验细节与工程质量优化。',
+              ].join('\n');
+
+          const metadata = [
+            `- 版本号: \`${currentTag}\``,
+            `- 发布类型: ${releaseKind}`,
+            previousTag ? `- 对比基线: \`${previousTag}\`` : '- 对比基线: 首次发布',
+            `- 涉及提交: ${commitCount} 项`,
+            previousTag
+              ? `- 变更对比: [查看完整差异](${repoUrl}/compare/${previousTag}...${process.env.GITHUB_SHA})`
+              : '- 变更对比: 首次发布',
+          ];
+
+          const body = [
+            `# ${displayName} ${currentTag}`,
+            '',
+            `> ${releaseKind} · 为更稳定、更顺手的 Cookie 管理体验而更新。`,
+            '',
+            '## 本次亮点',
+            '',
+            ...summary,
+            '',
+            '## 发布信息',
+            '',
+            ...metadata,
+            '',
+            sections,
+            '',
+            '## 获取与安装',
+            '',
+            '- 下载本页附件中的 Chrome 扩展压缩包。',
+            '- 进入浏览器扩展管理页，开启开发者模式后加载解压后的扩展，或按既有分发方式安装。',
+            '',
+          ].join('\n');
+
+          writeFileSync('release-notes.md', `${body}\n`);
+          EOF
+
+      - name: 输出发布说明预览
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          echo "## 📝 发布说明预览" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat release-notes.md >> $GITHUB_STEP_SUMMARY
+
+      - name: 创建发布版本
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: 发布 v${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          files: ${{ steps.release-zip.outputs.zip_path }}
+          draft: false
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          generate_release_notes: false
+
+      - name: 发布摘要
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          echo "## 🎉 发布已创建" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 项目 | 值 |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **版本** | \`v${{ steps.version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **类型** | ${{ github.ref == 'refs/heads/main' && '正式版' || '预发布版' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **对比基线** | \`${{ steps.previous-tag.outputs.tag || '首次发布' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 发布资源:" >> $GITHUB_STEP_SUMMARY
+          ls -la "${{ steps.release-zip.outputs.zip_path }}" >> $GITHUB_STEP_SUMMARY

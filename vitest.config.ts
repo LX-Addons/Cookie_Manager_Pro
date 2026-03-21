@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     environment: "happy-dom",
     setupFiles: ["./tests/setup.ts"],
-    exclude: ["**/node_modules/**", "**/tests/e2e/**"],
+    exclude: ["**/node_modules/**"],
     testTimeout: 10000,
     coverage: {
       provider: "istanbul",
