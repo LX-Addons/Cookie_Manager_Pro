@@ -140,12 +140,13 @@ jobs:
             exit 1
           fi
           
-          if [ "$AUDIT_STATUS" != "clean" ] && [ "$AUDIT_STATUS" != "registry_error" ]; then
-            echo "❌ 安全审计发现漏洞"
+          if [ "$AUDIT_STATUS" = "registry_error" ]; then
+            echo "❌ 安全审计因网络问题未完成，请重试"
             exit 1
           fi
-          if [ "$AUDIT_STATUS" = "registry_error" ]; then
-            echo "⚠️ 安全审计因网络问题失败，请考虑重试"
+          if [ "$AUDIT_STATUS" != "clean" ]; then
+            echo "❌ 安全审计发现漏洞"
+            exit 1
           fi
           if [ "$LICENSE_STATUS" != "ok" ]; then
             echo "❌ 许可证合规检查发现违规"

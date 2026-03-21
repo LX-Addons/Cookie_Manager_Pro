@@ -42,7 +42,9 @@ export function ConfirmDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const descriptionId = useId();
   const bodyId = useId();
+  const describedBy = description ? `${descriptionId} ${bodyId}` : bodyId;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -103,7 +105,7 @@ export function ConfirmDialog({
       ref={dialogRef}
       className="confirm-modal"
       aria-labelledby={titleId}
-      aria-describedby={bodyId}
+      aria-describedby={describedBy}
     >
       <div className="modal-header">
         <div className={`modal-icon ${variant}`} aria-hidden="true">
@@ -113,7 +115,11 @@ export function ConfirmDialog({
           <h3 id={titleId} className="modal-title">
             {title}
           </h3>
-          {description && <p className="modal-description">{description}</p>}
+          {description && (
+            <p id={descriptionId} className="modal-description">
+              {description}
+            </p>
+          )}
         </div>
       </div>
       <div className="modal-body">

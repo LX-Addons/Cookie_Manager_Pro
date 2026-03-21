@@ -872,7 +872,7 @@ describe("IndexPopup", () => {
     expect(mockShowConfirm).toHaveBeenCalled();
   });
 
-  it("should handle message display and auto-hide", async () => {
+  it("should handle message display", async () => {
     const { getByTestId } = render(<IndexPopup />);
 
     await waitFor(() => {
@@ -880,7 +880,15 @@ describe("IndexPopup", () => {
     });
 
     const toastMessage = getByTestId("toast-message");
-    expect(toastMessage).toBeTruthy();
+    expect(toastMessage.textContent?.trim()).toBe("");
+    expect(toastMessage.className).not.toContain("visible");
+
+    fireEvent.click(getByTestId("show-message"));
+
+    await waitFor(() => {
+      expect(toastMessage.textContent?.trim()).toBe("测试消息");
+      expect(toastMessage.className).toContain("visible");
+    });
   });
 
   it("should handle custom theme colors", () => {

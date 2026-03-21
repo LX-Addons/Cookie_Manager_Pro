@@ -7,6 +7,7 @@ import {
   clearSingleCookie,
   editCookie,
   createCookie,
+  isDomainMatch,
   normalizeDomain,
   maskCookieValue,
   getCookieKey,
@@ -105,11 +106,7 @@ export const CookieListContent = memo(
 
       if (domainScopeFilter !== "all" && currentDomain) {
         result = result.filter((cookie) => {
-          const normalizedCookieDomain = normalizeDomain(cookie.domain);
-          const normalizedCurrentDomain = normalizeDomain(currentDomain);
-          const isCurrentDomain =
-            normalizedCookieDomain === normalizedCurrentDomain ||
-            normalizedCookieDomain.endsWith("." + normalizedCurrentDomain);
+          const isCurrentDomain = isDomainMatch(cookie.domain, currentDomain);
           if (domainScopeFilter === "current") return isCurrentDomain;
           return !isCurrentDomain;
         });
@@ -182,15 +179,20 @@ export const CookieListContent = memo(
     };
 
     const toggleSelectAll = () => {
-      if (selectAll) {
-        setSelectedCookies(new Set());
-      } else {
-        const allKeys = new Set<string>();
-        for (const cookie of filteredCookies) {
-          allKeys.add(getCookieKey(cookie.name, cookie.domain, cookie.path, cookie.storeId));
+      setSelectedCookies((prev) => {
+        const next = new Set(prev);
+        const visibleKeys = filteredCookies.map((cookie) =>
+          getCookieKey(cookie.name, cookie.domain, cookie.path, cookie.storeId)
+        );
+
+        if (selectAll) {
+          visibleKeys.forEach((key) => next.delete(key));
+        } else {
+          visibleKeys.forEach((key) => next.add(key));
         }
-        setSelectedCookies(allKeys);
-      }
+
+        return next;
+      });
     };
 
     const performDeleteCookie = async (cookie: Cookie) => {
@@ -552,10 +554,7 @@ export const CookieListContent = memo(
                     </div>
                   ) : (
                     Array.from(filteredGroupedCookies.entries()).map(([domain, domainCookies]) => {
-                      const isCurrentDomain =
-                        currentDomain &&
-                        (domain === normalizeDomain(currentDomain) ||
-                          domain.endsWith("." + normalizeDomain(currentDomain)));
+                      const isCurrentDomain = currentDomain && isDomainMatch(domain, currentDomain);
                       const isThirdParty = currentDomain && !isCurrentDomain;
 
                       return (

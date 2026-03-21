@@ -344,15 +344,16 @@ jobs:
           EXIT_CODE=0
 
           echo "#### 代码安全规则检查 (ESLint)" >> $GITHUB_STEP_SUMMARY
+          ESLINT_EXIT_CODE=0
           SECURITY_OUTPUT=$(pnpm eslint --no-error-on-unmatched-pattern \
             --rule 'no-eval: error' \
             --rule 'no-implied-eval: error' \
             --rule 'no-new-func: error' \
             --rule 'react/no-danger: error' \
             --format compact \
-            'src/**/*.{ts,tsx}' 2>&1) || true
+            'src/**/*.{ts,tsx}' 2>&1) || ESLINT_EXIT_CODE=$?
 
-          if echo "$SECURITY_OUTPUT" | grep -q "error"; then
+          if [ $ESLINT_EXIT_CODE -ne 0 ]; then
             echo "<details><summary>❌ 发现安全相关问题</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
@@ -604,6 +605,10 @@ jobs:
             const securityResult = '${{ needs.security.result }}';
             const auditStatus = '${{ needs.security.outputs.audit_status }}';
             const buildResult = '${{ needs.build.result }}';
+            const securityDisplayResult =
+              securityResult === 'failure'
+                ? 'failure'
+                : (auditStatus === 'registry_error' ? 'warning' : securityResult);
             const version = '${{ steps.info.outputs.version }}';
             const isDependabot = '${{ steps.dependabot.outputs.is_dependabot }}' === 'true';
 
@@ -640,11 +645,11 @@ jobs:
             body += `| 🚀 | **环境准备** | ${statusEmoji(setupResult)} | 缓存与产物配置 |\n`;
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
             body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js ${{ needs.setup.outputs.node_version }} 测试 |\n`;
-            body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityResult)} | ${getSecurityStatusText()} |\n`;
+            body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityDisplayResult)} | ${getSecurityStatusText()} |\n`;
             body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n\n`;
 
             body += `### 🏷️ 状态徽章\n\n`;
-            body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityResult)} ${getBadge('构建', buildResult)}\n\n`;
+            body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityDisplayResult)} ${getBadge('构建', buildResult)}\n\n`;
 
             const results = {
               setup: setupResult,

@@ -646,7 +646,7 @@ function IndexPopup() {
         <div
           className={`toast-container ${message.visible ? "visible" : ""} ${message.isError ? "error" : ""}`}
           role={message.isError ? "alert" : "status"}
-          aria-live="polite"
+          aria-live={message.isError ? "assertive" : "polite"}
           data-testid="toast-message"
         >
           {message.text}
