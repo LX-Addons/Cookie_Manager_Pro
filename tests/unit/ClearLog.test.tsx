@@ -5,7 +5,6 @@ import { ClearLog } from "@/components/ClearLog";
 import * as storageHook from "@/hooks/useStorage";
 import { useState, ReactNode } from "react";
 import { createUseStorageMock, createMockLogEntry } from "../utils/mocks";
-import { BackgroundService } from "@/lib/background-service";
 
 Object.defineProperty(URL, "createObjectURL", {
   writable: true,

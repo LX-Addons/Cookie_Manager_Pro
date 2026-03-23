@@ -1116,7 +1116,7 @@ describe("Settings", () => {
 
   it("should handle custom theme when customTheme is undefined", () => {
     mockSettings.themeMode = ThemeMode.CUSTOM;
-    mockSettings.customTheme = undefined as any;
+    mockSettings.customTheme = undefined as unknown as typeof DEFAULT_CUSTOM_THEME;
 
     render(<Settings onMessage={mockOnMessage} />);
 
@@ -1125,5 +1125,4 @@ describe("Settings", () => {
 
     expect(mockSettings.customTheme.primary).toBe("#ff0000");
   });
-
 });

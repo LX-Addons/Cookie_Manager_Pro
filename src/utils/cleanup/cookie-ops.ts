@@ -39,7 +39,7 @@ export const clearSingleCookie = async (
 ): Promise<boolean> => {
   try {
     const url = buildCookieUrl(cookie, cleanedDomain);
-    const removeDetails: Parameters<typeof chrome.cookies.remove>[0] = {
+    const removeDetails: chrome.cookies.CookieDetails = {
       url,
       name: cookie.name,
     };
@@ -47,6 +47,7 @@ export const clearSingleCookie = async (
       removeDetails.storeId = cookie.storeId;
     }
     if (cookie.partitionKey) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (removeDetails as any).partitionKey = cookie.partitionKey;
     }
     await chrome.cookies.remove(removeDetails);
@@ -70,6 +71,7 @@ const buildCookieSetDetails = (
   const normalizedPath = cookie.path?.startsWith("/") ? cookie.path : `/${cookie.path ?? ""}`;
   const url = `http${secure ? "s" : ""}://${cleanedDomain}${normalizedPath}`;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setDetails: any = {
     url,
     name: cookie.name,
@@ -96,7 +98,9 @@ const buildCookieSetDetails = (
     setDetails.partitionKey = cookie.partitionKey;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((cookie as any).firstPartyDomain) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setDetails.firstPartyDomain = (cookie as any).firstPartyDomain;
   }
 
@@ -145,6 +149,7 @@ export const editCookie = async (
       safeUpdates.expirationDate = updates.expirationDate;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nextCookie: any = {
       ...originalCookie,
       ...safeUpdates,
@@ -153,7 +158,9 @@ export const editCookie = async (
     if (originalCookie.partitionKey) {
       nextCookie.partitionKey = originalCookie.partitionKey;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((originalCookie as any).firstPartyDomain) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       nextCookie.firstPartyDomain = (originalCookie as any).firstPartyDomain;
     }
 

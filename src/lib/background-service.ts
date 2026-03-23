@@ -11,7 +11,7 @@ import type {
 import { ErrorCode } from "@/types";
 
 export class BackgroundService {
-  private static createErrorResponse(code: ErrorCode, message: string): ApiResponse {
+  private static createErrorResponse<T>(code: ErrorCode, message: string): ApiResponse<T> {
     return {
       success: false,
       error: { code, message },
@@ -23,14 +23,14 @@ export class BackgroundService {
       chrome.runtime.sendMessage(request, (response) => {
         if (chrome.runtime.lastError) {
           resolve(
-            this.createErrorResponse(
+            this.createErrorResponse<T>(
               ErrorCode.INTERNAL_ERROR,
               chrome.runtime.lastError.message || "Unknown error"
             )
           );
         } else if (!response) {
           resolve(
-            this.createErrorResponse(ErrorCode.INTERNAL_ERROR, "No response from background")
+            this.createErrorResponse<T>(ErrorCode.INTERNAL_ERROR, "No response from background")
           );
         } else {
           resolve(response as ApiResponse<T>);

@@ -429,7 +429,7 @@ const DEFAULT_CLEANUP_RESULT: { count: number; clearedDomains: string[] } = {
 };
 
 const testClearBlacklist = async (
-  mockResult: any = DEFAULT_CLEANUP_RESULT,
+  mockResult: { count: number; clearedDomains: string[] } = DEFAULT_CLEANUP_RESULT,
   storageOptions: MockStorageOptions = DEFAULT_MOCK_STORAGE_OPTIONS,
   tabQueryOverride?: chrome.tabs.Tab[]
 ) => {

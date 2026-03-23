@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runCleanup, runCleanupWithFilter } from "@/utils/cleanup/cleanup-runner";
-import { cleanupExpiredCookies } from "@/utils/cleanup/cookie-ops";
-import { CookieClearType, ModeType } from "@/types";
+import { CookieClearType } from "@/types";
 
 vi.mock("@/lib/store", () => ({
   storage: {
@@ -107,7 +106,7 @@ describe("cleanup-runner", () => {
         clearedDomains: new Set(),
       });
 
-      const filterFn = (domain: string) => false;
+      const filterFn = (_domain: string) => false;
       const result = await runCleanupWithFilter(filterFn, {
         trigger: "manual-all",
       });

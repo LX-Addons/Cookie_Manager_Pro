@@ -1,5 +1,5 @@
 import type { Cookie, CookieStats, ApiResponse } from "@/types";
-import { ErrorCode, CookieClearType } from "@/types";
+import { ErrorCode } from "@/types";
 import { isTrackingCookie, isThirdPartyCookie } from "@/utils/cookie-risk";
 import { isDomainMatch } from "@/utils/domain";
 import {
@@ -13,13 +13,6 @@ import {
   reportBackgroundError,
   classifyError,
 } from "@/entrypoints/background/services/error-reporting";
-
-interface HandlerResult {
-  success: boolean;
-  cookie?: Cookie;
-  error?: string;
-  errorCode?: ErrorCode;
-}
 
 export class CookiesHandler {
   async getCurrentTabCookies(): Promise<ApiResponse<{ cookies: Cookie[]; domain: string }>> {
@@ -52,8 +45,10 @@ export class CookiesHandler {
           sameSite: c.sameSite,
           expirationDate: c.expirationDate,
           storeId: c.storeId,
-          partitionKey: (c as any).partitionKey,
-          firstPartyDomain: (c as any).firstPartyDomain,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          partitionKey: (c as any).partitionKey as string | undefined,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          firstPartyDomain: (c as any).firstPartyDomain as string | undefined,
         })),
         domain,
       },

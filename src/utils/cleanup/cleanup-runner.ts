@@ -50,9 +50,10 @@ export const runCleanup = async (options: CleanupOptions): Promise<CleanupExecut
         return result;
       }
 
+      const domain = options.domain;
       const cookieOptions: ClearCookiesOptions = {
         clearType,
-        filterFn: (cookieDomain) => isDomainMatch(cookieDomain, options.domain!),
+        filterFn: (cookieDomain) => isDomainMatch(cookieDomain, domain),
       };
       cookieResult = await clearCookies(cookieOptions);
     } else {

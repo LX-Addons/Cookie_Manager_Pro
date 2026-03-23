@@ -1,6 +1,6 @@
 import type { Settings } from "@/types";
 import { ScheduleInterval } from "@/types";
-import { storage, SETTINGS_KEY, SCHEDULE_INTERVAL_MAP } from "@/lib/store";
+import { SCHEDULE_INTERVAL_MAP } from "@/lib/store";
 import { cleanupExpiredCookies } from "@/utils/cleanup/cookie-ops";
 
 export class ExpiredCookieService {
