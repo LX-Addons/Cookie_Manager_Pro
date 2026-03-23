@@ -12,14 +12,14 @@ import { handleMessage, createErrorResponse } from "../services/message-router";
 import { storage, SETTINGS_KEY } from "@/lib/store";
 
 export class BackgroundBootstrap {
-  private tabUrlManager: TabUrlManager;
-  private scheduledCleanupService: ScheduledCleanupService;
-  private startupCleanupService: StartupCleanupService;
-  private tabEventCleanupService: TabEventCleanupService;
-  private expiredCookieService: ExpiredCookieService;
-  private storageInitializer: StorageInitializer;
-  private tabManagementService: TabManagementService;
-  private startupService: StartupService;
+  private readonly tabUrlManager: TabUrlManager;
+  private readonly scheduledCleanupService: ScheduledCleanupService;
+  private readonly startupCleanupService: StartupCleanupService;
+  private readonly tabEventCleanupService: TabEventCleanupService;
+  private readonly expiredCookieService: ExpiredCookieService;
+  private readonly storageInitializer: StorageInitializer;
+  private readonly tabManagementService: TabManagementService;
+  private readonly startupService: StartupService;
 
   constructor() {
     this.tabUrlManager = new TabUrlManager();

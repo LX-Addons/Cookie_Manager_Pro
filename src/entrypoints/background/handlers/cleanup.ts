@@ -1,10 +1,27 @@
 import type { CleanupExecutionResult, CleanupTrigger, ApiResponse } from "@/types";
-import { CookieClearType, ErrorCode } from "@/types";
+import { CookieClearType, ErrorCode, CleanupError, CleanupStage } from "@/types";
 import { runCleanup, runCleanupWithFilter } from "@/utils/cleanup/cleanup-runner";
 import { isDomainMatch } from "@/utils/domain";
 import { metricsService } from "@/entrypoints/background/services/metrics";
 import { logService } from "@/entrypoints/background/services/log-service";
 import { classifyError } from "@/entrypoints/background/services/error-reporting";
+
+const getCleanupOperation = (error: unknown, baseOperation: string): string => {
+  if (error instanceof CleanupError) {
+    if (error.stage === CleanupStage.COOKIES) {
+      return `${baseOperation} cookie remove`;
+    }
+    if (
+      error.stage === CleanupStage.CACHE ||
+      error.stage === CleanupStage.LOCAL_STORAGE ||
+      error.stage === CleanupStage.INDEXED_DB ||
+      error.stage === CleanupStage.STORAGE
+    ) {
+      return `${baseOperation} browsingData`;
+    }
+  }
+  return baseOperation;
+};
 
 export class CleanupHandler {
   async cleanupByDomain(
@@ -43,10 +60,15 @@ export class CleanupHandler {
         );
       }
 
+      if (!result.success) {
+        throw new Error("Cleanup failed");
+      }
+
       return { success: true, data: result };
     } catch (e) {
       const durationMs = Date.now() - startTime;
-      const errorReport = classifyError(e, "cleanupByDomain", { domain, trigger });
+      const operation = getCleanupOperation(e, "cleanupByDomain");
+      const errorReport = classifyError(e, operation, { domain, trigger });
       metricsService.recordCleanup("cleanupByDomain", false, durationMs, {
         domain,
         trigger,
@@ -89,7 +111,13 @@ export class CleanupHandler {
           domainList ? domainList.some((listDomain) => isDomainMatch(domain, listDomain)) : false;
         break;
       default:
-        filterFn = () => true;
+        return {
+          success: false,
+          error: {
+            code: ErrorCode.INVALID_PARAMETERS,
+            message: `Invalid filterType: ${filterType}`,
+          },
+        };
     }
 
     try {
@@ -116,10 +144,15 @@ export class CleanupHandler {
         );
       }
 
+      if (!result.success) {
+        throw new Error("Cleanup failed");
+      }
+
       return { success: true, data: result };
     } catch (e) {
       const durationMs = Date.now() - startTime;
-      const errorReport = classifyError(e, "cleanupWithFilter", { trigger });
+      const operation = getCleanupOperation(e, "cleanupWithFilter");
+      const errorReport = classifyError(e, operation, { trigger });
       metricsService.recordCleanup("cleanupWithFilter", false, durationMs, {
         trigger,
         metadata: {

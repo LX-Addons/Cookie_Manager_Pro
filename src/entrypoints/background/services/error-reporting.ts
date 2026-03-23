@@ -66,6 +66,31 @@ export const isPermissionDeniedError = (error: unknown): boolean => {
   return false;
 };
 
+const classifyOperationError = (operation: string): ErrorCode => {
+  if (operation.includes("cookie") && operation.includes("remove")) {
+    return ErrorCode.COOKIE_REMOVE_FAILED;
+  }
+  if (operation.includes("cookie") && operation.includes("create")) {
+    return ErrorCode.COOKIE_CREATE_FAILED;
+  }
+  if (operation.includes("cookie") && operation.includes("update")) {
+    return ErrorCode.COOKIE_UPDATE_FAILED;
+  }
+  if (operation.includes("browsingData")) {
+    return ErrorCode.BROWSING_DATA_FAILED;
+  }
+  if (operation.includes("storage") && operation.includes("read")) {
+    return ErrorCode.STORAGE_READ_FAILED;
+  }
+  if (operation.includes("storage") && operation.includes("write")) {
+    return ErrorCode.STORAGE_WRITE_FAILED;
+  }
+  if (operation.includes("tab")) {
+    return ErrorCode.TAB_QUERY_FAILED;
+  }
+  return ErrorCode.INTERNAL_ERROR;
+};
+
 export const classifyError = (
   error: unknown,
   operation: string,
@@ -80,22 +105,8 @@ export const classifyError = (
     if (isPermissionDeniedError(error)) {
       code = ErrorCode.PERMISSION_DENIED;
       recoverable = false;
-    } else if (operation.includes("cookie") && operation.includes("remove")) {
-      code = ErrorCode.COOKIE_REMOVE_FAILED;
-    } else if (operation.includes("cookie") && operation.includes("create")) {
-      code = ErrorCode.COOKIE_CREATE_FAILED;
-    } else if (operation.includes("cookie") && operation.includes("update")) {
-      code = ErrorCode.COOKIE_UPDATE_FAILED;
-    } else if (operation.includes("browsingData")) {
-      code = ErrorCode.BROWSING_DATA_FAILED;
-    } else if (operation.includes("storage") && operation.includes("read")) {
-      code = ErrorCode.STORAGE_READ_FAILED;
-    } else if (operation.includes("storage") && operation.includes("write")) {
-      code = ErrorCode.STORAGE_WRITE_FAILED;
-    } else if (operation.includes("tab")) {
-      code = ErrorCode.TAB_QUERY_FAILED;
     } else {
-      code = ErrorCode.INTERNAL_ERROR;
+      code = classifyOperationError(operation);
     }
   } else {
     message = String(error);

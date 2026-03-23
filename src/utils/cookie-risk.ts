@@ -82,7 +82,7 @@ export const assessCookieRisk = (
   if (!isHttpOnly) {
     reasons.push(getReason("notHttpOnly"));
   }
-  if (!isSecure && cookie.domain.startsWith(".")) {
+  if (!isSecure) {
     reasons.push(getReason("notSecure"));
   }
 

@@ -5,14 +5,14 @@ import { ScheduledCleanupService } from "./scheduled-cleanup-service";
 import { StartupCleanupService } from "./startup-cleanup-service";
 import { ExpiredCookieService } from "./expired-cookie-service";
 import { StorageInitializer } from "./storage-initializer";
-import { storage, SETTINGS_KEY } from "@/lib/store";
+import { storage, SETTINGS_KEY, LAST_SCHEDULED_CLEANUP_KEY } from "@/lib/store";
 
 export class StartupService {
-  private tabUrlManager: TabUrlManager;
-  private scheduledCleanupService: ScheduledCleanupService;
-  private startupCleanupService: StartupCleanupService;
-  private expiredCookieService: ExpiredCookieService;
-  private storageInitializer: StorageInitializer;
+  private readonly tabUrlManager: TabUrlManager;
+  private readonly scheduledCleanupService: ScheduledCleanupService;
+  private readonly startupCleanupService: StartupCleanupService;
+  private readonly expiredCookieService: ExpiredCookieService;
+  private readonly storageInitializer: StorageInitializer;
 
   constructor(
     tabUrlManager: TabUrlManager,
@@ -76,12 +76,6 @@ export class StartupService {
   }
 
   private async updateLastScheduledCleanup(timestamp: number): Promise<void> {
-    const latestSettings = await storage.getItem<Settings>(SETTINGS_KEY);
-    if (latestSettings) {
-      await storage.setItem(SETTINGS_KEY, {
-        ...latestSettings,
-        lastScheduledCleanup: timestamp,
-      });
-    }
+    await storage.setItem(LAST_SCHEDULED_CLEANUP_KEY, timestamp);
   }
 }

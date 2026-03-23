@@ -1,3 +1,5 @@
+import type { DataClearResult } from "@/types";
+
 export interface ClearBrowserDataOptions {
   clearCache?: boolean;
   clearLocalStorage?: boolean;
@@ -5,9 +7,9 @@ export interface ClearBrowserDataOptions {
 }
 
 export interface ClearBrowserDataResult {
-  cache: boolean;
-  localStorage: boolean;
-  indexedDB: boolean;
+  cache: DataClearResult;
+  localStorage: DataClearResult;
+  indexedDB: DataClearResult;
 }
 
 export const buildOrigins = (domains: Set<string>): string[] => {
@@ -32,9 +34,9 @@ export const clearBrowserData = async (
   const { clearCache, clearLocalStorage, clearIndexedDB } = options;
   const origins = buildNonEmptyOrigins(domains);
   const result: ClearBrowserDataResult = {
-    cache: false,
-    localStorage: false,
-    indexedDB: false,
+    cache: { success: false },
+    localStorage: { success: false },
+    indexedDB: { success: false },
   };
 
   if (clearCache) {
@@ -48,9 +50,11 @@ export const clearBrowserData = async (
             serviceWorkers: true,
           }
         );
-        result.cache = true;
+        result.cache = { success: true };
       }
-    } catch {}
+    } catch (e) {
+      result.cache = { success: false, error: e instanceof Error ? e.message : "Unknown error" };
+    }
   }
 
   if (clearLocalStorage) {
@@ -62,9 +66,14 @@ export const clearBrowserData = async (
             localStorage: true,
           }
         );
-        result.localStorage = true;
+        result.localStorage = { success: true };
       }
-    } catch {}
+    } catch (e) {
+      result.localStorage = {
+        success: false,
+        error: e instanceof Error ? e.message : "Unknown error",
+      };
+    }
   }
 
   if (clearIndexedDB) {
@@ -76,9 +85,14 @@ export const clearBrowserData = async (
             indexedDB: true,
           }
         );
-        result.indexedDB = true;
+        result.indexedDB = { success: true };
       }
-    } catch {}
+    } catch (e) {
+      result.indexedDB = {
+        success: false,
+        error: e instanceof Error ? e.message : "Unknown error",
+      };
+    }
   }
 
   return result;

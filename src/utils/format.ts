@@ -115,6 +115,7 @@ export const formatLogTime = (timestamp: number, locale: string = "zh-CN"): stri
 export const maskCookieValue = (value: string, mask: string): string => {
   if (!value || value.length === 0) return mask;
   if (value.length <= 8) return mask;
+  if (mask.length < 4) return mask.repeat(4);
   return value.slice(0, 4) + mask.substring(4);
 };
 

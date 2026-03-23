@@ -11,6 +11,11 @@ export interface ClearCookiesResult {
   clearedDomains: Set<string>;
 }
 
+export interface CookieRemoveResult {
+  success: boolean;
+  error?: string;
+}
+
 const shouldClearCookieByType = (
   cookie: chrome.cookies.Cookie,
   clearType: CookieClearType
@@ -36,10 +41,10 @@ const buildCookieUrl = (cookie: chrome.cookies.Cookie, cleanedDomain: string): s
 export const clearSingleCookie = async (
   cookie: chrome.cookies.Cookie,
   cleanedDomain: string
-): Promise<boolean> => {
+): Promise<CookieRemoveResult> => {
   try {
     const url = buildCookieUrl(cookie, cleanedDomain);
-    const removeDetails: chrome.cookies.CookieDetails = {
+    const removeDetails: Parameters<typeof chrome.cookies.remove>[0] = {
       url,
       name: cookie.name,
     };
@@ -51,9 +56,9 @@ export const clearSingleCookie = async (
       (removeDetails as any).partitionKey = cookie.partitionKey;
     }
     await chrome.cookies.remove(removeDetails);
-    return true;
-  } catch {
-    return false;
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 };
 
@@ -107,7 +112,9 @@ const buildCookieSetDetails = (
   return { success: true, setDetails };
 };
 
-export const createCookie = async (cookie: Partial<chrome.cookies.Cookie>): Promise<boolean> => {
+export const createCookie = async (
+  cookie: Partial<chrome.cookies.Cookie>
+): Promise<chrome.cookies.Cookie | null> => {
   try {
     const fullCookie: chrome.cookies.Cookie = {
       ...cookie,
@@ -116,13 +123,14 @@ export const createCookie = async (cookie: Partial<chrome.cookies.Cookie>): Prom
 
     const result = buildCookieSetDetails(fullCookie);
     if (!result.success) {
-      return false;
+      return null;
     }
 
-    await chrome.cookies.set(result.setDetails);
-    return true;
-  } catch {
-    return false;
+    const createdCookie = await chrome.cookies.set(result.setDetails);
+    return createdCookie ?? null;
+  } catch (e) {
+    console.warn("Failed to create cookie:", e);
+    return null;
   }
 };
 
@@ -171,7 +179,8 @@ export const editCookie = async (
 
     await chrome.cookies.set(result.setDetails);
     return true;
-  } catch {
+  } catch (e) {
+    console.warn("Failed to edit cookie:", e);
     return false;
   }
 };
@@ -195,8 +204,8 @@ export const clearCookies = async (
 
     if (clearType && !shouldClearCookieByType(cookie, clearType)) continue;
 
-    const cleared = await clearSingleCookie(cookie, cleanedDomain);
-    if (cleared) {
+    const result = await clearSingleCookie(cookie, cleanedDomain);
+    if (result.success) {
       count++;
       clearedDomains.add(cleanedDomain);
     }
@@ -213,8 +222,8 @@ export const cleanupExpiredCookies = async (): Promise<number> => {
   for (const cookie of cookies) {
     if (cookie.expirationDate && cookie.expirationDate * 1000 < now) {
       const cleanedDomain = cookie.domain.replace(/^\./, "");
-      const success = await clearSingleCookie(cookie, cleanedDomain);
-      if (success) {
+      const result = await clearSingleCookie(cookie, cleanedDomain);
+      if (result.success) {
         count++;
       }
     }

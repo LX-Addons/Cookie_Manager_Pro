@@ -1,5 +1,5 @@
 export class TabUrlManager {
-  private tabUrlMap = new Map<number, string>();
+  private readonly tabUrlMap = new Map<number, string>();
 
   async initializeFromTabs(): Promise<void> {
     try {

@@ -127,6 +127,11 @@ export type CleanupTrigger =
   | "tab-discard"
   | "expired-cookies";
 
+export interface DataClearResult {
+  success: boolean;
+  error?: string;
+}
+
 export interface CleanupExecutionResult {
   success: boolean;
   trigger: CleanupTrigger;
@@ -134,9 +139,9 @@ export interface CleanupExecutionResult {
   matchedDomains: string[];
   cookiesRemoved: number;
   browserDataCleared: {
-    cache: boolean;
-    localStorage: boolean;
-    indexedDB: boolean;
+    cache: DataClearResult;
+    localStorage: DataClearResult;
+    indexedDB: DataClearResult;
   };
   partialFailures: Array<{
     stage: "cookies" | "cache" | "localStorage" | "indexedDB" | "storage" | "tabs";
@@ -258,6 +263,25 @@ export enum ErrorCode {
   TAB_QUERY_FAILED = "TAB_QUERY_FAILED",
   COOKIE_CREATE_FAILED = "COOKIE_CREATE_FAILED",
   COOKIE_UPDATE_FAILED = "COOKIE_UPDATE_FAILED",
+}
+
+export enum CleanupStage {
+  COOKIES = "cookies",
+  CACHE = "cache",
+  LOCAL_STORAGE = "localStorage",
+  INDEXED_DB = "indexedDB",
+  STORAGE = "storage",
+}
+
+export class CleanupError extends Error {
+  constructor(
+    public readonly code: ErrorCode,
+    public readonly stage: CleanupStage,
+    message: string
+  ) {
+    super(message);
+    this.name = "CleanupError";
+  }
 }
 
 export interface ApiResponse<T = unknown> {

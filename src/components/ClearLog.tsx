@@ -80,15 +80,25 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
         URL.revokeObjectURL(url);
         onMessage(t("clearLog.logsExported"));
       } else {
-        onMessage(response.error?.message || "Export failed", true);
+        onMessage(response.error?.message || t("common.unknownError"), true);
       }
     } catch (e) {
       console.error("Failed to export logs:", e);
-      onMessage("Export failed", true);
+      onMessage(t("common.unknownError"), true);
     }
   };
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp - a.timestamp), [logs]);
+
+  const getDomainDisplay = (domains: string[] | undefined, domain: string | undefined): string => {
+    if (!domains) {
+      return domain ?? "";
+    }
+    if (domains.length > 2) {
+      return `${domains.slice(0, 2).join(", ")} ${t("clearLog.andMoreDomains", { count: domains.length })}`;
+    }
+    return domains.join(", ");
+  };
 
   const filteredLogs = useMemo(() => {
     if (actionFilter === "all") return sortedLogs;
@@ -157,13 +167,7 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
                     {formatLogTime(log.timestamp, settings.locale)}
                   </span>
                 </div>
-                <div className="log-entry-domain">
-                  {log.domains
-                    ? log.domains.length > 2
-                      ? `${log.domains.slice(0, 2).join(", ")} ${t("clearLog.andMoreDomains", { count: log.domains.length })}`
-                      : log.domains.join(", ")
-                    : log.domain}
-                </div>
+                <div className="log-entry-domain">{getDomainDisplay(log.domains, log.domain)}</div>
                 <div className="log-entry-meta">
                   <span className="log-entry-meta-item">
                     <span className="log-entry-meta-label">{t("clearLog.count")}:</span>

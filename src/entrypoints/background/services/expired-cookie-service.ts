@@ -1,16 +1,8 @@
 import type { Settings } from "@/types";
-import { ScheduleInterval } from "@/types";
-import { SCHEDULE_INTERVAL_MAP } from "@/lib/store";
 import { cleanupExpiredCookies } from "@/utils/cleanup/cookie-ops";
+import { shouldPerformCleanupWithStorage } from "@/utils/cleanup";
 
 export class ExpiredCookieService {
-  private shouldPerformCleanup(settings: Settings, now: number): boolean {
-    if (settings.scheduleInterval === ScheduleInterval.DISABLED) return false;
-    const lastCleanup = settings.lastScheduledCleanup || 0;
-    const interval = SCHEDULE_INTERVAL_MAP[settings.scheduleInterval];
-    return now - lastCleanup >= interval;
-  }
-
   private async doExpiredCookiesCleanup(
     settings: Settings,
     checkTimeWindow = false,
@@ -19,7 +11,7 @@ export class ExpiredCookieService {
     if (!settings.enableAutoCleanup || !settings.cleanupExpiredCookies) return;
 
     if (checkTimeWindow && now !== undefined) {
-      if (!this.shouldPerformCleanup(settings, now)) return;
+      if (!(await shouldPerformCleanupWithStorage(settings, now))) return;
     }
 
     try {

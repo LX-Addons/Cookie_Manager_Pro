@@ -3,7 +3,7 @@ import { storage, CLEANUP_ON_STARTUP_KEY } from "@/lib/store";
 import { CleanupHandler } from "../handlers/cleanup";
 
 export class StartupCleanupService {
-  private cleanupHandler: CleanupHandler;
+  private readonly cleanupHandler: CleanupHandler;
   private saveQueue = Promise.resolve();
 
   constructor() {
@@ -46,7 +46,7 @@ export class StartupCleanupService {
         trigger,
         this.getCleanupOptions(settings)
       );
-      if (!result.success) {
+      if (!result.success || !result.data?.success) {
         failedDomains.push(domain);
       }
     }

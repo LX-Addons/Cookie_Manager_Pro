@@ -2,7 +2,6 @@ export * from "./domain";
 export * from "./cookie-risk";
 export * from "./format";
 export * from "./theme";
-export * from "./domain-utils";
 
 export {
   clearSingleCookie,
@@ -10,6 +9,7 @@ export {
   editCookie,
   clearCookies,
   getAllCookies,
+  type CookieRemoveResult,
 } from "./cleanup/cookie-ops";
 export { buildOrigins, buildNonEmptyOrigins, clearBrowserData } from "./cleanup/site-data-ops";
 

@@ -20,20 +20,12 @@ export class LogExportService {
     };
   }
 
-  private addMetadata(data: string): string {
-    const exportInfo = {
+  private addMetadata(logs: ClearLogEntry[]): object {
+    return {
       exportTime: new Date().toISOString(),
       version: "1.0.0",
+      logs,
     };
-    const logs = JSON.parse(data);
-    return JSON.stringify(
-      {
-        ...exportInfo,
-        logs,
-      },
-      null,
-      2
-    );
   }
 
   async exportLogs(options: LogExportOptions = {}): Promise<LogExportResult> {
@@ -45,10 +37,8 @@ export class LogExportService {
         processedLogs = logs.map((log) => this.sanitizeLogEntry(log));
       }
 
-      let dataStr = JSON.stringify(processedLogs, null, 2);
-      if (options.includeMetadata) {
-        dataStr = this.addMetadata(dataStr);
-      }
+      const outputData = options.includeMetadata ? this.addMetadata(processedLogs) : processedLogs;
+      const dataStr = JSON.stringify(outputData, null, 2);
 
       return {
         success: true,

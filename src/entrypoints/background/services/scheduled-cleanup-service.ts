@@ -1,30 +1,13 @@
 import type { Settings } from "@/types";
-import { ScheduleInterval } from "@/types";
-import { storage, SETTINGS_KEY, SCHEDULE_INTERVAL_MAP } from "@/lib/store";
+import { storage, SETTINGS_KEY, LAST_SCHEDULED_CLEANUP_KEY } from "@/lib/store";
 import { CleanupHandler } from "../handlers/cleanup";
+import { shouldPerformCleanup } from "@/utils/cleanup";
 
 export class ScheduledCleanupService {
-  private cleanupHandler: CleanupHandler;
+  private readonly cleanupHandler: CleanupHandler;
 
   constructor() {
     this.cleanupHandler = new CleanupHandler();
-  }
-
-  private shouldPerformCleanup(settings: Settings, now: number): boolean {
-    if (settings.scheduleInterval === ScheduleInterval.DISABLED) return false;
-    const lastCleanup = settings.lastScheduledCleanup || 0;
-    const interval = SCHEDULE_INTERVAL_MAP[settings.scheduleInterval];
-    return now - lastCleanup >= interval;
-  }
-
-  private async updateLastScheduledCleanup(timestamp: number): Promise<void> {
-    const latestSettings = await storage.getItem<Settings>(SETTINGS_KEY);
-    if (latestSettings) {
-      await storage.setItem(SETTINGS_KEY, {
-        ...latestSettings,
-        lastScheduledCleanup: timestamp,
-      });
-    }
   }
 
   private getCleanupOptions(settings: Settings) {
@@ -41,10 +24,11 @@ export class ScheduledCleanupService {
       const settings = await storage.getItem<Settings>(SETTINGS_KEY);
       if (!settings?.enableAutoCleanup) return { lastScheduledCleanup: undefined };
 
+      const lastCleanup = (await storage.getItem<number>(LAST_SCHEDULED_CLEANUP_KEY)) || 0;
       const now = Date.now();
       let lastScheduledCleanup: number | undefined;
 
-      if (this.shouldPerformCleanup(settings, now)) {
+      if (shouldPerformCleanup(settings, lastCleanup, now)) {
         const trigger = "scheduled" as const;
         await this.cleanupHandler.cleanupWithFilter(
           "all",

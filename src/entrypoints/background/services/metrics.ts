@@ -2,8 +2,8 @@ import type { BackgroundMetric, MetricsSummary } from "@/types";
 import { MetricType } from "@/types";
 
 class RingBuffer<T> {
-  private buffer: Array<T | null>;
-  private capacity: number;
+  private readonly buffer: Array<T | null>;
+  private readonly capacity: number;
   private head: number;
   private tail: number;
   private size: number;
@@ -40,7 +40,7 @@ class RingBuffer<T> {
   }
 
   clear(): void {
-    this.buffer = new Array(this.capacity).fill(null);
+    this.buffer.fill(null);
     this.head = 0;
     this.tail = 0;
     this.size = 0;
@@ -52,8 +52,8 @@ class RingBuffer<T> {
 }
 
 class MetricsService {
-  private metrics: RingBuffer<BackgroundMetric>;
-  private typeStats: Record<
+  private readonly metrics: RingBuffer<BackgroundMetric>;
+  private readonly typeStats: Record<
     MetricType,
     { count: number; successCount: number; totalDurationMs: number }
   >;
@@ -157,8 +157,7 @@ class MetricsService {
   }
 
   getRecentMetrics(limit: number = 50): BackgroundMetric[] {
-    const allMetrics = this.metrics.toArray();
-    return allMetrics.slice(-limit);
+    return this.metrics.toArray().slice(-limit);
   }
 
   getSummary(): MetricsSummary {
@@ -183,8 +182,28 @@ class MetricsService {
       [MetricType.MAINTENANCE]: { count: 0, successRate: 0, averageDurationMs: 0 },
     };
 
+    const typeStats: Record<
+      MetricType,
+      { count: number; successCount: number; totalDurationMs: number }
+    > = {
+      [MetricType.CLEANUP]: { count: 0, successCount: 0, totalDurationMs: 0 },
+      [MetricType.COOKIE_MUTATION]: { count: 0, successCount: 0, totalDurationMs: 0 },
+      [MetricType.AUDIT]: { count: 0, successCount: 0, totalDurationMs: 0 },
+      [MetricType.ERROR]: { count: 0, successCount: 0, totalDurationMs: 0 },
+      [MetricType.MAINTENANCE]: { count: 0, successCount: 0, totalDurationMs: 0 },
+    };
+
+    for (const metric of allMetrics) {
+      const stat = typeStats[metric.type];
+      stat.count++;
+      if (metric.success) {
+        stat.successCount++;
+      }
+      stat.totalDurationMs += metric.durationMs;
+    }
+
     for (const type of Object.values(MetricType)) {
-      const typeStat = this.typeStats[type];
+      const typeStat = typeStats[type];
       byType[type] = {
         count: typeStat.count,
         successRate: typeStat.count > 0 ? typeStat.successCount / typeStat.count : 0,

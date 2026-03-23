@@ -28,12 +28,12 @@ export class BackgroundService {
               chrome.runtime.lastError.message || "Unknown error"
             )
           );
-        } else if (!response) {
+        } else if (response) {
+          resolve(response as ApiResponse<T>);
+        } else {
           resolve(
             this.createErrorResponse<T>(ErrorCode.INTERNAL_ERROR, "No response from background")
           );
-        } else {
-          resolve(response as ApiResponse<T>);
         }
       });
     });

@@ -12,6 +12,7 @@ import { logService } from "@/entrypoints/background/services/log-service";
 import {
   reportBackgroundError,
   classifyError,
+  isPermissionDeniedError,
 } from "@/entrypoints/background/services/error-reporting";
 
 export class CookiesHandler {
@@ -27,65 +28,130 @@ export class CookiesHandler {
       }
     }
 
-    const allCookies = await getAllCookies();
-    const currentCookiesList = domain
-      ? allCookies.filter((c) => isDomainMatch(c.domain, domain))
-      : [];
+    try {
+      const allCookies = await getAllCookies();
+      const currentCookiesList = domain
+        ? allCookies.filter((c) => isDomainMatch(c.domain, domain))
+        : [];
 
-    return {
-      success: true,
-      data: {
-        cookies: currentCookiesList.map((c) => ({
-          name: c.name,
-          value: c.value,
-          domain: c.domain,
-          path: c.path,
-          secure: c.secure,
-          httpOnly: c.httpOnly,
-          sameSite: c.sameSite,
-          expirationDate: c.expirationDate,
-          storeId: c.storeId,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          partitionKey: (c as any).partitionKey as string | undefined,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          firstPartyDomain: (c as any).firstPartyDomain as string | undefined,
-        })),
+      return {
+        success: true,
+        data: {
+          cookies: currentCookiesList.map((c) => ({
+            name: c.name,
+            value: c.value,
+            domain: c.domain,
+            path: c.path,
+            secure: c.secure,
+            httpOnly: c.httpOnly,
+            sameSite: c.sameSite,
+            expirationDate: c.expirationDate,
+            storeId: c.storeId,
+            partitionKey: c.partitionKey ? JSON.stringify(c.partitionKey) : undefined,
+            firstPartyDomain: c.firstPartyDomain,
+          })),
+          domain,
+        },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (isPermissionDeniedError(error)) {
+        reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "getCurrentTabCookies", message, {
+          domain,
+          recoverable: false,
+          originalError: error,
+        });
+        return {
+          success: false,
+          error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
+        };
+      }
+      reportBackgroundError(ErrorCode.INTERNAL_ERROR, "getCurrentTabCookies", message, {
         domain,
-      },
-    };
+        recoverable: true,
+        originalError: error,
+      });
+      return {
+        success: false,
+        error: { code: ErrorCode.INTERNAL_ERROR, message },
+      };
+    }
   }
 
   async getStats(domain?: string): Promise<ApiResponse<CookieStats>> {
-    const allCookies = await getAllCookies();
-    const currentCookiesList = domain
-      ? allCookies.filter((c) => isDomainMatch(c.domain, domain))
-      : [];
+    try {
+      const allCookies = await getAllCookies();
+      const currentCookiesList = domain
+        ? allCookies.filter((c) => isDomainMatch(c.domain, domain))
+        : [];
 
-    const sessionCookies = currentCookiesList.filter((c) => !c.expirationDate);
-    const persistentCookies = currentCookiesList.filter((c) => c.expirationDate);
-    const thirdPartyCookies = domain
-      ? currentCookiesList.filter((c) => isThirdPartyCookie(c.domain, domain))
-      : [];
-    const trackingCookies = currentCookiesList.filter((c) => isTrackingCookie(c));
+      const sessionCookies = currentCookiesList.filter((c) => !c.expirationDate);
+      const persistentCookies = currentCookiesList.filter((c) => c.expirationDate);
+      const thirdPartyCookies = domain
+        ? currentCookiesList.filter((c) => isThirdPartyCookie(c.domain, domain))
+        : [];
+      const trackingCookies = currentCookiesList.filter((c) => isTrackingCookie(c));
 
-    return {
-      success: true,
-      data: {
-        total: allCookies.length,
-        current: currentCookiesList.length,
-        session: sessionCookies.length,
-        persistent: persistentCookies.length,
-        thirdParty: thirdPartyCookies.length,
-        tracking: trackingCookies.length,
-      },
-    };
+      return {
+        success: true,
+        data: {
+          total: allCookies.length,
+          current: currentCookiesList.length,
+          session: sessionCookies.length,
+          persistent: persistentCookies.length,
+          thirdParty: thirdPartyCookies.length,
+          tracking: trackingCookies.length,
+        },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (isPermissionDeniedError(error)) {
+        reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "getStats", message, {
+          domain,
+          recoverable: false,
+          originalError: error,
+        });
+        return {
+          success: false,
+          error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
+        };
+      }
+      reportBackgroundError(ErrorCode.INTERNAL_ERROR, "getStats", message, {
+        domain,
+        recoverable: true,
+        originalError: error,
+      });
+      return {
+        success: false,
+        error: { code: ErrorCode.INTERNAL_ERROR, message },
+      };
+    }
   }
 
   async createCookie(cookie: Partial<Cookie>): Promise<ApiResponse<{ cookie: Cookie }>> {
     try {
-      const success = await createCookieInStore(cookie as Partial<chrome.cookies.Cookie>);
-      if (success) {
-        return { success: true, data: { cookie: cookie as Cookie } };
+      const createdCookie = await createCookieInStore(cookie as Partial<chrome.cookies.Cookie>);
+      if (createdCookie) {
+        return {
+          success: true,
+          data: {
+            cookie: {
+              name: createdCookie.name,
+              value: createdCookie.value,
+              domain: createdCookie.domain,
+              path: createdCookie.path,
+              secure: createdCookie.secure,
+              httpOnly: createdCookie.httpOnly,
+              sameSite: createdCookie.sameSite as Cookie["sameSite"],
+              expirationDate: createdCookie.expirationDate,
+              storeId: createdCookie.storeId,
+              partitionKey: createdCookie.partitionKey
+                ? JSON.stringify(createdCookie.partitionKey)
+                : undefined,
+              firstPartyDomain: createdCookie.firstPartyDomain,
+            },
+          },
+        };
       }
       reportBackgroundError(
         ErrorCode.COOKIE_CREATE_FAILED,

@@ -2,7 +2,7 @@ import type { Settings } from "@/types";
 import { CleanupHandler } from "../handlers/cleanup";
 
 export class TabEventCleanupService {
-  private cleanupHandler: CleanupHandler;
+  private readonly cleanupHandler: CleanupHandler;
 
   constructor() {
     this.cleanupHandler = new CleanupHandler();
@@ -34,7 +34,7 @@ export class TabEventCleanupService {
   }
 
   async handleTabNavigate(
-    tabId: number,
+    _tabId: number,
     changeInfo: { url?: string },
     previousUrl: string | undefined,
     settings: Settings
@@ -63,7 +63,15 @@ export class TabEventCleanupService {
   }
 
   async cleanupClosedTab(hostname: string, settings: Settings): Promise<void> {
-    const trigger = "tab-close" as const;
-    await this.cleanupHandler.cleanupByDomain(hostname, trigger, this.getCleanupOptions(settings));
+    try {
+      const trigger = "tab-close" as const;
+      await this.cleanupHandler.cleanupByDomain(
+        hostname,
+        trigger,
+        this.getCleanupOptions(settings)
+      );
+    } catch (e) {
+      console.error(`Failed to cleanup on tab close for ${hostname}:`, e);
+    }
   }
 }

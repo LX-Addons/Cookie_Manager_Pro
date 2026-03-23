@@ -90,7 +90,19 @@ export interface Translations {
       appearanceDesc: string;
       languageLogs: string;
       languageLogsDesc: string;
+      permissions: string;
+      permissionsDesc: string;
     };
+    allHostsPermission: string;
+    allHostsPermissionDesc: string;
+    permissionGranted: string;
+    permissionNotGranted: string;
+    grantPermission: string;
+    revokePermission: string;
+    permissionWarning: string;
+    permissionGrantSuccess: string;
+    permissionRevokeSuccess: string;
+    permissionGrantFailed: string;
     workMode: string;
     workModeDesc: string;
     whitelistMode: string;
@@ -228,6 +240,7 @@ export interface Translations {
     count: string;
     time: string;
     details: string;
+    andMoreDomains: string;
   };
   cookieList: {
     noCookies: string;

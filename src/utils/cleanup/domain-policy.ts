@@ -10,17 +10,13 @@ export interface DomainPolicyCheckOptions {
   blacklist?: string[];
 }
 
-export const shouldCleanupDomain = (
-  domain: string,
-  mode: ModeType,
-  whitelist: string[],
-  blacklist: string[]
-): boolean => {
+export const shouldCleanupDomain = (options: DomainPolicyCheckOptions): boolean => {
+  const { domain, mode, whitelist, blacklist } = options;
   const normalizedDomain = normalizeDomain(domain);
   if (mode === ModeType.WHITELIST) {
-    return !isInList(normalizedDomain, whitelist);
+    return !isInList(normalizedDomain, whitelist || []);
   } else if (mode === ModeType.BLACKLIST) {
-    return isInList(normalizedDomain, blacklist);
+    return isInList(normalizedDomain, blacklist || []);
   }
   return false;
 };

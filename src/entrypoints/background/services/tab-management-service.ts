@@ -5,9 +5,9 @@ import { TabEventCleanupService } from "./tab-event-cleanup-service";
 import { storage, SETTINGS_KEY } from "@/lib/store";
 
 export class TabManagementService {
-  private tabUrlManager: TabUrlManager;
-  private startupCleanupService: StartupCleanupService;
-  private tabEventCleanupService: TabEventCleanupService;
+  private readonly tabUrlManager: TabUrlManager;
+  private readonly startupCleanupService: StartupCleanupService;
+  private readonly tabEventCleanupService: TabEventCleanupService;
 
   constructor(
     tabUrlManager: TabUrlManager,
@@ -50,17 +50,17 @@ export class TabManagementService {
   }
 
   async handleTabRemoved(tabId: number, removeInfo: { isWindowClosing: boolean }): Promise<void> {
-    const settings = await storage.getItem<Settings>(SETTINGS_KEY);
-    if (!settings?.enableAutoCleanup) return;
-
-    if (this.tabUrlManager.size === 0) {
-      await this.tabUrlManager.initializeFromTabs();
-    }
-
-    const closedUrl = this.tabUrlManager.get(tabId);
-    if (!closedUrl) return;
-
     try {
+      const settings = await storage.getItem<Settings>(SETTINGS_KEY);
+      if (!settings?.enableAutoCleanup) return;
+
+      if (this.tabUrlManager.size === 0) {
+        await this.tabUrlManager.initializeFromTabs();
+      }
+
+      const closedUrl = this.tabUrlManager.get(tabId);
+      if (!closedUrl) return;
+
       const url = new URL(closedUrl);
 
       if (removeInfo.isWindowClosing && settings.cleanupOnBrowserClose) {
@@ -70,9 +70,9 @@ export class TabManagementService {
       }
     } catch (e) {
       console.error("Failed to cleanup on tab close:", e);
+    } finally {
+      this.tabUrlManager.delete(tabId);
     }
-
-    this.tabUrlManager.delete(tabId);
   }
 
   getTabUrlManager(): TabUrlManager {

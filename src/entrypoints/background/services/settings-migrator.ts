@@ -66,8 +66,7 @@ export class SettingsMigrator {
   }
 
   async getSettings(): Promise<Settings> {
-    const settings = await this.migrateSettings();
-    return settings;
+    return this.migrateSettings();
   }
 
   async updateSettings(updates: Partial<Settings>): Promise<Settings> {

@@ -1,4 +1,7 @@
-import { clearSingleCookie as clearSingleCookieUtil } from "@/utils/cleanup/cookie-ops";
+import {
+  clearSingleCookie as clearSingleCookieUtil,
+  type CookieRemoveResult,
+} from "@/utils/cleanup/cookie-ops";
 import { classifyError } from "./error-reporting";
 import { metricsService } from "./metrics";
 
@@ -12,21 +15,24 @@ export const clearSingleCookie = async (
   let success = false;
   let errorCode: string | undefined;
 
-  try {
-    success = await clearSingleCookieUtil(cookie, cleanedDomain);
-    return success;
-  } catch (e) {
-    const report = classifyError(e, "cookie remove", {
-      domain: cleanedDomain,
-    });
-    errorCode = report.code;
-    return false;
-  } finally {
-    const durationMs = Date.now() - startTime;
-    metricsService.recordCookieMutation("clearSingleCookie", success, durationMs, {
-      domain: cleanedDomain,
-      errorCode,
-      metadata: { cookieName: cookie.name },
-    });
+  const result: CookieRemoveResult = await clearSingleCookieUtil(cookie, cleanedDomain);
+  if (result.success) {
+    success = true;
+  } else {
+    if (result.error) {
+      const report = classifyError(new Error(result.error), "cookie remove", {
+        domain: cleanedDomain,
+      });
+      errorCode = report.code;
+    }
   }
+
+  const durationMs = Date.now() - startTime;
+  metricsService.recordCookieMutation("clearSingleCookie", success, durationMs, {
+    domain: cleanedDomain,
+    errorCode,
+    metadata: { cookieName: cookie.name },
+  });
+
+  return success;
 };
