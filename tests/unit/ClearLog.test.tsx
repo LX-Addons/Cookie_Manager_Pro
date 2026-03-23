@@ -5,6 +5,16 @@ import { ClearLog } from "@/components/ClearLog";
 import * as storageHook from "@/hooks/useStorage";
 import { useState, ReactNode } from "react";
 import { createUseStorageMock, createMockLogEntry } from "../utils/mocks";
+import { BackgroundService } from "@/lib/background-service";
+
+Object.defineProperty(URL, "createObjectURL", {
+  writable: true,
+  value: vi.fn().mockReturnValue("blob:test-url"),
+});
+Object.defineProperty(URL, "revokeObjectURL", {
+  writable: true,
+  value: vi.fn(),
+});
 
 vi.mock("@/hooks/useTranslation", () => ({
   useTranslation: () => ({
@@ -50,6 +60,7 @@ vi.mock("@/hooks/useTranslation", () => ({
         "common.no": "否",
         "common.count": "{count} 个",
         "actions.clear": "清除",
+        "clearLog.andMoreDomains": "等 {count} 个域名",
       };
       let text = translations[key] || key;
       if (params) {
@@ -113,6 +124,15 @@ vi.mock("@/components/ConfirmDialogWrapper", () => ({
       );
     };
     return <MockWrapper />;
+  },
+}));
+
+vi.mock("@/lib/background-service", () => ({
+  BackgroundService: {
+    exportLogs: vi.fn().mockResolvedValue({
+      success: true,
+      data: { data: '[{"id":"test-log-1","domain":"example.com"}]' },
+    }),
   },
 }));
 vi.mock("@/hooks/useStorage", () => ({
@@ -183,11 +203,12 @@ describe("ClearLog", () => {
     expect(screen.getByText("清除全部")).toBeTruthy();
   });
 
-  it("should call onMessage when export logs is clicked", () => {
+  it("should call onMessage when export logs is clicked", async () => {
     const { mockOnMessage } = setupTest();
     render(<ClearLog onMessage={mockOnMessage} />);
     const exportButton = screen.getByText("导出日志");
     fireEvent.click(exportButton);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockOnMessage).toHaveBeenCalledWith("日志已导出");
   });
 
@@ -331,5 +352,89 @@ describe("ClearLog", () => {
     expect(screen.getByText("example.com")).toBeTruthy();
     expect(screen.getByText("5")).toBeTruthy();
     expect(screen.getAllByText("清除").length).toBeGreaterThan(0);
+  });
+
+  it("should display single domain log correctly", () => {
+    const { mockOnMessage } = setupTest();
+    const mockSetLogs = vi.fn();
+    const log = createMockLogEntry({
+      id: "test-single-domain",
+      domain: "test.com",
+      domains: undefined,
+      count: 3,
+    });
+
+    const useStorage = storageHook.useStorage;
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "local:settings") {
+          return [defaultValue, vi.fn()];
+        }
+        if (key === "local:clearLog") {
+          return [[log], mockSetLogs];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<ClearLog onMessage={mockOnMessage} />);
+    expect(screen.getByText("test.com")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
+  });
+
+  it("should display multiple domains log correctly", () => {
+    const { mockOnMessage } = setupTest();
+    const mockSetLogs = vi.fn();
+    const log = createMockLogEntry({
+      id: "test-multi-domain",
+      domain: undefined,
+      domains: ["site1.com", "site2.com", "site3.com"],
+      count: 10,
+    });
+
+    const useStorage = storageHook.useStorage;
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "local:settings") {
+          return [defaultValue, vi.fn()];
+        }
+        if (key === "local:clearLog") {
+          return [[log], mockSetLogs];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<ClearLog onMessage={mockOnMessage} />);
+    expect(screen.getByText("site1.com, site2.com 等 3 个域名")).toBeTruthy();
+    expect(screen.getByText("10")).toBeTruthy();
+  });
+
+  it("should display two domains without 'and more' text", () => {
+    const { mockOnMessage } = setupTest();
+    const mockSetLogs = vi.fn();
+    const log = createMockLogEntry({
+      id: "test-two-domain",
+      domain: undefined,
+      domains: ["site1.com", "site2.com"],
+      count: 5,
+    });
+
+    const useStorage = storageHook.useStorage;
+    (useStorage as ReturnType<typeof vi.fn>).mockImplementation(
+      (key: string, defaultValue: unknown) => {
+        if (key === "local:settings") {
+          return [defaultValue, vi.fn()];
+        }
+        if (key === "local:clearLog") {
+          return [[log], mockSetLogs];
+        }
+        return [defaultValue, vi.fn()];
+      }
+    );
+
+    render(<ClearLog onMessage={mockOnMessage} />);
+    expect(screen.getByText("site1.com, site2.com")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
   });
 });

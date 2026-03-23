@@ -5,7 +5,6 @@ import {
   SETTINGS_KEY,
   CLEAR_LOG_KEY,
   CLEANUP_ON_STARTUP_KEY,
-  TAB_URL_MAP_KEY,
   LOG_RETENTION_MAP,
   SCHEDULE_INTERVAL_MAP,
   DEFAULT_CUSTOM_THEME,
@@ -202,12 +201,6 @@ describe("store", () => {
   describe("CLEANUP_ON_STARTUP_KEY", () => {
     it("should be 'local:cleanupOnStartup'", () => {
       expect(CLEANUP_ON_STARTUP_KEY).toBe("local:cleanupOnStartup");
-    });
-  });
-
-  describe("TAB_URL_MAP_KEY", () => {
-    it("should be 'local:tabUrlMap'", () => {
-      expect(TAB_URL_MAP_KEY).toBe("local:tabUrlMap");
     });
   });
 });

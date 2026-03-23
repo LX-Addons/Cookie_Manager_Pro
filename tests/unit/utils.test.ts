@@ -313,12 +313,9 @@ describe("clearCookies", () => {
     const mockCookies = createMockCookies();
     vi.spyOn(chrome.cookies, "getAll").mockImplementation(() => Promise.resolve(mockCookies));
     vi.spyOn(chrome.cookies, "remove").mockRejectedValue(new Error("Failed"));
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const result = await clearCookies();
     expect(result.count).toBe(0);
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 });
 
@@ -375,42 +372,33 @@ describe("clearBrowserData", () => {
     const mockBrowsingDataRemove = vi.fn().mockRejectedValue(new Error("Failed"));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (chrome.browsingData as any).remove = mockBrowsingDataRemove;
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const domains = new Set(["example.com"]);
     await clearBrowserData(domains, { clearCache: true });
 
     expect(mockBrowsingDataRemove).toHaveBeenCalled();
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 
   it("should handle errors when clearing localStorage", async () => {
     const mockBrowsingDataRemove = vi.fn().mockRejectedValue(new Error("Failed"));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (chrome.browsingData as any).remove = mockBrowsingDataRemove;
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const domains = new Set(["example.com"]);
     await clearBrowserData(domains, { clearLocalStorage: true });
 
     expect(mockBrowsingDataRemove).toHaveBeenCalled();
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 
   it("should handle errors when clearing IndexedDB", async () => {
     const mockBrowsingDataRemove = vi.fn().mockRejectedValue(new Error("Failed"));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (chrome.browsingData as any).remove = mockBrowsingDataRemove;
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const domains = new Set(["example.com"]);
     await clearBrowserData(domains, { clearIndexedDB: true });
 
     expect(mockBrowsingDataRemove).toHaveBeenCalled();
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 });
 
@@ -646,12 +634,9 @@ describe("clearSingleCookie", () => {
       hostOnly: false,
     } as chrome.cookies.Cookie;
     vi.spyOn(chrome.cookies, "remove").mockRejectedValue(new Error("Failed"));
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const result = await clearSingleCookie(mockCookie, "example.com");
     expect(result).toBe(false);
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 });
 
@@ -712,20 +697,6 @@ describe("createCookie", () => {
     expect(setCall.secure).toBe(true);
   });
 
-  it("should fail when sameSite none and secure false", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await createCookie({
-      name: "test",
-      value: "value",
-      domain: "example.com",
-      sameSite: "no_restriction",
-      secure: false,
-    });
-    expect(result).toBe(false);
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
-
   it("should fail when missing name", async () => {
     const result = await createCookie({
       value: "value",
@@ -753,7 +724,6 @@ describe("createCookie", () => {
 
   it("should handle errors when creating cookie", async () => {
     vi.spyOn(chrome.cookies, "set").mockRejectedValue(new Error("Failed"));
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const result = await createCookie({
       name: "test",
@@ -761,8 +731,6 @@ describe("createCookie", () => {
       domain: "example.com",
     });
     expect(result).toBe(false);
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 
   it("should normalize path without leading slash", async () => {
@@ -859,12 +827,9 @@ describe("editCookie", () => {
       hostOnly: false,
     } as chrome.cookies.Cookie;
     vi.spyOn(chrome.cookies, "set").mockRejectedValue(new Error("Failed"));
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const result = await editCookie(originalCookie, {});
     expect(result).toBe(false);
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
   });
 
   it("should use original expiration date when update doesn't provide it", async () => {

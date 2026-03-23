@@ -43,7 +43,13 @@ export interface Translations {
     clearAllCookies: string;
     unableToGetDomain: string;
     updateStatsFailed: string;
+    permissionDenied: string;
+    permissionDeniedDesc: string;
     clearCookiesFailed: string;
+    loading: string;
+    domainUnavailableDesc: string;
+    loadFailedDesc: string;
+    retry: string;
     startupCleanup: string;
     expiredCookieCleanup: string;
     cleanedExpired: string;

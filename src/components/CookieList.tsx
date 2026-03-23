@@ -1,20 +1,17 @@
 import { useState, useEffect, memo, useMemo } from "react";
 import type { Cookie } from "@/types";
+import { ErrorCode } from "@/types";
 import { COOKIE_VALUE_MASK } from "@/lib/constants";
+import { BackgroundService } from "@/lib/background-service";
+import { assessCookieRisk, isSensitiveCookie } from "@/utils/cookie-risk";
+import { isDomainMatch, normalizeDomain } from "@/utils/domain";
 import {
-  assessCookieRisk,
   getRiskLevelText,
-  clearSingleCookie,
-  editCookie,
-  createCookie,
-  isDomainMatch,
-  normalizeDomain,
   maskCookieValue,
   getCookieKey,
-  toggleSetValue,
-  isSensitiveCookie,
   formatCookieSameSite,
-} from "@/utils";
+} from "@/utils/format";
+import { toggleSetValue } from "@/utils";
 import { CookieEditor } from "./CookieEditor";
 import { ConfirmDialogWrapper, type ShowConfirmFn } from "./ConfirmDialogWrapper";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -197,18 +194,37 @@ export const CookieListContent = memo(
       });
     };
 
+    const getErrorMessage = (errorCode?: ErrorCode, defaultMessage?: string): string => {
+      switch (errorCode) {
+        case ErrorCode.INSUFFICIENT_PERMISSIONS:
+          return t("cookieList.errorInsufficientPermissions");
+        case ErrorCode.INVALID_PARAMETERS:
+          return t("cookieList.errorInvalidParameters");
+        case ErrorCode.INTERNAL_ERROR:
+          return t("cookieList.errorInternalError");
+        case ErrorCode.COOKIE_REMOVE_FAILED:
+          return t("cookieList.errorCookieRemoveFailed");
+        case ErrorCode.COOKIE_CREATE_FAILED:
+          return t("cookieList.errorCookieCreateFailed");
+        case ErrorCode.COOKIE_UPDATE_FAILED:
+          return t("cookieList.errorCookieUpdateFailed");
+        default:
+          return defaultMessage || t("cookieList.errorOperationFailed");
+      }
+    };
+
     const performDeleteCookie = async (cookie: Cookie) => {
       try {
-        const cleanedDomain = cookie.domain.replace(/^\./, "");
-        const success = await clearSingleCookie(
-          cookie as unknown as chrome.cookies.Cookie,
-          cleanedDomain
-        );
-        if (success) {
+        const response = await BackgroundService.deleteCookie(cookie);
+        if (response.success) {
           onMessage?.(t("cookieList.deletedCookie", { name: cookie.name }));
           onUpdate?.();
         } else {
-          onMessage?.(t("cookieList.deleteCookieFailed"), true);
+          const errorMessage = getErrorMessage(
+            response.error?.code,
+            t("cookieList.deleteCookieFailed")
+          );
+          onMessage?.(errorMessage, true);
         }
       } catch (e) {
         console.error("Failed to delete cookie:", e);
@@ -243,23 +259,30 @@ export const CookieListContent = memo(
       try {
         let success = false;
         if (editingCookie) {
-          success = await editCookie(
-            editingCookie as unknown as chrome.cookies.Cookie,
-            updatedCookie as Partial<chrome.cookies.Cookie>
-          );
-          if (success) {
+          const response = await BackgroundService.updateCookie(editingCookie, updatedCookie);
+          if (response.success) {
             onMessage?.(t("cookieList.cookieUpdated"));
             onUpdate?.();
+            success = true;
           } else {
-            onMessage?.(t("cookieList.updateCookieFailed"), true);
+            const errorMessage = getErrorMessage(
+              response.error?.code,
+              t("cookieList.updateCookieFailed")
+            );
+            onMessage?.(errorMessage, true);
           }
         } else {
-          success = await createCookie(updatedCookie as Partial<chrome.cookies.Cookie>);
-          if (success) {
+          const response = await BackgroundService.createCookie(updatedCookie);
+          if (response.success) {
             onMessage?.(t("cookieEditor.createSuccess"));
             onUpdate?.();
+            success = true;
           } else {
-            onMessage?.(t("cookieEditor.createFailed"), true);
+            const errorMessage = getErrorMessage(
+              response.error?.code,
+              t("cookieEditor.createFailed")
+            );
+            onMessage?.(errorMessage, true);
           }
         }
         return success;
@@ -275,25 +298,43 @@ export const CookieListContent = memo(
 
     const performDeleteSelected = async () => {
       let deleted = 0;
+      let failed = 0;
+      let lastError: string | undefined;
+
       for (const cookie of cookies) {
         const key = getCookieKey(cookie.name, cookie.domain, cookie.path, cookie.storeId);
         if (selectedCookies.has(key)) {
           try {
-            const cleanedDomain = cookie.domain.replace(/^\./, "");
-            const success = await clearSingleCookie(
-              cookie as unknown as chrome.cookies.Cookie,
-              cleanedDomain
-            );
-            if (success) deleted++;
+            const response = await BackgroundService.deleteCookie(cookie);
+            if (response.success) {
+              deleted++;
+            } else {
+              failed++;
+              lastError = getErrorMessage(response.error?.code);
+            }
           } catch (e) {
             console.error("Failed to delete cookie:", e);
+            failed++;
           }
         }
       }
+
       if (deleted > 0) {
-        onMessage?.(t("cookieList.deletedSelected", { count: deleted }));
+        let message = t("cookieList.deletedSelected", { count: deleted });
+        if (failed > 0) {
+          message += t("cookieList.partialDeleteFailed", {
+            failed,
+            reason: lastError || t("common.unknownError"),
+          });
+        }
+        onMessage?.(message, failed > 0);
         setSelectedCookies(new Set());
         onUpdate?.();
+      } else if (failed > 0) {
+        onMessage?.(
+          t("cookieList.deleteFailedWithReason", { reason: lastError || t("common.unknownError") }),
+          true
+        );
       }
     };
 

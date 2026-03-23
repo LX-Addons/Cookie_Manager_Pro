@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Cookie, SameSite } from "@/types";
 import { useTranslation } from "@/hooks/useTranslation";
-import { fromChromeSameSite } from "@/utils";
+import { fromChromeSameSite } from "@/utils/format";
 
 interface Props {
   isOpen: boolean;

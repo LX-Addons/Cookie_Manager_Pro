@@ -90,6 +90,16 @@ global.chrome = {
       addListener: vi.fn(),
       removeListener: vi.fn(),
     },
+    onRemoved: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
+  },
+  windows: {
+    onRemoved: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
   },
   storage: {
     local: {
@@ -108,6 +118,10 @@ global.chrome = {
     },
     onInstalled: {
       addListener: vi.fn(),
+    },
+    onMessage: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
     },
     getManifest: vi.fn(),
   },

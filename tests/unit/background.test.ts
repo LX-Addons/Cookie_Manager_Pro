@@ -31,11 +31,61 @@ const createSettings = (
 // 注意：wxt/utils/storage 的 mock 已在 tests/setup.ts 中定义
 // 这里不再重复定义，以避免 mock 冲突
 
-vi.mock("@/utils/cleanup", () => ({
-  performCleanup: vi.fn(() => Promise.resolve({ count: 5, clearedDomains: ["example.com"] })),
-  performCleanupWithFilter: vi.fn(() =>
-    Promise.resolve({ count: 10, clearedDomains: ["test.com", "example.com"] })
+vi.mock("@/utils/cleanup/cleanup-runner", () => ({
+  runCleanup: vi.fn(() =>
+    Promise.resolve({
+      count: 5,
+      clearedDomains: ["example.com"],
+      success: true,
+      durationMs: 100,
+      cookiesRemoved: 5,
+      matchedDomains: ["example.com"],
+    })
   ),
+  runCleanupWithFilter: vi.fn(() =>
+    Promise.resolve({
+      count: 10,
+      clearedDomains: ["test.com", "example.com"],
+      success: true,
+      durationMs: 100,
+      cookiesRemoved: 10,
+      matchedDomains: ["test.com", "example.com"],
+    })
+  ),
+}));
+
+vi.mock("@/entrypoints/background/services/metrics", () => ({
+  metricsService: {
+    recordCleanup: vi.fn(),
+    recordExpiredCookiesCleanup: vi.fn(),
+    recordAction: vi.fn(),
+    recordEvent: vi.fn(),
+    recordError: vi.fn(),
+    recordMetrics: vi.fn(),
+    getMetrics: vi.fn(),
+    reset: vi.fn(),
+  },
+}));
+
+vi.mock("@/entrypoints/background/services/log-service", () => ({
+  logService: {
+    logCleanup: vi.fn(() => Promise.resolve()),
+    logError: vi.fn(() => Promise.resolve()),
+    clearLogs: vi.fn(() => Promise.resolve()),
+    getLogs: vi.fn(() => Promise.resolve([])),
+    exportLogs: vi.fn(() => Promise.resolve("")),
+  },
+}));
+
+vi.mock("@/entrypoints/background/services/error-reporting", () => ({
+  classifyError: vi.fn(() => ({
+    code: "INTERNAL_ERROR",
+    message: "Test error",
+  })),
+  reportError: vi.fn(),
+}));
+
+vi.mock("@/utils/cleanup/cookie-ops", () => ({
   cleanupExpiredCookies: vi.fn(() => Promise.resolve(0)),
 }));
 
@@ -94,6 +144,10 @@ describe("background", () => {
           },
           removeListener: vi.fn(),
         },
+        onMessage: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
       },
       alarms: {
         create: vi.fn(),
@@ -128,6 +182,15 @@ describe("background", () => {
             },
           ])
         ),
+      },
+      windows: {
+        onRemoved: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      permissions: {
+        contains: vi.fn(() => Promise.resolve(true)),
       },
     } as unknown as typeof chrome;
   });
@@ -239,7 +302,7 @@ describe("background", () => {
   });
 
   it("should handle scheduled cleanup alarm", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -256,11 +319,11 @@ describe("background", () => {
       await cb({ name: "scheduled-cleanup" });
     }
 
-    expect(performCleanupWithFilter).toHaveBeenCalled();
+    expect(runCleanupWithFilter).toHaveBeenCalled();
   });
 
   it("should not run scheduled cleanup when disabled", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set("local:settings", {
       scheduleInterval: "disabled",
@@ -273,11 +336,11 @@ describe("background", () => {
       await cb({ name: "scheduled-cleanup" });
     }
 
-    expect(performCleanupWithFilter).not.toHaveBeenCalled();
+    expect(runCleanupWithFilter).not.toHaveBeenCalled();
   });
 
   it("should handle tab discard event with cleanup enabled", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -293,11 +356,11 @@ describe("background", () => {
       await cb(1, { discarded: true }, { url: "https://example.com/test" });
     }
 
-    expect(performCleanup).toHaveBeenCalled();
+    expect(runCleanup).toHaveBeenCalled();
   });
 
   it("should not cleanup on tab discard when disabled", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set("local:settings", {
       enableAutoCleanup: false,
@@ -310,11 +373,11 @@ describe("background", () => {
       await cb(1, { discarded: true }, { url: "https://example.com/test" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle startup cleanup when enabled", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -330,11 +393,11 @@ describe("background", () => {
       await cb();
     }
 
-    expect(performCleanup).toHaveBeenCalled();
+    expect(runCleanup).toHaveBeenCalled();
   });
 
   it("should not cleanup on startup when disabled", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set("local:settings", {
       enableAutoCleanup: false,
@@ -347,11 +410,11 @@ describe("background", () => {
       await cb();
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle scheduled cleanup with interval elapsed", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -369,11 +432,11 @@ describe("background", () => {
       await cb({ name: "scheduled-cleanup" });
     }
 
-    expect(performCleanupWithFilter).toHaveBeenCalled();
+    expect(runCleanupWithFilter).toHaveBeenCalled();
   });
 
   it("should not run scheduled cleanup when interval not elapsed", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -389,11 +452,11 @@ describe("background", () => {
       await cb({ name: "scheduled-cleanup" });
     }
 
-    expect(performCleanupWithFilter).not.toHaveBeenCalled();
+    expect(runCleanupWithFilter).not.toHaveBeenCalled();
   });
 
   it("should handle scheduled cleanup with no settings", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
 
     await import("@/entrypoints/background");
 
@@ -401,11 +464,11 @@ describe("background", () => {
       await cb({ name: "scheduled-cleanup" });
     }
 
-    expect(performCleanupWithFilter).not.toHaveBeenCalled();
+    expect(runCleanupWithFilter).not.toHaveBeenCalled();
   });
 
   it("should handle tab discard with invalid URL", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -421,11 +484,11 @@ describe("background", () => {
       await cb(1, { discarded: true }, { url: "invalid-url" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle tab discard without URL", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -441,11 +504,11 @@ describe("background", () => {
       await cb(1, { discarded: true }, { url: undefined });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle tab update without discarded flag", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -461,11 +524,12 @@ describe("background", () => {
       await cb(1, { loading: true }, { url: "https://example.com" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle startup cleanup with no active tab", async () => {
-    await import("@/utils/cleanup");
+    await import("@/utils/cleanup/cleanup-runner");
+    await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -493,7 +557,8 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup with active tab having no URL", async () => {
-    await import("@/utils/cleanup");
+    await import("@/utils/cleanup/cleanup-runner");
+    await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -518,7 +583,8 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup with invalid URL in active tab", async () => {
-    await import("@/utils/cleanup");
+    await import("@/utils/cleanup/cleanup-runner");
+    await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -540,7 +606,8 @@ describe("background", () => {
   });
 
   it("should handle startup cleanup with invalid URL in all tabs", async () => {
-    await import("@/utils/cleanup");
+    await import("@/utils/cleanup/cleanup-runner");
+    await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -568,7 +635,7 @@ describe("background", () => {
   });
 
   it("should handle alarm with different name", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -584,7 +651,7 @@ describe("background", () => {
       await cb({ name: "other-alarm" });
     }
 
-    expect(performCleanupWithFilter).not.toHaveBeenCalled();
+    expect(runCleanupWithFilter).not.toHaveBeenCalled();
   });
 
   it("should handle onInstalled with existing whitelist and blacklist", async () => {
@@ -603,8 +670,8 @@ describe("background", () => {
   });
 
   it("should handle cleanup error in scheduled cleanup", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
-    (performCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
+    (runCleanupWithFilter as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup failed"))
     );
 
@@ -625,8 +692,8 @@ describe("background", () => {
   });
 
   it("should handle cleanup error in tab discard", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
-    (performCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
+    (runCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup failed"))
     );
 
@@ -646,8 +713,8 @@ describe("background", () => {
   });
 
   it("should handle cleanup error in startup cleanup", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
-    (performCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
+    (runCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup failed"))
     );
 
@@ -667,7 +734,7 @@ describe("background", () => {
   });
 
   it("should handle tabs query error in startup cleanup", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -687,11 +754,11 @@ describe("background", () => {
       await cb();
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle settings without enableAutoCleanup", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set("local:settings", {
       cleanupOnTabDiscard: true,
@@ -703,11 +770,11 @@ describe("background", () => {
       await cb(1, { discarded: true }, { url: "https://example.com" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle settings without cleanupOnTabDiscard", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
@@ -719,11 +786,11 @@ describe("background", () => {
       await cb(1, { discarded: true }, { url: "https://example.com" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle settings without cleanupOnStartup", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set("local:settings", {
       enableAutoCleanup: true,
@@ -735,11 +802,11 @@ describe("background", () => {
       await cb();
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle settings with null value", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set("local:settings", null);
 
@@ -749,11 +816,12 @@ describe("background", () => {
       await cb(1, { discarded: true }, { url: "https://example.com" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should update lastScheduledCleanup after scheduled cleanup", async () => {
-    await import("@/utils/cleanup");
+    await import("@/utils/cleanup/cleanup-runner");
+    await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -775,7 +843,7 @@ describe("background", () => {
   });
 
   it("should call checkScheduledCleanup on installed", async () => {
-    const { performCleanupWithFilter } = await import("@/utils/cleanup");
+    const { runCleanupWithFilter } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -792,7 +860,7 @@ describe("background", () => {
       await cb();
     }
 
-    expect(performCleanupWithFilter).toHaveBeenCalled();
+    expect(runCleanupWithFilter).toHaveBeenCalled();
   });
 
   it("should register tabs onRemoved listener", async () => {
@@ -825,7 +893,7 @@ describe("background", () => {
   });
 
   it("should cleanup closed tab when not window closing", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -845,11 +913,11 @@ describe("background", () => {
       await cb(1, { isWindowClosing: false, windowId: 1 });
     }
 
-    expect(performCleanup).toHaveBeenCalled();
+    expect(runCleanup).toHaveBeenCalled();
   });
 
   it("should not cleanup when enableAutoCleanup is false", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -869,12 +937,12 @@ describe("background", () => {
       await cb(1, { isWindowClosing: false, windowId: 1 });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle cleanup error in tab removed", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
-    (performCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
+    (runCleanup as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup failed"))
     );
 
@@ -898,7 +966,7 @@ describe("background", () => {
   });
 
   it("should handle tab removed without URL in tabUrlMap", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -914,11 +982,11 @@ describe("background", () => {
       await cb(999, { isWindowClosing: false, windowId: 1 });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle tab removed with invalid URL", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -938,11 +1006,11 @@ describe("background", () => {
       await cb(1, { isWindowClosing: false, windowId: 1 });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle tab navigate without previous URL", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -958,11 +1026,11 @@ describe("background", () => {
       await cb(1, { url: "https://example.com/new" }, { id: 1, url: "https://example.com/new" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle tab navigate within same hostname", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -990,11 +1058,11 @@ describe("background", () => {
       );
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle tab navigate with invalid previous URL", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -1014,11 +1082,11 @@ describe("background", () => {
       await cb(1, { url: "https://example.com" }, { id: 1, url: "https://example.com" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should handle tab navigate with invalid current URL", async () => {
-    const { performCleanup } = await import("@/utils/cleanup");
+    const { runCleanup } = await import("@/utils/cleanup/cleanup-runner");
 
     mockStorageData.set(
       "local:settings",
@@ -1038,11 +1106,11 @@ describe("background", () => {
       await cb(1, { url: "invalid-url" }, { id: 1, url: "invalid-url" });
     }
 
-    expect(performCleanup).not.toHaveBeenCalled();
+    expect(runCleanup).not.toHaveBeenCalled();
   });
 
   it("should call cleanupExpiredCookies on scheduled cleanup when enabled", async () => {
-    const { cleanupExpiredCookies } = await import("@/utils/cleanup");
+    const { cleanupExpiredCookies } = await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -1064,7 +1132,7 @@ describe("background", () => {
   });
 
   it("should not call cleanupExpiredCookies on scheduled cleanup when disabled", async () => {
-    const { cleanupExpiredCookies } = await import("@/utils/cleanup");
+    const { cleanupExpiredCookies } = await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -1086,7 +1154,7 @@ describe("background", () => {
   });
 
   it("should call cleanupExpiredCookies on startup when enabled", async () => {
-    const { cleanupExpiredCookies } = await import("@/utils/cleanup");
+    const { cleanupExpiredCookies } = await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -1107,7 +1175,7 @@ describe("background", () => {
   });
 
   it("should not call cleanupExpiredCookies on startup when disabled", async () => {
-    const { cleanupExpiredCookies } = await import("@/utils/cleanup");
+    const { cleanupExpiredCookies } = await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -1127,8 +1195,8 @@ describe("background", () => {
     expect(cleanupExpiredCookies).not.toHaveBeenCalled();
   });
 
-  it("should not call cleanupExpiredCookies when cleanupExpiredCookies is not set", async () => {
-    const { cleanupExpiredCookies } = await import("@/utils/cleanup");
+  it("should not call cleanupExpiredCookies when permission denied", async () => {
+    const { cleanupExpiredCookies } = await import("@/utils/cleanup/cookie-ops");
 
     mockStorageData.set(
       "local:settings",
@@ -1149,7 +1217,7 @@ describe("background", () => {
   });
 
   it("should handle cleanupExpiredCookies returning count > 0", async () => {
-    const { cleanupExpiredCookies } = await import("@/utils/cleanup");
+    const { cleanupExpiredCookies } = await import("@/utils/cleanup/cookie-ops");
     (cleanupExpiredCookies as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.resolve(5)
     );
@@ -1174,7 +1242,7 @@ describe("background", () => {
   });
 
   it("should handle cleanupExpiredCookies error gracefully", async () => {
-    const { cleanupExpiredCookies } = await import("@/utils/cleanup");
+    const { cleanupExpiredCookies } = await import("@/utils/cleanup/cookie-ops");
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     (cleanupExpiredCookies as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
       Promise.reject(new Error("Cleanup expired cookies failed"))

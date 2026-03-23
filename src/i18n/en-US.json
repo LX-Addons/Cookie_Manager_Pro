@@ -14,7 +14,8 @@
     "no": "No",
     "count": "{count}",
     "domains": "{domain} and {count} other domains",
-    "allWebsites": "All Websites"
+    "allWebsites": "All Websites",
+    "unknownError": "Unknown error"
   },
   "app": { "title": "Cookie Manager Pro", "subtitle": "Your Site Cookie Expert" },
   "tabs": {
@@ -40,7 +41,13 @@
     "clearAllCookies": "Clear All",
     "unableToGetDomain": "Unable to get domain",
     "updateStatsFailed": "Failed to update stats",
+    "permissionDenied": "Permission denied, unable to access cookies",
+    "permissionDeniedDesc": "Please grant all sites access permission in settings, then refresh the extension",
     "clearCookiesFailed": "Failed to clear cookies",
+    "loading": "Loading...",
+    "domainUnavailableDesc": "Please open a webpage to view and manage cookies",
+    "loadFailedDesc": "Error loading data, please retry",
+    "retry": "Retry",
     "startupCleanup": "Startup Cleanup",
     "expiredCookieCleanup": "Expired Cookie Cleanup",
     "cleanedExpired": "Cleaned {count} expired cookies",
@@ -80,8 +87,19 @@
       "appearance": "Appearance",
       "appearanceDesc": "Customize interface theme and visual style",
       "languageLogs": "Language & Logs",
-      "languageLogsDesc": "Select interface language and log retention time"
+      "languageLogsDesc": "Select interface language and log retention time",
+      "permissions": "Permissions",
+      "permissionsDesc": "Manage extension access permissions to protect your privacy"
     },
+    "allHostsPermission": "Enable all sites access",
+    "allHostsPermissionDesc": "Allow extension to access and manage cookies from all websites",
+    "permissionGranted": "Granted",
+    "permissionNotGranted": "Not granted",
+    "grantPermission": "Grant",
+    "revokePermission": "Revoke",
+    "permissionGrantSuccess": "Permission granted",
+    "permissionGrantFailed": "Failed to grant permission",
+    "permissionRevokeSuccess": "Permission revoked",
     "workMode": "Work Mode",
     "workModeDesc": "Control the scope of cookie cleanup and choose the appropriate protection strategy for your needs",
     "whitelistMode": "Whitelist Mode: Only exclude whitelisted sites from cleanup",
@@ -160,7 +178,8 @@
     "followBrowserDesc": "Automatically follow system theme settings",
     "lightDesc": "Use light theme",
     "darkDesc": "Use dark theme",
-    "customDesc": "Customize theme colors"
+    "customDesc": "Customize theme colors",
+    "permissionWarning": "You need to grant all sites access permission first to use auto cleanup"
   },
   "domainManager": {
     "whitelistDomains": "Whitelist Manager",
@@ -193,7 +212,7 @@
   },
   "clearLog": {
     "clearLogs": "Clear Logs",
-    "clearExpired": "Clear Expired",
+    "clearExpired": "Clean Up Now",
     "cookieType": "Cookie Type",
     "exportLogs": "Export Logs",
     "clearAllLogs": "Clear All",
@@ -218,7 +237,8 @@
     "site": "Site",
     "count": "Count",
     "time": "Time",
-    "details": "Details"
+    "details": "Details",
+    "andMoreDomains": "and {count} more domains"
   },
   "cookieList": {
     "noCookies": "No cookies for current website",
@@ -288,7 +308,16 @@
     "sensitive": "Sensitive",
     "sessionCookie": "Session",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "errorInsufficientPermissions": "Insufficient permissions, please grant all sites access permission in settings first",
+    "partialDeleteFailed": ", {failed} failed ({reason})",
+    "deleteFailedWithReason": "Delete failed: {reason}",
+    "errorInvalidParameters": "Invalid parameters, please check your input",
+    "errorInternalError": "Internal error, please try again later",
+    "errorCookieRemoveFailed": "Failed to delete cookie",
+    "errorCookieCreateFailed": "Failed to create cookie",
+    "errorCookieUpdateFailed": "Failed to update cookie",
+    "errorOperationFailed": "Operation failed"
   },
   "cookieEditor": {
     "editCookie": "Edit Cookie",

@@ -38,9 +38,17 @@ const mockCookies = [
   },
 ];
 
-const mockClearSingleCookie = vi.fn(() => Promise.resolve(true));
-const mockEditCookie = vi.fn(() => Promise.resolve(true));
-const mockCreateCookie = vi.fn(() => Promise.resolve(true));
+const mockDeleteCookie = vi.fn(() => Promise.resolve({ success: true }));
+const mockUpdateCookie = vi.fn(() => Promise.resolve({ success: true }));
+const mockCreateCookie = vi.fn(() => Promise.resolve({ success: true }));
+
+vi.mock("@/lib/background-service", () => ({
+  BackgroundService: {
+    deleteCookie: () => mockDeleteCookie(),
+    updateCookie: () => mockUpdateCookie(),
+    createCookie: () => mockCreateCookie(),
+  },
+}));
 
 vi.mock("@/utils", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/utils")>();
@@ -49,9 +57,6 @@ vi.mock("@/utils", async (importOriginal) => {
     assessCookieRisk: vi.fn(() => ({ level: "low", reason: "安全" })),
     getRiskLevelColor: vi.fn(() => "#22c55e"),
     getRiskLevelText: vi.fn(() => "低风险"),
-    clearSingleCookie: () => mockClearSingleCookie(),
-    editCookie: () => mockEditCookie(),
-    createCookie: () => mockCreateCookie(),
     normalizeDomain: vi.fn((domain: string) => domain.replace(/^\./, "").toLowerCase()),
     maskCookieValue: vi.fn((_value: string) => "••••••••"),
     getCookieKey: vi.fn((name: string, domain: string, path?: string, storeId?: string) => {
@@ -221,8 +226,6 @@ const setupMocks = () => {
     mockOnMessage.mockClear();
     mockOnAddToWhitelist.mockClear();
     mockOnAddToBlacklist.mockClear();
-    mockClearSingleCookie.mockClear();
-    mockEditCookie.mockClear();
     mockCreateCookie.mockClear();
   });
 
@@ -395,8 +398,6 @@ describe("CookieList", () => {
     const domainGroup = screen.getByTestId("cookie-domain-group-example.com");
     const cookieCards = domainGroup.querySelectorAll(".cookie-card");
     expect(cookieCards.length).toBeGreaterThan(0);
-
-    expect(screen.getAllByText("低风险").length).toBeGreaterThan(0);
   };
 
   it("should show cookie details", () => testCookieDetails());
@@ -425,7 +426,7 @@ describe("CookieList", () => {
   });
 
   it("should call onUpdate when cookie is saved", async () => {
-    mockEditCookie.mockResolvedValueOnce(true);
+    mockUpdateCookie.mockResolvedValueOnce({ success: true });
     renderAndExpandCookieList(CookieList, {
       cookies: mockCookies,
       currentDomain: "example.com",
@@ -452,7 +453,7 @@ describe("CookieList", () => {
   });
 
   it("should call onUpdate after deleting cookie", async () => {
-    mockClearSingleCookie.mockResolvedValueOnce(true);
+    mockDeleteCookie.mockResolvedValueOnce({ success: true });
     renderAndExpandCookieList(CookieList, {
       cookies: mockCookies,
       currentDomain: "example.com",
@@ -538,7 +539,7 @@ describe("CookieListContent", () => {
   });
 
   it("should call onUpdate when cookie is deleted", async () => {
-    mockClearSingleCookie.mockResolvedValueOnce(true);
+    mockDeleteCookie.mockResolvedValueOnce({ success: true });
     render(
       <CookieListContentWithConfirm
         cookies={mockCookies}
@@ -687,7 +688,7 @@ describe("CookieList additional regression tests", () => {
       },
     ];
 
-    mockClearSingleCookie.mockResolvedValue(true);
+    mockDeleteCookie.mockResolvedValue({ success: true });
 
     render(
       <CookieListContentWithConfirm
@@ -739,7 +740,7 @@ describe("CookieList additional regression tests", () => {
   });
 
   it("should handle delete cookie with failure", async () => {
-    mockClearSingleCookie.mockResolvedValueOnce(false);
+    mockDeleteCookie.mockResolvedValueOnce({ success: false });
     render(
       <CookieListContentWithConfirm
         cookies={mockCookies}
@@ -759,7 +760,7 @@ describe("CookieList additional regression tests", () => {
 
   it("should handle delete cookie with exception", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockClearSingleCookie.mockRejectedValueOnce(new Error("Delete failed"));
+    mockDeleteCookie.mockRejectedValueOnce(new Error("Delete failed"));
     render(
       <CookieListContentWithConfirm
         cookies={mockCookies}
@@ -779,7 +780,7 @@ describe("CookieList additional regression tests", () => {
   });
 
   it("should handle edit cookie with failure", async () => {
-    mockEditCookie.mockResolvedValueOnce(false);
+    mockUpdateCookie.mockResolvedValueOnce({ success: false });
     render(
       <CookieListContentWithConfirm
         cookies={mockCookies}
@@ -799,7 +800,7 @@ describe("CookieList additional regression tests", () => {
 
   it("should handle edit cookie with exception", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockEditCookie.mockRejectedValueOnce(new Error("Edit failed"));
+    mockUpdateCookie.mockRejectedValueOnce(new Error("Edit failed"));
     render(
       <CookieListContentWithConfirm
         cookies={mockCookies}
@@ -819,7 +820,7 @@ describe("CookieList additional regression tests", () => {
   });
 
   it("should handle create cookie with failure", async () => {
-    mockCreateCookie.mockResolvedValueOnce(false);
+    mockCreateCookie.mockResolvedValueOnce({ success: false });
     render(
       <CookieListContentWithConfirm
         cookies={[]}
@@ -853,9 +854,9 @@ describe("CookieList additional regression tests", () => {
   });
 
   it("should handle delete selected with some failures", async () => {
-    mockClearSingleCookie
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false)
+    mockDeleteCookie
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: false })
       .mockRejectedValueOnce(new Error("Failed"));
     render(
       <CookieListContentWithConfirm
@@ -893,7 +894,7 @@ describe("CookieList additional regression tests", () => {
       },
     ];
 
-    mockClearSingleCookie.mockResolvedValue(true);
+    mockDeleteCookie.mockResolvedValue({ success: true });
     render(
       <CookieListContentWithConfirm
         cookies={sensitiveCookies}

@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useStorage } from "@/hooks/useStorage";
 import { WHITELIST_KEY, BLACKLIST_KEY } from "@/lib/store";
 import type { DomainList } from "@/types";
-import { validateDomain, normalizeDomain, isInList } from "@/utils";
+import { validateDomain, normalizeDomain, isInList } from "@/utils/domain";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface Props {

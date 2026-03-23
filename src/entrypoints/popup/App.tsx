@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useStorage } from "@/hooks/useStorage";
-import { useClearLog } from "@/hooks/useClearLog";
 import { DomainManager } from "@/components/DomainManager";
 import { Settings } from "@/components/Settings";
 import { ClearLog } from "@/components/ClearLog";
@@ -10,25 +9,21 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { WHITELIST_KEY, BLACKLIST_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from "@/lib/store";
+import { BackgroundService } from "@/lib/background-service";
 import type { DomainList, CookieStats, Settings as SettingsType, Cookie } from "@/types";
-import { CookieClearType, ThemeMode, ModeType } from "@/types";
-import {
-  isDomainMatch,
-  isInList,
-  isTrackingCookie,
-  isThirdPartyCookie,
-  buildDomainString,
-  getHoverColor,
-  getActiveColor,
-} from "@/utils";
-import { performCleanupWithFilter } from "@/utils/cleanup";
+import { CookieClearType, ThemeMode, ModeType, ErrorCode } from "@/types";
+import { isInList } from "@/utils/domain";
+import { getHoverColor, getActiveColor } from "@/utils/theme";
 import { MESSAGE_DURATION, DEBOUNCE_DELAY_MS } from "@/lib/constants";
 import "./style.css";
+
+type LoadingState = "idle" | "loading" | "permission-denied" | "domain-unavailable" | "load-failed";
 
 function IndexPopup() {
   const [currentDomain, setCurrentDomain] = useState("");
   const [activeTab, setActiveTab] = useState("manage");
   const [message, setMessage] = useState({ text: "", isError: false, visible: false });
+  const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [stats, setStats] = useState<CookieStats>({
     total: 0,
     current: 0,
@@ -53,7 +48,6 @@ function IndexPopup() {
   const [whitelist, setWhitelist] = useStorage<DomainList>(WHITELIST_KEY, []);
   const [blacklist, setBlacklist] = useStorage<DomainList>(BLACKLIST_KEY, []);
   const [settings] = useStorage<SettingsType>(SETTINGS_KEY, DEFAULT_SETTINGS);
-  const { addLog } = useClearLog();
   const { t } = useTranslation();
 
   const theme = useMemo(() => {
@@ -146,67 +140,69 @@ function IndexPopup() {
 
   const updateStats = useCallback(async () => {
     try {
-      const allCookies = await chrome.cookies.getAll({});
-      const currentCookiesList = allCookies.filter((c) =>
-        currentDomain ? isDomainMatch(c.domain, currentDomain) : false
-      );
-      const sessionCookies = currentCookiesList.filter((c) => !c.expirationDate);
-      const persistentCookies = currentCookiesList.filter((c) => c.expirationDate);
+      setLoadingState("loading");
+      const statsResponse = await BackgroundService.getStats(currentDomain);
+      const cookiesResponse = await BackgroundService.getCurrentTabCookies();
 
-      const thirdPartyCookies = currentCookiesList.filter((c) =>
-        isThirdPartyCookie(c.domain, currentDomain)
-      );
-      const trackingCookies = currentCookiesList.filter((c) => isTrackingCookie(c));
+      if (statsResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
+        setLoadingState("permission-denied");
+        showMessage(t("popup.permissionDenied"), true);
+        return;
+      }
 
-      setStats({
-        total: allCookies.length,
-        current: currentCookiesList.length,
-        session: sessionCookies.length,
-        persistent: persistentCookies.length,
-        thirdParty: thirdPartyCookies.length,
-        tracking: trackingCookies.length,
-      });
-      setCurrentCookies(
-        currentCookiesList.map((c) => ({
-          name: c.name,
-          value: c.value,
-          domain: c.domain,
-          path: c.path,
-          secure: c.secure,
-          httpOnly: c.httpOnly,
-          sameSite: c.sameSite,
-          expirationDate: c.expirationDate,
-          storeId: c.storeId,
-        }))
-      );
+      if (cookiesResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
+        setLoadingState("permission-denied");
+        showMessage(t("popup.permissionDenied"), true);
+        return;
+      }
+
+      if (statsResponse.success && statsResponse.data) {
+        setStats(statsResponse.data);
+      }
+
+      if (cookiesResponse.success && cookiesResponse.data) {
+        setCurrentCookies(cookiesResponse.data.cookies);
+      }
+
+      setLoadingState("idle");
     } catch (e) {
       console.error("Failed to update stats:", { error: e, currentDomain });
+      setLoadingState("load-failed");
       showMessage(t("popup.updateStatsFailed"), true);
     }
   }, [currentDomain, showMessage, t]);
 
   const clearCookies = useCallback(
-    async (filterFn: (domain: string) => boolean, successMsg: string, logType: CookieClearType) => {
+    async (
+      filterType: "all" | "domain",
+      filterValue: string | undefined,
+      successMsg: string,
+      logType: CookieClearType
+    ) => {
       try {
-        const result = await performCleanupWithFilter(filterFn, {
-          clearType: logType,
-          clearCache: settings.clearCache,
-          clearLocalStorage: settings.clearLocalStorage,
-          clearIndexedDB: settings.clearIndexedDB,
-        });
+        const response = await BackgroundService.cleanupWithFilter(
+          filterType,
+          filterValue,
+          filterType === "all" ? "manual-all" : "manual-current",
+          {
+            clearType: logType,
+            clearCache: settings.clearCache,
+            clearLocalStorage: settings.clearLocalStorage,
+            clearIndexedDB: settings.clearIndexedDB,
+          }
+        );
 
-        if (result.count > 0) {
-          const domainStr = buildDomainString(
-            new Set(result.clearedDomains),
-            successMsg,
-            currentDomain,
-            t
-          );
-          addLog(domainStr, logType, result.count, settings.logRetention);
+        if (response.success && response.data) {
+          const result = response.data;
+          if (result.cookiesRemoved > 0) {
+            showMessage(t("popup.clearedSuccess", { successMsg, count: result.cookiesRemoved }));
+          } else {
+            showMessage(t("popup.noCookiesCleared"));
+          }
+          await updateStats();
+        } else {
+          showMessage(t("popup.clearCookiesFailed"), true);
         }
-
-        showMessage(t("popup.clearedSuccess", { successMsg, count: result.count }));
-        await updateStats();
       } catch (e) {
         console.error("Failed to clear cookies:", {
           error: e,
@@ -222,10 +218,8 @@ function IndexPopup() {
       settings.clearCache,
       settings.clearLocalStorage,
       settings.clearIndexedDB,
-      settings.logRetention,
       settings.mode,
       currentDomain,
-      addLog,
       showMessage,
       updateStats,
       t,
@@ -269,18 +263,14 @@ function IndexPopup() {
       t("popup.confirmClearCurrent", { domain: currentDomain }),
       "warning",
       () => {
-        clearCookies(
-          (d) => isDomainMatch(d, currentDomain),
-          t("popup.clearCurrent"),
-          settings.clearType
-        );
+        clearCookies("domain", currentDomain, t("popup.clearCurrent"), settings.clearType);
       }
     );
   }, [currentDomain, clearCookies, settings.clearType, showConfirm, t]);
 
   const quickClearAll = useCallback(() => {
     showConfirm(t("popup.confirmClear"), t("popup.confirmClearAll"), "danger", () => {
-      clearCookies(() => true, t("common.allWebsites"), settings.clearType);
+      clearCookies("all", undefined, t("common.allWebsites"), settings.clearType);
     });
   }, [clearCookies, settings.clearType, showConfirm, t]);
 
@@ -401,16 +391,19 @@ function IndexPopup() {
   useEffect(() => {
     async function init() {
       try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab?.url) {
-          try {
-            const url = new URL(tab.url);
-            setCurrentDomain(url.hostname);
-          } catch {
-            setCurrentDomain("");
-          }
+        setLoadingState("loading");
+        const response = await BackgroundService.getCurrentTabCookies();
+        if (response.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
+          setLoadingState("permission-denied");
+          return;
+        }
+        if (response.success && response.data) {
+          setCurrentDomain(response.data.domain);
+        } else {
+          setLoadingState("domain-unavailable");
         }
       } catch {
+        setLoadingState("domain-unavailable");
         setCurrentDomain("");
       }
     }
@@ -457,124 +450,169 @@ function IndexPopup() {
 
         {activeTab === "manage" && (
           <main className="tab-content" role="tabpanel" id="manage-panel">
-            <section className="site-summary panel" data-testid="site-summary">
-              <div className="panel-header">
-                <h2 className="site-title">{currentDomain || t("popup.unableToGetDomain")}</h2>
-                <div className="status-badges">
-                  {siteStatus === "protected" && (
-                    <span className="badge badge-success">{t("popup.protectedSite")}</span>
-                  )}
-                  {siteStatus === "priority-cleanup" && (
-                    <span className="badge badge-warning">{t("popup.priorityCleanupSite")}</span>
-                  )}
+            {loadingState === "permission-denied" && (
+              <section className="panel permission-error-panel">
+                <div className="panel-header">
+                  <h2>⚠️ {t("popup.permissionDenied")}</h2>
                 </div>
-              </div>
-              <p className="mode-summary">
-                {settings.mode === ModeType.WHITELIST
-                  ? t("popup.modeSummaryWhitelist")
-                  : t("popup.modeSummaryBlacklist")}
-              </p>
-            </section>
-
-            <section className="insight-strip panel">
-              <div className="insight-grid" data-testid="insight-grid">
-                <div className="insight-item insight-primary">
-                  <span className="insight-value">{stats.current}</span>
-                  <span className="insight-label">{t("popup.currentSiteCookies")}</span>
+                <p className="permission-error-message">
+                  {t("popup.permissionDeniedDesc") || "请先在设置中授予所有主机权限，然后刷新扩展"}
+                </p>
+              </section>
+            )}
+            {loadingState === "domain-unavailable" && (
+              <section className="panel domain-unavailable-panel">
+                <div className="panel-header">
+                  <h2>🔗 {t("popup.unableToGetDomain")}</h2>
                 </div>
-                <div className="insight-item">
-                  <span className="insight-value">{stats.thirdParty}</span>
-                  <span className="insight-label">{t("popup.thirdParty")}</span>
+                <p className="domain-unavailable-message">
+                  {t("popup.domainUnavailableDesc") || "请打开一个网页以查看和管理 Cookie"}
+                </p>
+              </section>
+            )}
+            {loadingState === "load-failed" && (
+              <section className="panel load-error-panel">
+                <div className="panel-header">
+                  <h2>❌ {t("popup.updateStatsFailed")}</h2>
                 </div>
-                <div className="insight-item insight-danger">
-                  <span className="insight-value">{stats.tracking}</span>
-                  <span className="insight-label">{t("popup.tracking")}</span>
-                </div>
-              </div>
-              {(stats.thirdParty > 0 || stats.tracking > 0) && (
-                <div className={`risk-summary risk-${riskLevel}`}>
-                  {stats.tracking > 0
-                    ? t("popup.trackingDetected", { count: stats.tracking })
-                    : t("popup.thirdPartyDetected", { count: stats.thirdParty })}
-                </div>
-              )}
-            </section>
-
-            <section className="quick-actions-panel panel" data-testid="quick-actions">
-              <div className="panel-header">
-                <h3>{t("popup.quickManage")}</h3>
-              </div>
-              <div className="action-cluster">
-                <button
-                  onClick={quickClearCurrent}
-                  className="btn btn-primary btn-block"
-                  disabled={!currentDomain}
-                  data-testid="clear-current-btn"
-                >
-                  {t("popup.clearCurrent")}
+                <p className="load-error-message">
+                  {t("popup.loadFailedDesc") || "加载数据时出错，请重试"}
+                </p>
+                <button className="btn btn-primary" onClick={updateStats}>
+                  {t("popup.retry")}
                 </button>
-                <div className="action-row">
-                  <button
-                    onClick={quickAddToRule}
-                    className="btn btn-secondary"
-                    disabled={!currentDomain}
-                    data-testid="add-to-rule-btn"
-                  >
+              </section>
+            )}
+            {loadingState === "loading" && (
+              <section className="panel loading-panel">
+                <div className="loading-spinner"></div>
+                <p>{t("popup.loading")}</p>
+              </section>
+            )}
+            {loadingState === "idle" && (
+              <>
+                <section className="site-summary panel" data-testid="site-summary">
+                  <div className="panel-header">
+                    <h2 className="site-title">{currentDomain || t("popup.unableToGetDomain")}</h2>
+                    <div className="status-badges">
+                      {siteStatus === "protected" && (
+                        <span className="badge badge-success">{t("popup.protectedSite")}</span>
+                      )}
+                      {siteStatus === "priority-cleanup" && (
+                        <span className="badge badge-warning">
+                          {t("popup.priorityCleanupSite")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mode-summary">
                     {settings.mode === ModeType.WHITELIST
-                      ? t("popup.addToWhitelist")
-                      : t("popup.addToBlacklist")}
-                  </button>
-                  <button
-                    onClick={quickClearAll}
-                    className="btn btn-danger"
-                    data-testid="clear-all-btn"
-                  >
-                    {t("popup.clearAllCookies")}
-                  </button>
-                </div>
-              </div>
-            </section>
+                      ? t("popup.modeSummaryWhitelist")
+                      : t("popup.modeSummaryBlacklist")}
+                  </p>
+                </section>
 
-            <section className="cookie-overview-panel panel">
-              <div className="panel-header">
-                <h3>{t("popup.cookieStats")}</h3>
-                <span className="stat-secondary">
-                  {t("popup.total")}: {stats.total}
-                </span>
-              </div>
-              <div className="stats-secondary">
-                <div className="stat-item-small">
-                  <span className="stat-label">{t("popup.session")}</span>
-                  <span className="stat-value">{stats.session}</span>
-                </div>
-                <div className="stat-item-small">
-                  <span className="stat-label">{t("popup.persistent")}</span>
-                  <span className="stat-value">{stats.persistent}</span>
-                </div>
-              </div>
-            </section>
+                <section className="insight-strip panel">
+                  <div className="insight-grid" data-testid="insight-grid">
+                    <div className="insight-item insight-primary">
+                      <span className="insight-value">{stats.current}</span>
+                      <span className="insight-label">{t("popup.currentSiteCookies")}</span>
+                    </div>
+                    <div className="insight-item">
+                      <span className="insight-value">{stats.thirdParty}</span>
+                      <span className="insight-label">{t("popup.thirdParty")}</span>
+                    </div>
+                    <div className="insight-item insight-danger">
+                      <span className="insight-value">{stats.tracking}</span>
+                      <span className="insight-label">{t("popup.tracking")}</span>
+                    </div>
+                  </div>
+                  {(stats.thirdParty > 0 || stats.tracking > 0) && (
+                    <div className={`risk-summary risk-${riskLevel}`}>
+                      {stats.tracking > 0
+                        ? t("popup.trackingDetected", { count: stats.tracking })
+                        : t("popup.thirdPartyDetected", { count: stats.thirdParty })}
+                    </div>
+                  )}
+                </section>
 
-            <CookieList
-              cookies={currentCookies}
-              currentDomain={currentDomain}
-              onUpdate={updateStats}
-              onMessage={(text, isError = false) => showMessage(text, isError)}
-              whitelist={whitelist}
-              blacklist={blacklist}
-              showCookieRisk={settings.showCookieRisk}
-              onAddToWhitelist={(domains) => {
-                const newDomains = domains.filter((d) => !isInList(d, whitelist));
-                if (newDomains.length > 0) {
-                  setWhitelist([...whitelist, ...newDomains]);
-                }
-              }}
-              onAddToBlacklist={(domains) => {
-                const newDomains = domains.filter((d) => !isInList(d, blacklist));
-                if (newDomains.length > 0) {
-                  setBlacklist([...blacklist, ...newDomains]);
-                }
-              }}
-            />
+                <section className="quick-actions-panel panel" data-testid="quick-actions">
+                  <div className="panel-header">
+                    <h3>{t("popup.quickManage")}</h3>
+                  </div>
+                  <div className="action-cluster">
+                    <button
+                      onClick={quickClearCurrent}
+                      className="btn btn-primary btn-block"
+                      disabled={!currentDomain}
+                      data-testid="clear-current-btn"
+                    >
+                      {t("popup.clearCurrent")}
+                    </button>
+                    <div className="action-row">
+                      <button
+                        onClick={quickAddToRule}
+                        className="btn btn-secondary"
+                        disabled={!currentDomain}
+                        data-testid="add-to-rule-btn"
+                      >
+                        {settings.mode === ModeType.WHITELIST
+                          ? t("popup.addToWhitelist")
+                          : t("popup.addToBlacklist")}
+                      </button>
+                      <button
+                        onClick={quickClearAll}
+                        className="btn btn-danger"
+                        data-testid="clear-all-btn"
+                      >
+                        {t("popup.clearAllCookies")}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="cookie-overview-panel panel">
+                  <div className="panel-header">
+                    <h3>{t("popup.cookieStats")}</h3>
+                    <span className="stat-secondary">
+                      {t("popup.total")}: {stats.total}
+                    </span>
+                  </div>
+                  <div className="stats-secondary">
+                    <div className="stat-item-small">
+                      <span className="stat-label">{t("popup.session")}</span>
+                      <span className="stat-value">{stats.session}</span>
+                    </div>
+                    <div className="stat-item-small">
+                      <span className="stat-label">{t("popup.persistent")}</span>
+                      <span className="stat-value">{stats.persistent}</span>
+                    </div>
+                  </div>
+                </section>
+
+                <CookieList
+                  cookies={currentCookies}
+                  currentDomain={currentDomain}
+                  onUpdate={updateStats}
+                  onMessage={(text, isError = false) => showMessage(text, isError)}
+                  whitelist={whitelist}
+                  blacklist={blacklist}
+                  showCookieRisk={settings.showCookieRisk}
+                  onAddToWhitelist={(domains) => {
+                    const newDomains = domains.filter((d) => !isInList(d, whitelist));
+                    if (newDomains.length > 0) {
+                      setWhitelist([...whitelist, ...newDomains]);
+                    }
+                  }}
+                  onAddToBlacklist={(domains) => {
+                    const newDomains = domains.filter((d) => !isInList(d, blacklist));
+                    if (newDomains.length > 0) {
+                      setBlacklist([...blacklist, ...newDomains]);
+                    }
+                  }}
+                />
+              </>
+            )}
           </main>
         )}
 
@@ -588,33 +626,31 @@ function IndexPopup() {
                 settings.mode === ModeType.BLACKLIST
                   ? async () => {
                       try {
-                        const result = await performCleanupWithFilter(
-                          (domain) => isInList(domain, blacklist),
+                        const response = await BackgroundService.cleanupWithFilter(
+                          "domain-list",
+                          undefined,
+                          "manual-all",
                           {
                             clearType: CookieClearType.ALL,
                             clearCache: settings.clearCache,
                             clearLocalStorage: settings.clearLocalStorage,
                             clearIndexedDB: settings.clearIndexedDB,
+                            domainList: blacklist,
                           }
                         );
 
-                        if (result.count > 0) {
-                          const domainStr = buildDomainString(
-                            new Set(result.clearedDomains),
-                            t("tabs.blacklist"),
-                            currentDomain,
-                            t
-                          );
-                          addLog(
-                            domainStr,
-                            CookieClearType.ALL,
-                            result.count,
-                            settings.logRetention
-                          );
-                          showMessage(t("popup.clearedBlacklist", { count: result.count }));
-                          updateStats();
+                        if (response.success && response.data) {
+                          const result = response.data;
+                          if (result.cookiesRemoved > 0) {
+                            showMessage(
+                              t("popup.clearedBlacklist", { count: result.cookiesRemoved })
+                            );
+                            updateStats();
+                          } else {
+                            showMessage(t("popup.noBlacklistCookies"));
+                          }
                         } else {
-                          showMessage(t("popup.noBlacklistCookies"));
+                          showMessage(t("popup.clearCookiesFailed"), true);
                         }
                       } catch (e) {
                         console.error("Failed to clear blacklist:", {

@@ -23,11 +23,22 @@ let mockSettings = {
 };
 
 let useStorageMock: Mock<(key: string, defaultValue: unknown) => unknown[]>;
+let mockHasAllHostsPermission = true;
+let mockIsChecking = false;
 
 vi.mock("@/hooks/useStorage", () => ({
   useStorage: vi.fn((key: string, defaultValue: unknown) => {
     return useStorageMock(key, defaultValue);
   }),
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: vi.fn(() => ({
+    hasAllHostsPermission: mockHasAllHostsPermission,
+    isChecking: mockIsChecking,
+    requestAllHostsPermission: vi.fn().mockResolvedValue(true),
+    removeAllHostsPermission: vi.fn().mockResolvedValue(true),
+  })),
 }));
 
 vi.mock("@/hooks/useTranslation", () => {
@@ -42,6 +53,8 @@ vi.mock("@/hooks/useTranslation", () => {
     "settings.group.appearanceDesc": "自定义界面主题和视觉风格",
     "settings.group.languageLogs": "语言与日志",
     "settings.group.languageLogsDesc": "选择界面语言和日志保留时间",
+    "settings.group.permissions": "权限管理",
+    "settings.group.permissionsDesc": "管理扩展的主机权限",
     "common.cancel": "取消",
     "common.save": "保存",
     "common.saving": "保存中…",
@@ -129,6 +142,16 @@ vi.mock("@/hooks/useTranslation", () => {
     "settings.languageDesc": "选择扩展界面的显示语言",
     "settings.showCookieRisk": "显示Cookie风险等级",
     "settings.showCookieRiskDesc": "在Cookie列表中显示每个Cookie的风险等级评估",
+    "settings.allHostsPermission": "所有主机权限",
+    "settings.allHostsPermissionDesc": "访问所有网站Cookie的权限",
+    "settings.permissionGranted": "已授权",
+    "settings.permissionNotGranted": "未授权",
+    "settings.grantPermission": "授权",
+    "settings.revokePermission": "撤销",
+    "settings.permissionWarning": "请先授予所有主机权限以启用自动清理功能",
+    "settings.permissionGrantSuccess": "权限授权成功",
+    "settings.permissionRevokeSuccess": "权限撤销成功",
+    "settings.permissionGrantFailed": "权限授权失败",
   };
   return {
     useTranslation: () => ({
@@ -149,6 +172,8 @@ describe("Settings", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHasAllHostsPermission = true;
+    mockIsChecking = false;
     mockSettings = {
       mode: ModeType.WHITELIST,
       themeMode: ThemeMode.AUTO,
@@ -262,7 +287,6 @@ describe("Settings", () => {
   it("should render cookie risk option", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    // Use getAllByText since "显示Cookie风险等级" appears in both heading and checkbox label
     expect(screen.getAllByText("显示Cookie风险等级").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -299,7 +323,6 @@ describe("Settings", () => {
     const cacheToggle = screen.getByLabelText("清除缓存");
     fireEvent.click(cacheToggle);
 
-    // CheckboxGroup uses unified onChange API, verify the checkbox is clickable
     expect(cacheToggle).toBeTruthy();
   });
 
@@ -309,7 +332,6 @@ describe("Settings", () => {
     const localStorageToggle = screen.getByLabelText("清除LocalStorage");
     fireEvent.click(localStorageToggle);
 
-    // CheckboxGroup uses unified onChange API, verify the checkbox is clickable
     expect(localStorageToggle).toBeTruthy();
   });
 
@@ -319,7 +341,6 @@ describe("Settings", () => {
     const indexedDBToggle = screen.getByLabelText("清除IndexedDB");
     fireEvent.click(indexedDBToggle);
 
-    // CheckboxGroup uses unified onChange API, verify the checkbox is clickable
     expect(indexedDBToggle).toBeTruthy();
   });
 
@@ -329,7 +350,6 @@ describe("Settings", () => {
     const startupToggle = screen.getByLabelText("启动时清理");
     fireEvent.click(startupToggle);
 
-    // CheckboxGroup uses unified onChange API, verify the checkbox is clickable
     expect(startupToggle).toBeTruthy();
   });
 
@@ -339,7 +359,6 @@ describe("Settings", () => {
     const expiredToggle = screen.getByLabelText("清理过期Cookie");
     fireEvent.click(expiredToggle);
 
-    // CheckboxGroup uses unified onChange API, verify the checkbox is clickable
     expect(expiredToggle).toBeTruthy();
   });
 
@@ -367,7 +386,6 @@ describe("Settings", () => {
     const riskToggles = screen.getAllByLabelText("显示Cookie风险等级");
     fireEvent.click(riskToggles[0]);
 
-    // CheckboxGroup uses unified onChange API, verify the checkbox is clickable
     expect(riskToggles[0]).toBeTruthy();
   });
 
@@ -449,25 +467,15 @@ describe("Settings", () => {
     expect(resetButton).toBeTruthy();
   });
 
-  it("should handle language change to en-US", () => {
+  it("should handle language change to zh-CN", () => {
+    mockSettings.locale = "en-US";
+
     render(<Settings onMessage={mockOnMessage} />);
 
-    const langSelect = screen.getByLabelText("简体中文") as HTMLInputElement;
-    expect(langSelect).toBeTruthy();
-  });
+    const zhCNRadio = screen.getByLabelText("简体中文");
+    fireEvent.click(zhCNRadio);
 
-  it("should handle language change to ja-JP", () => {
-    render(<Settings onMessage={mockOnMessage} />);
-
-    const langSelect = screen.getByLabelText("简体中文") as HTMLInputElement;
-    expect(langSelect).toBeTruthy();
-  });
-
-  it("should handle language change to zh-TW", () => {
-    render(<Settings onMessage={mockOnMessage} />);
-
-    const langSelect = screen.getByLabelText("简体中文") as HTMLInputElement;
-    expect(langSelect).toBeTruthy();
+    expect(mockSettings.locale).toBe("zh-CN");
   });
 
   it("should render with whitelist mode", () => {
@@ -567,7 +575,6 @@ describe("Settings", () => {
   it("should handle multiple checkbox changes in auto cleanup", () => {
     render(<Settings onMessage={mockOnMessage} />);
 
-    // Verify auto cleanup section exists
     const autoCleanupSection = screen.getByText("自动清理");
     expect(autoCleanupSection).toBeTruthy();
   });
@@ -598,7 +605,6 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    // Verify auto cleanup section exists
     expect(screen.getByText("自动清理")).toBeTruthy();
   });
 
@@ -664,7 +670,7 @@ describe("Settings", () => {
     expect(cleanupOnStartupCheckbox).toBeChecked();
 
     expect(cleanupExpiredCookiesCheckbox).toBeTruthy();
-    expect(cleanupExpiredCookiesCheckbox).not.toBeDisabled();
+    expect(cleanupExpiredCookiesCheckbox).toBeDisabled();
 
     expect(cleanupOnTabDiscardCheckbox).toBeTruthy();
     expect(cleanupOnTabDiscardCheckbox).toBeDisabled();
@@ -702,7 +708,6 @@ describe("Settings", () => {
 
     render(<Settings onMessage={mockOnMessage} />);
 
-    // Simulate disabling auto cleanup by directly calling the setSettings function
     const setSettingsFn = useStorageMock.mock.results[0].value[1];
     setSettingsFn({ enableAutoCleanup: false });
 
@@ -1120,4 +1125,5 @@ describe("Settings", () => {
 
     expect(mockSettings.customTheme.primary).toBe("#ff0000");
   });
+
 });
