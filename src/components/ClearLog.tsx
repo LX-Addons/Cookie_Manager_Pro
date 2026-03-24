@@ -77,7 +77,7 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
         link.href = url;
         link.download = `cookie-manager-logs-${Date.now()}.json`;
         link.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
         onMessage(t("clearLog.logsExported"));
       } else {
         onMessage(response.error?.message || t("common.unknownError"), true);
@@ -95,7 +95,7 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
       return domain ?? "";
     }
     if (domains.length > 2) {
-      return `${domains.slice(0, 2).join(", ")} ${t("clearLog.andMoreDomains", { count: domains.length })}`;
+      return `${domains.slice(0, 2).join(", ")} ${t("clearLog.andMoreDomains", { count: domains.length - 2 })}`;
     }
     return domains.join(", ");
   };

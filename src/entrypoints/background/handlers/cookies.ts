@@ -1,7 +1,7 @@
 import type { Cookie, CookieStats, ApiResponse } from "@/types";
 import { ErrorCode } from "@/types";
 import { isTrackingCookie, isThirdPartyCookie } from "@/utils/cookie-risk";
-import { isDomainMatch } from "@/utils/domain";
+import { isDomainMatch, normalizeDomain } from "@/utils/domain";
 import {
   clearSingleCookie,
   createCookie as createCookieInStore,
@@ -180,7 +180,7 @@ export class CookiesHandler {
         updates as Partial<chrome.cookies.Cookie>
       );
       if (updatedCookie) {
-        const domain = original.domain.replace(/^\./, "");
+        const domain = normalizeDomain(original.domain);
         await logService.logEdit(domain, 1, "Cookie updated");
         return {
           success: true,
@@ -224,7 +224,7 @@ export class CookiesHandler {
 
   async deleteCookie(cookie: Cookie): Promise<ApiResponse> {
     try {
-      const cleanedDomain = cookie.domain.replace(/^\./, "");
+      const cleanedDomain = normalizeDomain(cookie.domain);
       const success = await clearSingleCookie(
         cookie as unknown as chrome.cookies.Cookie,
         cleanedDomain

@@ -1,6 +1,9 @@
 import type { Settings } from "@/types";
 import { cleanupExpiredCookies } from "@/utils/cleanup/cookie-ops";
-import { shouldPerformCleanupWithStorage } from "@/utils/cleanup";
+import {
+  shouldPerformExpiredCookieCleanupWithStorage,
+  updateExpiredCookieCleanupTimestamp,
+} from "@/utils/cleanup";
 
 export class ExpiredCookieService {
   private async doExpiredCookiesCleanup(
@@ -11,7 +14,8 @@ export class ExpiredCookieService {
     if (!settings.enableAutoCleanup || !settings.cleanupExpiredCookies) return;
 
     if (checkTimeWindow && now !== undefined) {
-      if (!(await shouldPerformCleanupWithStorage(settings, now))) return;
+      if (!(await shouldPerformExpiredCookieCleanupWithStorage(settings, now))) return;
+      await updateExpiredCookieCleanupTimestamp(now);
     }
 
     try {

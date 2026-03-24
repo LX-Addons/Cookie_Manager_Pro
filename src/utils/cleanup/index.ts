@@ -3,4 +3,9 @@ export {
   runCleanupWithFilter as performCleanupWithFilter,
 } from "./cleanup-runner";
 export { cleanupExpiredCookies } from "./cookie-ops";
-export { shouldPerformCleanup, shouldPerformCleanupWithStorage } from "./schedule-utils";
+export {
+  shouldPerformCleanup,
+  shouldPerformCleanupWithStorage,
+  shouldPerformExpiredCookieCleanupWithStorage,
+  updateExpiredCookieCleanupTimestamp,
+} from "./schedule-utils";

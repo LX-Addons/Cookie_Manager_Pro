@@ -25,7 +25,7 @@ export class LogExportService {
   private addMetadata(logs: ClearLogEntry[]): object {
     return {
       exportTime: new Date().toISOString(),
-      version: "1.0.0",
+      version: chrome.runtime.getManifest().version,
       logs,
     };
   }

@@ -21,9 +21,6 @@ export const buildNonEmptyOrigins = (domains: Set<string>): [string, ...string[]
     return null;
   }
   const origins = buildOrigins(domains);
-  if (origins.length === 0) {
-    return null;
-  }
   return origins as [string, ...string[]];
 };
 

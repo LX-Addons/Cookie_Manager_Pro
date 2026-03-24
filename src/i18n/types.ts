@@ -15,6 +15,7 @@ export interface Translations {
     count: string;
     domains: string;
     allWebsites: string;
+    unknownError: string;
   };
   app: {
     title: string;

@@ -52,7 +52,7 @@ function validateCreateCookiePayload(
 
 function validateUpdateCookiePayload(
   payload: unknown
-): payload is { original: { name: string; domain: string }; updates: object } | null {
+): payload is { original: { name: string; domain: string }; updates: object } {
   if (typeof payload !== "object" || payload === null) return false;
   const p = payload as Record<string, unknown>;
   if (typeof p.original !== "object" || p.original === null) return false;
@@ -78,12 +78,26 @@ function validateCleanupByDomainPayload(
   return typeof p.domain === "string" && typeof p.trigger === "string";
 }
 
-function validateCleanupWithFilterPayload(
-  payload: unknown
-): payload is { filterType: string; trigger: string } {
+function validateCleanupWithFilterPayload(payload: unknown): payload is {
+  filterType: string;
+  trigger: string;
+  filterValue?: string;
+  domainList?: string[];
+  clearType?: string;
+  clearCache?: boolean;
+  clearLocalStorage?: boolean;
+  clearIndexedDB?: boolean;
+} {
   if (typeof payload !== "object" || payload === null) return false;
   const p = payload as Record<string, unknown>;
-  return typeof p.filterType === "string" && typeof p.trigger === "string";
+  if (typeof p.filterType !== "string" || typeof p.trigger !== "string") return false;
+  if (p.filterValue !== undefined && typeof p.filterValue !== "string") return false;
+  if (p.domainList !== undefined && !Array.isArray(p.domainList)) return false;
+  if (p.clearType !== undefined && typeof p.clearType !== "string") return false;
+  if (p.clearCache !== undefined && typeof p.clearCache !== "boolean") return false;
+  if (p.clearLocalStorage !== undefined && typeof p.clearLocalStorage !== "boolean") return false;
+  if (p.clearIndexedDB !== undefined && typeof p.clearIndexedDB !== "boolean") return false;
+  return true;
 }
 
 export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
