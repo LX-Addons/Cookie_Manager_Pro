@@ -75,7 +75,7 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `cookie-manager-logs-${Date.now()}.json`;
+        link.download = `lxcookie-manager-logs-${Date.now()}.json`;
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 100);
         onMessage(t("clearLog.logsExported"));
@@ -94,10 +94,11 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
     if (!domains || domains.length === 0) {
       return domain ?? "";
     }
+    const separator = t("common.listSeparator");
     if (domains.length > 2) {
-      return `${domains.slice(0, 2).join(", ")} ${t("clearLog.andMoreDomains", { count: domains.length - 2 })}`;
+      return `${domains.slice(0, 2).join(separator)} ${t("clearLog.andMoreDomains", { count: domains.length - 2 })}`;
     }
-    return domains.join(", ");
+    return domains.join(separator);
   };
 
   const filteredLogs = useMemo(() => {

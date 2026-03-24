@@ -37,7 +37,7 @@ const clearSingleDataType = async (
   dataType: BrowsingDataType
 ): Promise<DataClearResult> => {
   if (!origins) {
-    return { success: true, attempted: true };
+    return { success: true, attempted: false };
   }
   try {
     await chrome.browsingData.remove({ origins }, BROWSING_DATA_OPTIONS[dataType]);

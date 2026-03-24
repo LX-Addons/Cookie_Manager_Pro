@@ -3,6 +3,8 @@ import { storage } from "wxt/utils/storage";
 type StorageKey = `local:${string}` | `session:${string}` | `sync:${string}` | `managed:${string}`;
 
 const DEFAULT_LOCK_TIMEOUT_MS = 60 * 1000;
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_RETRY_DELAY_MS = 50;
 
 const memoryLocks = new Map<string, { lockId: string; expiresAt: number }>();
 
@@ -15,19 +17,45 @@ interface LockData {
 export class DistributedLock {
   private readonly lockKey: StorageKey;
   private readonly timeoutMs: number;
+  private readonly maxRetries: number;
+  private readonly retryDelayMs: number;
   private currentLockId: string | null = null;
   private releasePromise: Promise<boolean> | null = null;
 
-  constructor(name: string, timeoutMs: number = DEFAULT_LOCK_TIMEOUT_MS) {
+  constructor(
+    name: string,
+    timeoutMs: number = DEFAULT_LOCK_TIMEOUT_MS,
+    maxRetries: number = DEFAULT_MAX_RETRIES,
+    retryDelayMs: number = DEFAULT_RETRY_DELAY_MS
+  ) {
     this.lockKey = `local:lock:${name}` as StorageKey;
     this.timeoutMs = timeoutMs;
+    this.maxRetries = maxRetries;
+    this.retryDelayMs = retryDelayMs;
   }
 
   private isLockExpired(lock: { expiresAt: number }): boolean {
     return lock.expiresAt <= Date.now();
   }
 
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   async acquire(): Promise<boolean> {
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      const result = await this.tryAcquire();
+      if (result) {
+        return true;
+      }
+      if (attempt < this.maxRetries) {
+        await this.delay(this.retryDelayMs * (attempt + 1));
+      }
+    }
+    return false;
+  }
+
+  private async tryAcquire(): Promise<boolean> {
     const now = Date.now();
     const memoryLock = memoryLocks.get(this.lockKey);
 
@@ -45,7 +73,6 @@ export class DistributedLock {
     }
 
     const lockId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-    this.currentLockId = lockId;
 
     const lockData: LockData = {
       lockId: lockId,
@@ -55,16 +82,22 @@ export class DistributedLock {
 
     try {
       await storage.setItem(this.lockKey, lockData);
+
+      const verifyLock = await storage.getItem<LockData>(this.lockKey);
+      if (!verifyLock || verifyLock.lockId !== lockId) {
+        return false;
+      }
+
+      this.currentLockId = lockId;
       memoryLocks.set(this.lockKey, {
         lockId: lockId,
         expiresAt: lockData.expiresAt,
       });
+      return true;
     } catch {
       this.currentLockId = null;
       return false;
     }
-
-    return true;
   }
 
   async release(): Promise<boolean> {
