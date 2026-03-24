@@ -239,7 +239,8 @@
     "count": "Count",
     "time": "Time",
     "details": "Details",
-    "andMoreDomains": "and {count} more domains"
+    "andMoreDomains": "and {count} more domains",
+    "domainListWithMore": "{domains} and {count} more domains"
   },
   "cookieList": {
     "noCookies": "No cookies for current website",

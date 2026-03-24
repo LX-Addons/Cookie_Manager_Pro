@@ -239,7 +239,8 @@
     "count": "数量",
     "time": "时间",
     "details": "详情",
-    "andMoreDomains": "等 {count} 个域名"
+    "andMoreDomains": "等 {count} 个域名",
+    "domainListWithMore": "{domains}等 {count} 个域名"
   },
   "cookieList": {
     "noCookies": "当前网站暂无 Cookie",

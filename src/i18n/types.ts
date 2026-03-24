@@ -243,6 +243,7 @@ export interface Translations {
     time: string;
     details: string;
     andMoreDomains: string;
+    domainListWithMore: string;
   };
   cookieList: {
     noCookies: string;

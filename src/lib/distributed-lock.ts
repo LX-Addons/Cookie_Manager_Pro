@@ -60,7 +60,15 @@ export class DistributedLock {
     const memoryLock = memoryLocks.get(this.lockKey);
 
     if (memoryLock && !this.isLockExpired(memoryLock)) {
-      return false;
+      const storageLock = await storage.getItem<LockData>(this.lockKey);
+      if (
+        storageLock &&
+        storageLock.lockId === memoryLock.lockId &&
+        !this.isLockExpired({ expiresAt: storageLock.expiresAt })
+      ) {
+        return false;
+      }
+      memoryLocks.delete(this.lockKey);
     }
 
     const storageLock = await storage.getItem<LockData>(this.lockKey);
@@ -111,7 +119,8 @@ export class DistributedLock {
       await storage.removeItem(this.lockKey);
       memoryLocks.delete(this.lockKey);
       this.currentLockId = null;
-    } catch {
+    } catch (error) {
+      console.error(`[DistributedLock] Failed to release lock ${this.lockKey}:`, error);
       return false;
     }
     return true;

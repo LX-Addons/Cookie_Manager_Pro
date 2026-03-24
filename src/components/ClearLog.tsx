@@ -80,7 +80,8 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
         setTimeout(() => URL.revokeObjectURL(url), 100);
         onMessage(t("clearLog.logsExported"));
       } else {
-        onMessage(response.error?.message || t("common.unknownError"), true);
+        console.error("Failed to export logs:", response.error);
+        onMessage(t("common.unknownError"), true);
       }
     } catch (e) {
       console.error("Failed to export logs:", e);
@@ -96,7 +97,10 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
     }
     const separator = t("common.listSeparator");
     if (domains.length > 2) {
-      return `${domains.slice(0, 2).join(separator)} ${t("clearLog.andMoreDomains", { count: domains.length - 2 })}`;
+      return t("clearLog.domainListWithMore", {
+        domains: domains.slice(0, 2).join(separator),
+        count: domains.length - 2,
+      });
     }
     return domains.join(separator);
   };
