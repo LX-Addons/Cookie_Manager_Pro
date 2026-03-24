@@ -84,28 +84,28 @@ const handleBrowserDataClear = async (
 
     if (!browserDataResult.cache.success && browserDataResult.cache.error) {
       result.partialFailures.push({
-        stage: "cache",
+        stage: CleanupStage.CACHE,
         domain,
         reason: browserDataResult.cache.error,
       });
     }
     if (!browserDataResult.localStorage.success && browserDataResult.localStorage.error) {
       result.partialFailures.push({
-        stage: "localStorage",
+        stage: CleanupStage.LOCAL_STORAGE,
         domain,
         reason: browserDataResult.localStorage.error,
       });
     }
     if (!browserDataResult.indexedDB.success && browserDataResult.indexedDB.error) {
       result.partialFailures.push({
-        stage: "indexedDB",
+        stage: CleanupStage.INDEXED_DB,
         domain,
         reason: browserDataResult.indexedDB.error,
       });
     }
   } catch (e) {
     result.partialFailures.push({
-      stage: "storage",
+      stage: CleanupStage.STORAGE,
       domain,
       reason: e instanceof Error ? e.message : "Unknown error",
     });

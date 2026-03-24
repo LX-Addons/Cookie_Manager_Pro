@@ -53,20 +53,9 @@ class RingBuffer<T> {
 
 class MetricsService {
   private readonly metrics: RingBuffer<BackgroundMetric>;
-  private readonly typeStats: Record<
-    MetricType,
-    { count: number; successCount: number; totalDurationMs: number }
-  >;
 
   constructor() {
     this.metrics = new RingBuffer<BackgroundMetric>(50);
-    this.typeStats = {
-      [MetricType.CLEANUP]: { count: 0, successCount: 0, totalDurationMs: 0 },
-      [MetricType.COOKIE_MUTATION]: { count: 0, successCount: 0, totalDurationMs: 0 },
-      [MetricType.AUDIT]: { count: 0, successCount: 0, totalDurationMs: 0 },
-      [MetricType.ERROR]: { count: 0, successCount: 0, totalDurationMs: 0 },
-      [MetricType.MAINTENANCE]: { count: 0, successCount: 0, totalDurationMs: 0 },
-    };
   }
 
   recordMetric(
@@ -95,13 +84,6 @@ class MetricsService {
     };
 
     this.metrics.push(metric);
-
-    const typeStat = this.typeStats[type];
-    typeStat.count++;
-    if (success) {
-      typeStat.successCount++;
-    }
-    typeStat.totalDurationMs += durationMs;
   }
 
   recordCleanup(
@@ -225,9 +207,6 @@ class MetricsService {
 
   clearMetrics(): void {
     this.metrics.clear();
-    for (const type of Object.values(MetricType)) {
-      this.typeStats[type] = { count: 0, successCount: 0, totalDurationMs: 0 };
-    }
   }
 }
 

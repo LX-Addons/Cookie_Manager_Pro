@@ -47,7 +47,7 @@ export class CookiesHandler {
             sameSite: c.sameSite,
             expirationDate: c.expirationDate,
             storeId: c.storeId,
-            partitionKey: c.partitionKey ? JSON.stringify(c.partitionKey) : undefined,
+            partitionKey: c.partitionKey,
             firstPartyDomain: c.firstPartyDomain,
           })),
           domain,
@@ -145,9 +145,7 @@ export class CookiesHandler {
               sameSite: createdCookie.sameSite as Cookie["sameSite"],
               expirationDate: createdCookie.expirationDate,
               storeId: createdCookie.storeId,
-              partitionKey: createdCookie.partitionKey
-                ? JSON.stringify(createdCookie.partitionKey)
-                : undefined,
+              partitionKey: createdCookie.partitionKey,
               firstPartyDomain: createdCookie.firstPartyDomain,
             },
           },

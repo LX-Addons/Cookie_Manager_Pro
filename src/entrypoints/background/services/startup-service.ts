@@ -5,7 +5,7 @@ import { ScheduledCleanupService } from "./scheduled-cleanup-service";
 import { StartupCleanupService } from "./startup-cleanup-service";
 import { ExpiredCookieService } from "./expired-cookie-service";
 import { StorageInitializer } from "./storage-initializer";
-import { storage, SETTINGS_KEY, LAST_SCHEDULED_CLEANUP_KEY } from "@/lib/store";
+import { storage, SETTINGS_KEY } from "@/lib/store";
 
 export class StartupService {
   private readonly tabUrlManager: TabUrlManager;
@@ -34,10 +34,7 @@ export class StartupService {
     await chrome.alarms.create("scheduled-cleanup", {
       periodInMinutes: ALARM_INTERVAL_MINUTES,
     });
-    const { lastScheduledCleanup } = await this.scheduledCleanupService.runScheduledCleanup();
-    if (lastScheduledCleanup !== undefined) {
-      await this.updateLastScheduledCleanup(lastScheduledCleanup);
-    }
+    await this.scheduledCleanupService.runScheduledCleanup();
   }
 
   async handleStartup(): Promise<void> {
@@ -58,11 +55,8 @@ export class StartupService {
       const settings = await storage.getItem<Settings>(SETTINGS_KEY);
       if (!settings) return;
 
-      const { lastScheduledCleanup } = await this.scheduledCleanupService.runScheduledCleanup();
+      await this.scheduledCleanupService.runScheduledCleanup();
       await this.expiredCookieService.runExpiredCookiesCleanup(settings, true, Date.now());
-      if (lastScheduledCleanup !== undefined) {
-        await this.updateLastScheduledCleanup(lastScheduledCleanup);
-      }
     }
   }
 
@@ -73,9 +67,5 @@ export class StartupService {
     if (newSettings?.enableAutoCleanup && !oldSettings?.enableAutoCleanup) {
       await this.tabUrlManager.initializeFromTabs();
     }
-  }
-
-  private async updateLastScheduledCleanup(timestamp: number): Promise<void> {
-    await storage.setItem(LAST_SCHEDULED_CLEANUP_KEY, timestamp);
   }
 }

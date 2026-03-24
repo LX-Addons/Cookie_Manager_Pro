@@ -27,73 +27,42 @@ export const buildNonEmptyOrigins = (domains: Set<string>): [string, ...string[]
   return origins as [string, ...string[]];
 };
 
+type BrowsingDataType = "cache" | "localStorage" | "indexedDB";
+
+const BROWSING_DATA_OPTIONS: Record<BrowsingDataType, chrome.browsingData.DataTypeSet> = {
+  cache: { cacheStorage: true, fileSystems: true, serviceWorkers: true },
+  localStorage: { localStorage: true },
+  indexedDB: { indexedDB: true },
+};
+
+const clearSingleDataType = async (
+  origins: [string, ...string[]] | null,
+  dataType: BrowsingDataType
+): Promise<DataClearResult> => {
+  if (!origins) {
+    return { success: true };
+  }
+  try {
+    await chrome.browsingData.remove({ origins }, BROWSING_DATA_OPTIONS[dataType]);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
+  }
+};
+
 export const clearBrowserData = async (
   domains: Set<string>,
   options: ClearBrowserDataOptions
 ): Promise<ClearBrowserDataResult> => {
-  const { clearCache, clearLocalStorage, clearIndexedDB } = options;
   const origins = buildNonEmptyOrigins(domains);
-  const result: ClearBrowserDataResult = {
-    cache: { success: false },
-    localStorage: { success: false },
-    indexedDB: { success: false },
+
+  return {
+    cache: options.clearCache ? await clearSingleDataType(origins, "cache") : { success: true },
+    localStorage: options.clearLocalStorage
+      ? await clearSingleDataType(origins, "localStorage")
+      : { success: true },
+    indexedDB: options.clearIndexedDB
+      ? await clearSingleDataType(origins, "indexedDB")
+      : { success: true },
   };
-
-  if (clearCache) {
-    try {
-      if (origins) {
-        await chrome.browsingData.remove(
-          { origins },
-          {
-            cacheStorage: true,
-            fileSystems: true,
-            serviceWorkers: true,
-          }
-        );
-        result.cache = { success: true };
-      }
-    } catch (e) {
-      result.cache = { success: false, error: e instanceof Error ? e.message : "Unknown error" };
-    }
-  }
-
-  if (clearLocalStorage) {
-    try {
-      if (origins) {
-        await chrome.browsingData.remove(
-          { origins },
-          {
-            localStorage: true,
-          }
-        );
-        result.localStorage = { success: true };
-      }
-    } catch (e) {
-      result.localStorage = {
-        success: false,
-        error: e instanceof Error ? e.message : "Unknown error",
-      };
-    }
-  }
-
-  if (clearIndexedDB) {
-    try {
-      if (origins) {
-        await chrome.browsingData.remove(
-          { origins },
-          {
-            indexedDB: true,
-          }
-        );
-        result.indexedDB = { success: true };
-      }
-    } catch (e) {
-      result.indexedDB = {
-        success: false,
-        error: e instanceof Error ? e.message : "Unknown error",
-      };
-    }
-  }
-
-  return result;
 };

@@ -116,6 +116,11 @@ export const createCookie = async (
   cookie: Partial<chrome.cookies.Cookie>
 ): Promise<chrome.cookies.Cookie | null> => {
   try {
+    if (!cookie.name || !cookie.domain) {
+      console.warn("createCookie: missing required fields (name or domain)");
+      return null;
+    }
+
     const fullCookie: chrome.cookies.Cookie = {
       ...cookie,
       path: cookie.path || "/",

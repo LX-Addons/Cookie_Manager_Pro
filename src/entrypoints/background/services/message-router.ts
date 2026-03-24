@@ -8,16 +8,12 @@ let cookiesHandler: CookiesHandler | null = null;
 let cleanupHandler: CleanupHandler | null = null;
 
 const getCookiesHandler = (): CookiesHandler => {
-  if (!cookiesHandler) {
-    cookiesHandler = new CookiesHandler();
-  }
+  cookiesHandler ??= new CookiesHandler();
   return cookiesHandler;
 };
 
 const getCleanupHandler = (): CleanupHandler => {
-  if (!cleanupHandler) {
-    cleanupHandler = new CleanupHandler();
-  }
+  cleanupHandler ??= new CleanupHandler();
   return cleanupHandler;
 };
 
@@ -95,7 +91,7 @@ export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
     case "exportLogs": {
       const result = await logExportService.exportLogs(request.payload?.options);
       if (result.success && result.data) {
-        return createSuccessResponse({ data: result.data });
+        return createSuccessResponse(result.data);
       }
       return createErrorResponse(ErrorCode.INTERNAL_ERROR, result.error || "Export failed");
     }

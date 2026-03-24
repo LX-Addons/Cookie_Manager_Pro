@@ -16,6 +16,8 @@ export class LogExportService {
   private sanitizeLogEntry(entry: ClearLogEntry): ClearLogEntry {
     return {
       ...entry,
+      domain: undefined,
+      domains: undefined,
       details: entry.details ? "[sanitized]" : undefined,
     };
   }

@@ -4,6 +4,7 @@ export class TabUrlManager {
   async initializeFromTabs(): Promise<void> {
     try {
       const allTabs = await chrome.tabs.query({});
+      this.tabUrlMap.clear();
       for (const tab of allTabs) {
         if (tab.id && tab.url) {
           this.tabUrlMap.set(tab.id, tab.url);

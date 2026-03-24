@@ -57,10 +57,11 @@ export const clearErrorHistory = (): void => {
 
 export const isPermissionDeniedError = (error: unknown): boolean => {
   if (error instanceof Error) {
+    const lowerMessage = error.message.toLowerCase();
     return (
-      error.message.includes("permission") ||
-      error.message.includes("Permission") ||
-      error.message.includes("access denied")
+      lowerMessage.includes("permission") ||
+      lowerMessage.includes("access denied") ||
+      lowerMessage.includes("not allowed")
     );
   }
   return false;

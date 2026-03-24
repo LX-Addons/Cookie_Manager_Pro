@@ -94,6 +94,7 @@ export class BackgroundBootstrap {
   }
 
   public initialize(): void {
+    this.tabUrlManager.initializeFromTabs();
     this.setupMessageListener();
     this.setupInstalledListener();
     this.setupTabUpdateListener();

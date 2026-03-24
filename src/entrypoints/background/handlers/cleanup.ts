@@ -60,10 +60,6 @@ export class CleanupHandler {
         );
       }
 
-      if (!result.success) {
-        throw new Error("Cleanup failed");
-      }
-
       return { success: true, data: result };
     } catch (e) {
       const durationMs = Date.now() - startTime;
@@ -142,10 +138,6 @@ export class CleanupHandler {
           result.cookiesRemoved,
           trigger
         );
-      }
-
-      if (!result.success) {
-        throw new Error("Cleanup failed");
       }
 
       return { success: true, data: result };

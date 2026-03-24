@@ -69,8 +69,8 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
         includeMetadata: true,
       });
 
-      if (response.success && response.data?.data) {
-        const dataStr = response.data.data;
+      if (response.success && response.data) {
+        const dataStr = response.data;
         const dataBlob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement("a");

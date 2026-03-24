@@ -12,7 +12,7 @@ export interface Cookie {
   sameSite: SameSite;
   expirationDate?: number;
   storeId?: string;
-  partitionKey?: string;
+  partitionKey?: chrome.cookies.CookiePartitionKey;
   firstPartyDomain?: string;
 }
 
@@ -144,7 +144,7 @@ export interface CleanupExecutionResult {
     indexedDB: DataClearResult;
   };
   partialFailures: Array<{
-    stage: "cookies" | "cache" | "localStorage" | "indexedDB" | "storage" | "tabs";
+    stage: CleanupStage;
     domain?: string;
     reason: string;
   }>;

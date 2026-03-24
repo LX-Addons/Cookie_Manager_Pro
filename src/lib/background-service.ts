@@ -113,8 +113,8 @@ export class BackgroundService {
   static async exportLogs(options?: {
     sanitize?: boolean;
     includeMetadata?: boolean;
-  }): Promise<ApiResponse<{ data: string }>> {
-    return await this.sendMessage<{ data: string }>({
+  }): Promise<ApiResponse<string>> {
+    return await this.sendMessage<string>({
       type: "exportLogs",
       payload: { options },
     });
