@@ -29,9 +29,10 @@ export const validateDomain = (
   if (!trimmed) {
     return { valid: false, message: t ? t("domainManager.domainEmpty") : "域名不能为空" };
   }
+  const normalized = normalizeDomain(trimmed);
   if (
     !/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/.test(
-      trimmed
+      normalized
     )
   ) {
     return { valid: false, message: t ? t("domainManager.invalidDomain") : "域名格式不正确" };

@@ -127,87 +127,84 @@ const buildCookieSetDetails = (
 export const createCookie = async (
   cookie: Partial<chrome.cookies.Cookie>
 ): Promise<CookieCreateResult> => {
-  try {
-    if (!cookie.name || !cookie.domain) {
-      console.warn("createCookie: missing required fields (name or domain)");
-      return { success: false, error: "Missing required fields (name or domain)" };
-    }
-
-    const fullCookie: chrome.cookies.Cookie = {
-      ...cookie,
-      path: cookie.path || "/",
-    } as chrome.cookies.Cookie;
-
-    const result = buildCookieSetDetails(fullCookie);
-    if (!result.success) {
-      return { success: false, error: "Invalid cookie data" };
-    }
-
-    const createdCookie = await chrome.cookies.set(result.setDetails);
-    if (!createdCookie) {
-      return { success: false, error: "Failed to create cookie" };
-    }
-    return { success: true, cookie: createdCookie };
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    console.warn("Failed to create cookie:", e);
-    return { success: false, error: errorMessage };
+  if (!cookie.name || !cookie.domain) {
+    console.warn("createCookie: missing required fields (name or domain)");
+    return { success: false, error: "Missing required fields (name or domain)" };
   }
+
+  const fullCookie: chrome.cookies.Cookie = {
+    ...cookie,
+    path: cookie.path || "/",
+  } as chrome.cookies.Cookie;
+
+  const result = buildCookieSetDetails(fullCookie);
+  if (!result.success) {
+    return { success: false, error: "Invalid cookie data" };
+  }
+
+  const createdCookie = await chrome.cookies.set(result.setDetails);
+  if (!createdCookie) {
+    return { success: false, error: "Failed to create cookie" };
+  }
+  return { success: true, cookie: createdCookie };
 };
 
 export const editCookie = async (
   originalCookie: chrome.cookies.Cookie,
   updates: Partial<chrome.cookies.Cookie>
 ): Promise<CookieCreateResult> => {
-  try {
-    const safeUpdates: Partial<chrome.cookies.Cookie> = {};
-
-    if ("value" in updates) {
-      safeUpdates.value = updates.value;
-    }
-    if ("httpOnly" in updates) {
-      safeUpdates.httpOnly = updates.httpOnly;
-    }
-    if ("secure" in updates) {
-      safeUpdates.secure = updates.secure;
-    }
-    if ("sameSite" in updates) {
-      safeUpdates.sameSite = updates.sameSite;
-    }
-    if ("expirationDate" in updates) {
-      safeUpdates.expirationDate = updates.expirationDate;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nextCookie: any = {
-      ...originalCookie,
-      ...safeUpdates,
+  const supportedFields = ["value", "httpOnly", "secure", "sameSite", "expirationDate"];
+  const unsupportedKeys = Object.keys(updates).filter((key) => !supportedFields.includes(key));
+  if (unsupportedKeys.length > 0) {
+    return {
+      success: false,
+      error: `Unsupported cookie fields: ${unsupportedKeys.join(", ")}`,
     };
-
-    if (originalCookie.partitionKey) {
-      nextCookie.partitionKey = originalCookie.partitionKey;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((originalCookie as any).firstPartyDomain) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      nextCookie.firstPartyDomain = (originalCookie as any).firstPartyDomain;
-    }
-
-    const result = buildCookieSetDetails(nextCookie);
-    if (!result.success) {
-      return { success: false, error: "Invalid cookie data" };
-    }
-
-    const updatedCookie = await chrome.cookies.set(result.setDetails);
-    if (!updatedCookie) {
-      return { success: false, error: "Failed to edit cookie" };
-    }
-    return { success: true, cookie: updatedCookie };
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    console.warn("Failed to edit cookie:", e);
-    return { success: false, error: errorMessage };
   }
+
+  const safeUpdates: Partial<chrome.cookies.Cookie> = {};
+
+  if ("value" in updates) {
+    safeUpdates.value = updates.value;
+  }
+  if ("httpOnly" in updates) {
+    safeUpdates.httpOnly = updates.httpOnly;
+  }
+  if ("secure" in updates) {
+    safeUpdates.secure = updates.secure;
+  }
+  if ("sameSite" in updates) {
+    safeUpdates.sameSite = updates.sameSite;
+  }
+  if ("expirationDate" in updates) {
+    safeUpdates.expirationDate = updates.expirationDate;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nextCookie: any = {
+    ...originalCookie,
+    ...safeUpdates,
+  };
+
+  if (originalCookie.partitionKey) {
+    nextCookie.partitionKey = originalCookie.partitionKey;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((originalCookie as any).firstPartyDomain) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    nextCookie.firstPartyDomain = (originalCookie as any).firstPartyDomain;
+  }
+
+  const result = buildCookieSetDetails(nextCookie);
+  if (!result.success) {
+    return { success: false, error: "Invalid cookie data" };
+  }
+
+  const updatedCookie = await chrome.cookies.set(result.setDetails);
+  if (!updatedCookie) {
+    return { success: false, error: "Failed to edit cookie" };
+  }
+  return { success: true, cookie: updatedCookie };
 };
 
 export const getAllCookies = async (): Promise<chrome.cookies.Cookie[]> => {

@@ -39,6 +39,7 @@ export class ScheduledCleanupService {
           undefined,
           undefined,
           trigger,
+          settings,
           this.getCleanupOptions(settings)
         );
 

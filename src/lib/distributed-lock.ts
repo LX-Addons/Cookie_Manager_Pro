@@ -4,6 +4,8 @@ type StorageKey = `local:${string}` | `session:${string}` | `sync:${string}` | `
 
 const DEFAULT_LOCK_TIMEOUT_MS = 60 * 1000;
 
+const memoryLocks = new Map<string, { lockId: string; expiresAt: number }>();
+
 interface LockData {
   lockId: string;
   acquiredAt: number;
@@ -22,14 +24,25 @@ export class DistributedLock {
     this.lockId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
 
+  private isLockExpired(lock: { expiresAt: number }): boolean {
+    return lock.expiresAt <= Date.now();
+  }
+
   async acquire(): Promise<boolean> {
     const now = Date.now();
-    const existingLock = await storage.getItem<LockData>(this.lockKey);
+    const memoryLock = memoryLocks.get(this.lockKey);
 
-    if (existingLock) {
-      if (existingLock.expiresAt > now) {
-        return false;
-      }
+    if (memoryLock && !this.isLockExpired(memoryLock)) {
+      return false;
+    }
+
+    const storageLock = await storage.getItem<LockData>(this.lockKey);
+    if (storageLock && !this.isLockExpired({ expiresAt: storageLock.expiresAt })) {
+      memoryLocks.set(this.lockKey, {
+        lockId: storageLock.lockId,
+        expiresAt: storageLock.expiresAt,
+      });
+      return false;
     }
 
     const lockData: LockData = {
@@ -38,23 +51,24 @@ export class DistributedLock {
       expiresAt: now + this.timeoutMs,
     };
 
-    await storage.setItem(this.lockKey, lockData);
+    memoryLocks.set(this.lockKey, {
+      lockId: this.lockId,
+      expiresAt: lockData.expiresAt,
+    });
 
-    const verifyLock = await storage.getItem<LockData>(this.lockKey);
-    if (!verifyLock || verifyLock.lockId !== this.lockId) {
-      return false;
-    }
+    await storage.setItem(this.lockKey, lockData);
 
     return true;
   }
 
   async release(): Promise<boolean> {
-    const existingLock = await storage.getItem<LockData>(this.lockKey);
+    const memoryLock = memoryLocks.get(this.lockKey);
 
-    if (!existingLock || existingLock.lockId !== this.lockId) {
+    if (!memoryLock || memoryLock.lockId !== this.lockId) {
       return false;
     }
 
+    memoryLocks.delete(this.lockKey);
     await storage.removeItem(this.lockKey);
     return true;
   }
@@ -76,17 +90,22 @@ export class DistributedLock {
   }
 
   async isLocked(): Promise<boolean> {
-    const existingLock = await storage.getItem<LockData>(this.lockKey);
+    const memoryLock = memoryLocks.get(this.lockKey);
 
-    if (!existingLock) {
+    if (memoryLock && !this.isLockExpired(memoryLock)) {
+      return true;
+    }
+
+    const storageLock = await storage.getItem<LockData>(this.lockKey);
+    if (!storageLock || this.isLockExpired({ expiresAt: storageLock.expiresAt })) {
+      memoryLocks.delete(this.lockKey);
       return false;
     }
 
-    if (existingLock.expiresAt <= Date.now()) {
-      await storage.removeItem(this.lockKey);
-      return false;
-    }
-
+    memoryLocks.set(this.lockKey, {
+      lockId: storageLock.lockId,
+      expiresAt: storageLock.expiresAt,
+    });
     return true;
   }
 }

@@ -3,9 +3,11 @@ import { ErrorCode, CookieClearType } from "@/types";
 import { CookiesHandler } from "../handlers/cookies";
 import { CleanupHandler } from "../handlers/cleanup";
 import { logExportService } from "./log-export-service";
+import { SettingsMigrator } from "./settings-migrator";
 
 let cookiesHandler: CookiesHandler | null = null;
 let cleanupHandler: CleanupHandler | null = null;
+let settingsMigrator: SettingsMigrator | null = null;
 
 const VALID_CLEAR_TYPES = new Set(Object.values(CookieClearType));
 
@@ -14,8 +16,13 @@ const getCookiesHandler = (): CookiesHandler => {
   return cookiesHandler;
 };
 
+const getSettingsMigrator = (): SettingsMigrator => {
+  settingsMigrator ??= new SettingsMigrator();
+  return settingsMigrator;
+};
+
 const getCleanupHandler = (): CleanupHandler => {
-  cleanupHandler ??= new CleanupHandler();
+  cleanupHandler ??= new CleanupHandler(getSettingsMigrator());
   return cleanupHandler;
 };
 
@@ -150,6 +157,13 @@ export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
       return await getCookiesHandler().getCurrentTabCookies();
     }
     case "getStats": {
+      if (
+        "domain" in request &&
+        request.domain !== undefined &&
+        typeof request.domain !== "string"
+      ) {
+        return createErrorResponse(ErrorCode.INVALID_PARAMETERS, "Invalid domain for getStats");
+      }
       return await getCookiesHandler().getStats(request.domain);
     }
     case "createCookie": {
@@ -189,9 +203,11 @@ export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
           "Invalid payload for cleanupByDomain: domain and trigger are required"
         );
       }
+      const settings = await getSettingsMigrator().getSettings();
       return await getCleanupHandler().cleanupByDomain(
         request.payload.domain,
         request.payload.trigger,
+        settings,
         {
           clearType: request.payload.clearType,
           clearCache: request.payload.clearCache,
@@ -207,11 +223,13 @@ export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
           "Invalid payload for cleanupWithFilter: filterType and trigger are required"
         );
       }
+      const settings = await getSettingsMigrator().getSettings();
       return await getCleanupHandler().cleanupWithFilter(
         request.payload.filterType,
         request.payload.filterValue,
         request.payload.domainList,
         request.payload.trigger,
+        settings,
         {
           clearType: request.payload.clearType,
           clearCache: request.payload.clearCache,

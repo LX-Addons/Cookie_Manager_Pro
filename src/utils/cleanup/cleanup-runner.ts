@@ -12,6 +12,7 @@ export interface CleanupOptions {
   clearLocalStorage?: boolean;
   clearIndexedDB?: boolean;
   trigger: CleanupTrigger;
+  settings: Settings;
 }
 
 const getClearOptions = (
@@ -145,7 +146,7 @@ export const runCleanup = async (options: CleanupOptions): Promise<CleanupExecut
 
   let settingsData: { settings: Settings; whitelist: string[]; blacklist: string[] };
   try {
-    settingsData = await getCleanupSettings();
+    settingsData = await getCleanupSettings(options.settings);
   } catch (e) {
     throw handleStorageError(e);
   }
@@ -201,7 +202,7 @@ export const runCleanupWithFilter = async (
 
   let settingsData: { settings: Settings; whitelist: string[]; blacklist: string[] };
   try {
-    settingsData = await getCleanupSettings();
+    settingsData = await getCleanupSettings(options.settings);
   } catch (e) {
     throw handleStorageError(e);
   }

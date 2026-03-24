@@ -39,6 +39,7 @@ export class StartupCleanupService {
       const result = await cleanupExecutor.executeByDomain(
         domain,
         trigger,
+        settings,
         this.getCleanupOptions(settings)
       );
       if (!result.success || !result.data?.success) {
@@ -59,6 +60,7 @@ export class StartupCleanupService {
         await cleanupExecutor.executeByDomain(
           parsedUrl.hostname,
           trigger,
+          settings,
           this.getCleanupOptions(settings)
         );
       } catch (e) {

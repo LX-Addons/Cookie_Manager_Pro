@@ -1,11 +1,19 @@
-import type { CleanupExecutionResult, CleanupTrigger, ApiResponse } from "@/types";
+import type { CleanupExecutionResult, CleanupTrigger, ApiResponse, Settings } from "@/types";
 import { CookieClearType, ErrorCode } from "@/types";
 import { cleanupExecutor, type CleanupOptions } from "../services/cleanup-executor";
+import { SettingsMigrator } from "../services/settings-migrator";
 
 export class CleanupHandler {
+  private settingsMigrator: SettingsMigrator;
+
+  constructor(settingsMigrator: SettingsMigrator) {
+    this.settingsMigrator = settingsMigrator;
+  }
+
   async cleanupByDomain(
     domain: string,
     trigger: CleanupTrigger,
+    settings: Settings,
     options?: {
       clearType?: CookieClearType;
       clearCache?: boolean;
@@ -16,6 +24,7 @@ export class CleanupHandler {
     const result = await cleanupExecutor.executeByDomain(
       domain,
       trigger,
+      settings,
       options as CleanupOptions
     );
 
@@ -36,6 +45,7 @@ export class CleanupHandler {
     filterValue: string | undefined,
     domainList: string[] | undefined,
     trigger: CleanupTrigger,
+    settings: Settings,
     options?: {
       clearType?: CookieClearType;
       clearCache?: boolean;
@@ -48,6 +58,7 @@ export class CleanupHandler {
       filterValue,
       domainList,
       trigger,
+      settings,
       options as CleanupOptions
     );
 

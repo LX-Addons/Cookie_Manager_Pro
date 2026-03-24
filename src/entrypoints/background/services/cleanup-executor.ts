@@ -1,4 +1,4 @@
-import type { CleanupExecutionResult, CleanupTrigger } from "@/types";
+import type { CleanupExecutionResult, CleanupTrigger, Settings } from "@/types";
 import { CookieClearType, CleanupError, CleanupStage } from "@/types";
 import { runCleanup, runCleanupWithFilter } from "@/utils/cleanup/cleanup-runner";
 import { isDomainMatch } from "@/utils/domain";
@@ -57,6 +57,7 @@ class CleanupExecutorImpl {
   async executeByDomain(
     domain: string,
     trigger: CleanupTrigger,
+    settings: Settings,
     options: CleanupOptions = {}
   ): Promise<CleanupResult> {
     const startTime = Date.now();
@@ -64,6 +65,7 @@ class CleanupExecutorImpl {
       const result = await runCleanup({
         domain,
         trigger,
+        settings,
         ...options,
       });
 
@@ -110,6 +112,7 @@ class CleanupExecutorImpl {
     filterValue: string | undefined,
     domainList: string[] | undefined,
     trigger: CleanupTrigger,
+    settings: Settings,
     options: CleanupOptions = {}
   ): Promise<CleanupResult> {
     const startTime = Date.now();
@@ -166,6 +169,7 @@ class CleanupExecutorImpl {
         filterFn,
         {
           trigger,
+          settings,
           ...options,
         },
         targetDomains

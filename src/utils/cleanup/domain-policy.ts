@@ -1,4 +1,4 @@
-import { storage, WHITELIST_KEY, BLACKLIST_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from "@/lib/store";
+import { storage, WHITELIST_KEY, BLACKLIST_KEY } from "@/lib/store";
 import type { Settings } from "@/types";
 import { ModeType } from "@/types";
 import { isInList, normalizeDomain } from "@/utils/domain";
@@ -21,18 +21,13 @@ export const shouldCleanupDomain = (options: DomainPolicyCheckOptions): boolean 
   return false;
 };
 
-export const getCleanupSettings = async (): Promise<{
+export const getCleanupSettings = async (
+  settings: Settings
+): Promise<{
   settings: Settings;
   whitelist: string[];
   blacklist: string[];
 }> => {
-  const storedSettings = await storage.getItem<Settings>(SETTINGS_KEY);
-  const settings = storedSettings ? { ...DEFAULT_SETTINGS, ...storedSettings } : DEFAULT_SETTINGS;
-
-  if (!storedSettings) {
-    await storage.setItem(SETTINGS_KEY, DEFAULT_SETTINGS);
-  }
-
   const whitelist = (await storage.getItem<string[]>(WHITELIST_KEY)) || [];
   const blacklist = (await storage.getItem<string[]>(BLACKLIST_KEY)) || [];
 
