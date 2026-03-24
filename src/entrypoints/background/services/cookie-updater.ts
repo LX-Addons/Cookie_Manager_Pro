@@ -11,22 +11,24 @@ export const editCookie = async (
   let errorCode: string | undefined;
   let result: chrome.cookies.Cookie | null = null;
 
-  try {
-    result = await editCookieUtil(originalCookie, updates);
-    success = result !== null;
-    return result;
-  } catch (e) {
-    const report = classifyError(e, "cookie update", {
+  const editResult = await editCookieUtil(originalCookie, updates);
+
+  if (editResult.success) {
+    success = true;
+    result = editResult.cookie ?? null;
+  } else if (editResult.error) {
+    const report = classifyError(new Error(editResult.error), "cookie update", {
       domain: originalCookie.domain,
     });
     errorCode = report.code;
-    return null;
-  } finally {
-    const durationMs = Date.now() - startTime;
-    metricsService.recordCookieMutation("editCookie", success, durationMs, {
-      domain: originalCookie.domain,
-      errorCode,
-      metadata: { cookieName: originalCookie.name },
-    });
   }
+
+  const durationMs = Date.now() - startTime;
+  metricsService.recordCookieMutation("editCookie", success, durationMs, {
+    domain: originalCookie.domain,
+    errorCode,
+    metadata: { cookieName: originalCookie.name },
+  });
+
+  return result;
 };

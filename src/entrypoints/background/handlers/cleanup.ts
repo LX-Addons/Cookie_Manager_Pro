@@ -1,45 +1,8 @@
 import type { CleanupExecutionResult, CleanupTrigger, ApiResponse } from "@/types";
-import { CookieClearType, ErrorCode, CleanupError, CleanupStage } from "@/types";
-import { runCleanup, runCleanupWithFilter } from "@/utils/cleanup/cleanup-runner";
-import { isDomainMatch } from "@/utils/domain";
-import { metricsService } from "@/entrypoints/background/services/metrics";
-import { logService } from "@/entrypoints/background/services/log-service";
-import { classifyError } from "@/entrypoints/background/services/error-reporting";
-
-const getCleanupOperation = (error: unknown, baseOperation: string): string => {
-  if (error instanceof CleanupError) {
-    if (error.stage === CleanupStage.COOKIES) {
-      return `${baseOperation} cookie remove`;
-    }
-    if (
-      error.stage === CleanupStage.CACHE ||
-      error.stage === CleanupStage.LOCAL_STORAGE ||
-      error.stage === CleanupStage.INDEXED_DB ||
-      error.stage === CleanupStage.STORAGE
-    ) {
-      return `${baseOperation} browsingData`;
-    }
-  }
-  return baseOperation;
-};
+import { CookieClearType, ErrorCode } from "@/types";
+import { cleanupExecutor, type CleanupOptions } from "../services/cleanup-executor";
 
 export class CleanupHandler {
-  private safeRecordCleanup(...args: Parameters<typeof metricsService.recordCleanup>): void {
-    try {
-      metricsService.recordCleanup(...args);
-    } catch {
-      // best-effort: do not fail cleanup flow
-    }
-  }
-
-  private async safeLogCleanup(...args: Parameters<typeof logService.logCleanup>): Promise<void> {
-    try {
-      await logService.logCleanup(...args);
-    } catch {
-      // best-effort: do not fail cleanup flow
-    }
-  }
-
   async cleanupByDomain(
     domain: string,
     trigger: CleanupTrigger,
@@ -50,49 +13,22 @@ export class CleanupHandler {
       clearIndexedDB?: boolean;
     }
   ): Promise<ApiResponse<CleanupExecutionResult>> {
-    const startTime = Date.now();
-    try {
-      const result = await runCleanup({
-        domain,
-        trigger,
-        ...options,
-      });
+    const result = await cleanupExecutor.executeByDomain(
+      domain,
+      trigger,
+      options as CleanupOptions
+    );
 
-      this.safeRecordCleanup("cleanupByDomain", result.success, result.durationMs, {
-        domain,
-        trigger,
-        metadata: {
-          cookiesRemoved: result.cookiesRemoved,
-          matchedDomains: result.matchedDomains.length,
-        },
-      });
-
-      if (result.success && result.cookiesRemoved > 0) {
-        await this.safeLogCleanup(
-          domain,
-          options?.clearType || CookieClearType.ALL,
-          result.cookiesRemoved,
-          trigger
-        );
-      }
-
-      return { success: true, data: result };
-    } catch (e) {
-      const durationMs = Date.now() - startTime;
-      const operation = getCleanupOperation(e, "cleanupByDomain");
-      const errorReport = classifyError(e, operation, { domain, trigger });
-      this.safeRecordCleanup("cleanupByDomain", false, durationMs, {
-        domain,
-        trigger,
-        metadata: {
-          error: e instanceof Error ? e.message : "Unknown error",
-        },
-      });
-      return {
-        success: false,
-        error: { code: errorReport.code as ErrorCode, message: errorReport.message },
-      };
+    if (result.success) {
+      return { success: true, data: result.data };
     }
+    return {
+      success: false,
+      error: {
+        code: result.error?.code as ErrorCode,
+        message: result.error?.message || "Unknown error",
+      },
+    };
   }
 
   async cleanupWithFilter(
@@ -107,99 +43,23 @@ export class CleanupHandler {
       clearIndexedDB?: boolean;
     }
   ): Promise<ApiResponse<CleanupExecutionResult>> {
-    const startTime = Date.now();
+    const result = await cleanupExecutor.executeWithFilter(
+      filterType,
+      filterValue,
+      domainList,
+      trigger,
+      options as CleanupOptions
+    );
 
-    let filterFn: (domain: string) => boolean;
-
-    switch (filterType) {
-      case "all":
-        filterFn = () => true;
-        break;
-      case "domain":
-        if (!filterValue?.trim()) {
-          return {
-            success: false,
-            error: {
-              code: ErrorCode.INVALID_PARAMETERS,
-              message: "filterValue is required when filterType is 'domain'",
-            },
-          };
-        }
-        filterFn = (domain) => isDomainMatch(domain, filterValue);
-        break;
-      case "domain-list":
-        if (!domainList?.length) {
-          return {
-            success: false,
-            error: {
-              code: ErrorCode.INVALID_PARAMETERS,
-              message: "domainList is required when filterType is 'domain-list'",
-            },
-          };
-        }
-        filterFn = (domain) => domainList.some((listDomain) => isDomainMatch(domain, listDomain));
-        break;
-      default:
-        return {
-          success: false,
-          error: {
-            code: ErrorCode.INVALID_PARAMETERS,
-            message: `Invalid filterType: ${filterType}`,
-          },
-        };
+    if (result.success) {
+      return { success: true, data: result.data };
     }
-
-    try {
-      let targetDomains: string[] | undefined;
-      if (filterType === "domain" && filterValue) {
-        targetDomains = [filterValue];
-      } else if (filterType === "domain-list" && domainList) {
-        targetDomains = domainList;
-      }
-
-      const result = await runCleanupWithFilter(
-        filterFn,
-        {
-          trigger,
-          ...options,
-        },
-        targetDomains
-      );
-
-      this.safeRecordCleanup("cleanupWithFilter", result.success, result.durationMs, {
-        trigger,
-        metadata: {
-          filterType,
-          cookiesRemoved: result.cookiesRemoved,
-          matchedDomains: result.matchedDomains.length,
-        },
-      });
-
-      if (result.success && result.cookiesRemoved > 0) {
-        await this.safeLogCleanup(
-          result.matchedDomains,
-          options?.clearType || CookieClearType.ALL,
-          result.cookiesRemoved,
-          trigger
-        );
-      }
-
-      return { success: true, data: result };
-    } catch (e) {
-      const durationMs = Date.now() - startTime;
-      const operation = getCleanupOperation(e, "cleanupWithFilter");
-      const errorReport = classifyError(e, operation, { trigger });
-      this.safeRecordCleanup("cleanupWithFilter", false, durationMs, {
-        trigger,
-        metadata: {
-          filterType,
-          error: e instanceof Error ? e.message : "Unknown error",
-        },
-      });
-      return {
-        success: false,
-        error: { code: errorReport.code as ErrorCode, message: errorReport.message },
-      };
-    }
+    return {
+      success: false,
+      error: {
+        code: result.error?.code as ErrorCode,
+        message: result.error?.message || "Unknown error",
+      },
+    };
   }
 }

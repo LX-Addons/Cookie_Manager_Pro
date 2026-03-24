@@ -1,14 +1,8 @@
 import type { Settings } from "@/types";
-import { CleanupHandler } from "../handlers/cleanup";
+import { cleanupExecutor, type CleanupOptions } from "./cleanup-executor";
 
 export class TabEventCleanupService {
-  private readonly cleanupHandler: CleanupHandler;
-
-  constructor() {
-    this.cleanupHandler = new CleanupHandler();
-  }
-
-  private getCleanupOptions(settings: Settings) {
+  private getCleanupOptions(settings: Settings): CleanupOptions {
     return {
       clearType: settings.clearType,
       clearCache: settings.clearCache,
@@ -23,7 +17,7 @@ export class TabEventCleanupService {
     try {
       const url = new URL(tab.url);
       const trigger = "tab-discard" as const;
-      await this.cleanupHandler.cleanupByDomain(
+      await cleanupExecutor.executeByDomain(
         url.hostname,
         trigger,
         this.getCleanupOptions(settings)
@@ -51,7 +45,7 @@ export class TabEventCleanupService {
 
       if (previousHostname !== currentHostname) {
         const trigger = "navigate" as const;
-        await this.cleanupHandler.cleanupByDomain(
+        await cleanupExecutor.executeByDomain(
           previousHostname,
           trigger,
           this.getCleanupOptions(settings)
@@ -65,11 +59,7 @@ export class TabEventCleanupService {
   async cleanupClosedTab(hostname: string, settings: Settings): Promise<void> {
     try {
       const trigger = "tab-close" as const;
-      await this.cleanupHandler.cleanupByDomain(
-        hostname,
-        trigger,
-        this.getCleanupOptions(settings)
-      );
+      await cleanupExecutor.executeByDomain(hostname, trigger, this.getCleanupOptions(settings));
     } catch (e) {
       console.error(`Failed to cleanup on tab close for ${hostname}:`, e);
     }

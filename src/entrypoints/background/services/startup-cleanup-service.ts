@@ -1,13 +1,17 @@
 import type { Settings } from "@/types";
 import { storage, CLEANUP_ON_STARTUP_KEY } from "@/lib/store";
-import { CleanupHandler } from "../handlers/cleanup";
+import { cleanupExecutor, type CleanupOptions } from "./cleanup-executor";
 
 export class StartupCleanupService {
-  private readonly cleanupHandler: CleanupHandler;
   private saveQueue = Promise.resolve();
 
-  constructor() {
-    this.cleanupHandler = new CleanupHandler();
+  private getCleanupOptions(settings: Settings): CleanupOptions {
+    return {
+      clearType: settings.clearType,
+      clearCache: settings.clearCache,
+      clearLocalStorage: settings.clearLocalStorage,
+      clearIndexedDB: settings.clearIndexedDB,
+    };
   }
 
   async saveDomainForCleanup(hostname: string): Promise<void> {
@@ -24,15 +28,6 @@ export class StartupCleanupService {
     return this.saveQueue;
   }
 
-  private getCleanupOptions(settings: Settings) {
-    return {
-      clearType: settings.clearType,
-      clearCache: settings.clearCache,
-      clearLocalStorage: settings.clearLocalStorage,
-      clearIndexedDB: settings.clearIndexedDB,
-    };
-  }
-
   async cleanupDomainsOnStartup(settings: Settings): Promise<void> {
     const domainsToClean = await storage.getItem<string[]>(CLEANUP_ON_STARTUP_KEY);
     if (!domainsToClean || domainsToClean.length === 0) return;
@@ -41,7 +36,7 @@ export class StartupCleanupService {
 
     for (const domain of domainsToClean) {
       const trigger = "browser-close-recovery" as const;
-      const result = await this.cleanupHandler.cleanupByDomain(
+      const result = await cleanupExecutor.executeByDomain(
         domain,
         trigger,
         this.getCleanupOptions(settings)
@@ -61,7 +56,7 @@ export class StartupCleanupService {
       try {
         const parsedUrl = new URL(url);
         const trigger = "startup" as const;
-        await this.cleanupHandler.cleanupByDomain(
+        await cleanupExecutor.executeByDomain(
           parsedUrl.hostname,
           trigger,
           this.getCleanupOptions(settings)

@@ -9,21 +9,23 @@ export const createCookie = async (
   let created: chrome.cookies.Cookie | null = null;
   let errorCode: string | undefined;
 
-  try {
-    created = await createCookieUtil(cookie);
-    return created;
-  } catch (e) {
-    const report = classifyError(e, "cookie create", {
+  const result = await createCookieUtil(cookie);
+
+  if (result.success) {
+    created = result.cookie ?? null;
+  } else if (result.error) {
+    const report = classifyError(new Error(result.error), "cookie create", {
       domain: cookie.domain,
     });
     errorCode = report.code;
-    return null;
-  } finally {
-    const durationMs = Date.now() - startTime;
-    metricsService.recordCookieMutation("createCookie", created !== null, durationMs, {
-      domain: cookie.domain,
-      errorCode,
-      metadata: { cookieName: cookie.name },
-    });
   }
+
+  const durationMs = Date.now() - startTime;
+  metricsService.recordCookieMutation("createCookie", result.success, durationMs, {
+    domain: cookie.domain,
+    errorCode,
+    metadata: { cookieName: cookie.name },
+  });
+
+  return created;
 };

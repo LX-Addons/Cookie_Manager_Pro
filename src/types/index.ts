@@ -286,6 +286,39 @@ export class CleanupError extends Error {
   }
 }
 
+export enum CookieRemoveErrorType {
+  NOT_FOUND = "not_found",
+  PERMISSION_DENIED = "permission_denied",
+  API_ERROR = "api_error",
+}
+
+export class CookieRemoveError extends Error {
+  constructor(
+    public readonly errorType: CookieRemoveErrorType,
+    message: string,
+    public readonly originalError?: unknown
+  ) {
+    super(message);
+    this.name = "CookieRemoveError";
+  }
+
+  static notFound(cookieName: string, domain: string): CookieRemoveError {
+    return new CookieRemoveError(
+      CookieRemoveErrorType.NOT_FOUND,
+      `Cookie "${cookieName}" not found on domain "${domain}"`,
+      null
+    );
+  }
+
+  static permissionDenied(message: string, originalError?: unknown): CookieRemoveError {
+    return new CookieRemoveError(CookieRemoveErrorType.PERMISSION_DENIED, message, originalError);
+  }
+
+  static apiError(message: string, originalError?: unknown): CookieRemoveError {
+    return new CookieRemoveError(CookieRemoveErrorType.API_ERROR, message, originalError);
+  }
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;

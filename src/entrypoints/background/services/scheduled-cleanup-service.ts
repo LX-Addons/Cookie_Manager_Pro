@@ -1,16 +1,11 @@
 import type { Settings } from "@/types";
 import { storage, LAST_SCHEDULED_CLEANUP_KEY } from "@/lib/store";
-import { CleanupHandler } from "../handlers/cleanup";
+import { cleanupExecutor, type CleanupOptions } from "./cleanup-executor";
 import { shouldPerformCleanup } from "@/utils/cleanup";
+import { createCleanupLock } from "@/lib/distributed-lock";
 
 export class ScheduledCleanupService {
-  private readonly cleanupHandler: CleanupHandler;
-
-  constructor() {
-    this.cleanupHandler = new CleanupHandler();
-  }
-
-  private getCleanupOptions(settings: Settings) {
+  private getCleanupOptions(settings: Settings): CleanupOptions {
     return {
       clearType: settings.clearType,
       clearCache: settings.clearCache,
@@ -20,15 +15,26 @@ export class ScheduledCleanupService {
   }
 
   async runScheduledCleanup(settings: Settings): Promise<void> {
-    try {
-      if (!settings.enableAutoCleanup) return;
+    if (!settings.enableAutoCleanup) return;
 
+    const lock = createCleanupLock();
+    const { acquired } = await lock.withLock(async () => {
+      await this.runScheduledCleanupInternal(settings);
+    });
+
+    if (!acquired) {
+      console.log("[ScheduledCleanup] Another cleanup is in progress, skipping");
+    }
+  }
+
+  private async runScheduledCleanupInternal(settings: Settings): Promise<void> {
+    try {
       const lastCleanup = (await storage.getItem<number>(LAST_SCHEDULED_CLEANUP_KEY)) || 0;
       const now = Date.now();
 
       if (shouldPerformCleanup(settings, lastCleanup, now)) {
         const trigger = "scheduled" as const;
-        const result = await this.cleanupHandler.cleanupWithFilter(
+        const result = await cleanupExecutor.executeWithFilter(
           "all",
           undefined,
           undefined,

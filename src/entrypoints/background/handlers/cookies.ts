@@ -1,5 +1,5 @@
 import type { Cookie, CookieStats, ApiResponse } from "@/types";
-import { ErrorCode } from "@/types";
+import { ErrorCode, CookieRemoveError, CookieRemoveErrorType } from "@/types";
 import { isTrackingCookie, isThirdPartyCookie } from "@/utils/cookie-risk";
 import { isDomainMatch, normalizeDomain } from "@/utils/domain";
 import {
@@ -249,31 +249,47 @@ export class CookiesHandler {
   async deleteCookie(cookie: Cookie): Promise<ApiResponse> {
     try {
       const cleanedDomain = normalizeDomain(cookie.domain);
-      const success = await clearSingleCookie(
-        cookie as unknown as chrome.cookies.Cookie,
-        cleanedDomain
-      );
-      if (success) {
-        try {
-          await logService.logDelete(cleanedDomain, 1, "Cookie deleted");
-        } catch (logError) {
-          console.warn("Failed to write delete log:", logError);
-        }
-        return { success: true };
+      await clearSingleCookie(cookie as unknown as chrome.cookies.Cookie, cleanedDomain);
+      try {
+        await logService.logDelete(cleanedDomain, 1, "Cookie deleted");
+      } catch (logError) {
+        console.warn("Failed to write delete log:", logError);
       }
-      reportBackgroundError(
-        ErrorCode.COOKIE_REMOVE_FAILED,
-        "deleteCookie",
-        "Failed to delete cookie",
-        {
-          domain: cookie.domain,
-        }
-      );
-      return {
-        success: false,
-        error: { code: ErrorCode.COOKIE_REMOVE_FAILED, message: "Failed to delete cookie" },
-      };
+      return { success: true };
     } catch (e) {
+      if (e instanceof CookieRemoveError) {
+        const message = e.message;
+        switch (e.errorType) {
+          case CookieRemoveErrorType.NOT_FOUND:
+            reportBackgroundError(ErrorCode.COOKIE_REMOVE_FAILED, "deleteCookie", message, {
+              domain: cookie.domain,
+            });
+            return {
+              success: false,
+              error: { code: ErrorCode.COOKIE_REMOVE_FAILED, message },
+            };
+          case CookieRemoveErrorType.PERMISSION_DENIED:
+            reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "deleteCookie", message, {
+              domain: cookie.domain,
+              recoverable: false,
+              originalError: e.originalError,
+            });
+            return {
+              success: false,
+              error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
+            };
+          case CookieRemoveErrorType.API_ERROR:
+          default:
+            reportBackgroundError(ErrorCode.COOKIE_REMOVE_FAILED, "deleteCookie", message, {
+              domain: cookie.domain,
+              originalError: e.originalError,
+            });
+            return {
+              success: false,
+              error: { code: ErrorCode.COOKIE_REMOVE_FAILED, message },
+            };
+        }
+      }
       const message = e instanceof Error ? e.message : String(e);
       if (isPermissionDeniedError(e)) {
         reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "deleteCookie", message, {

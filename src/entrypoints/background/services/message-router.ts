@@ -1,11 +1,13 @@
 import type { BackgroundRequest, ApiResponse } from "@/types";
-import { ErrorCode } from "@/types";
+import { ErrorCode, CookieClearType } from "@/types";
 import { CookiesHandler } from "../handlers/cookies";
 import { CleanupHandler } from "../handlers/cleanup";
 import { logExportService } from "./log-export-service";
 
 let cookiesHandler: CookiesHandler | null = null;
 let cleanupHandler: CleanupHandler | null = null;
+
+const VALID_CLEAR_TYPES = new Set(Object.values(CookieClearType));
 
 const getCookiesHandler = (): CookiesHandler => {
   cookiesHandler ??= new CookiesHandler();
@@ -44,36 +46,55 @@ function hasPayload(
 
 function validateCreateCookiePayload(
   payload: unknown
-): payload is { name: string; domain: string; path: string } {
+): payload is { name: string; domain: string; value: string; path?: string } {
   if (typeof payload !== "object" || payload === null) return false;
   const p = payload as Record<string, unknown>;
-  return typeof p.name === "string" && typeof p.domain === "string" && typeof p.path === "string";
+  return (
+    typeof p.name === "string" &&
+    typeof p.domain === "string" &&
+    typeof p.value === "string" &&
+    (p.path === undefined || typeof p.path === "string")
+  );
 }
 
-function validateUpdateCookiePayload(
-  payload: unknown
-): payload is { original: { name: string; domain: string }; updates: object } {
+function validateUpdateCookiePayload(payload: unknown): payload is {
+  original: { name: string; domain: string; path: string; value: string; secure: boolean };
+  updates: object;
+} {
   if (typeof payload !== "object" || payload === null) return false;
   const p = payload as Record<string, unknown>;
   if (typeof p.original !== "object" || p.original === null) return false;
   const orig = p.original as Record<string, unknown>;
-  if (typeof orig.name !== "string" || typeof orig.domain !== "string") return false;
+  if (
+    typeof orig.name !== "string" ||
+    typeof orig.domain !== "string" ||
+    typeof orig.path !== "string" ||
+    typeof orig.value !== "string" ||
+    typeof orig.secure !== "boolean"
+  ) {
+    return false;
+  }
   if (typeof p.updates !== "object" || p.updates === null) return false;
   return true;
 }
 
 function validateDeleteCookiePayload(
   payload: unknown
-): payload is { name: string; domain: string } {
+): payload is { name: string; domain: string; path: string; secure: boolean } {
   if (typeof payload !== "object" || payload === null) return false;
   const p = payload as Record<string, unknown>;
-  return typeof p.name === "string" && typeof p.domain === "string";
+  return (
+    typeof p.name === "string" &&
+    typeof p.domain === "string" &&
+    typeof p.path === "string" &&
+    typeof p.secure === "boolean"
+  );
 }
 
 function validateCleanupByDomainPayload(payload: unknown): payload is {
   domain: string;
   trigger: string;
-  clearType?: string;
+  clearType?: CookieClearType;
   clearCache?: boolean;
   clearLocalStorage?: boolean;
   clearIndexedDB?: boolean;
@@ -81,7 +102,9 @@ function validateCleanupByDomainPayload(payload: unknown): payload is {
   if (typeof payload !== "object" || payload === null) return false;
   const p = payload as Record<string, unknown>;
   if (typeof p.domain !== "string" || typeof p.trigger !== "string") return false;
-  if (p.clearType !== undefined && typeof p.clearType !== "string") return false;
+  if (p.clearType !== undefined && !VALID_CLEAR_TYPES.has(p.clearType as CookieClearType)) {
+    return false;
+  }
   if (p.clearCache !== undefined && typeof p.clearCache !== "boolean") return false;
   if (p.clearLocalStorage !== undefined && typeof p.clearLocalStorage !== "boolean") return false;
   if (p.clearIndexedDB !== undefined && typeof p.clearIndexedDB !== "boolean") return false;
@@ -93,7 +116,7 @@ function validateCleanupWithFilterPayload(payload: unknown): payload is {
   trigger: string;
   filterValue?: string;
   domainList?: string[];
-  clearType?: string;
+  clearType?: CookieClearType;
   clearCache?: boolean;
   clearLocalStorage?: boolean;
   clearIndexedDB?: boolean;
@@ -106,7 +129,9 @@ function validateCleanupWithFilterPayload(payload: unknown): payload is {
     if (!Array.isArray(p.domainList)) return false;
     if (!p.domainList.every((d) => typeof d === "string")) return false;
   }
-  if (p.clearType !== undefined && typeof p.clearType !== "string") return false;
+  if (p.clearType !== undefined && !VALID_CLEAR_TYPES.has(p.clearType as CookieClearType)) {
+    return false;
+  }
   if (p.clearCache !== undefined && typeof p.clearCache !== "boolean") return false;
   if (p.clearLocalStorage !== undefined && typeof p.clearLocalStorage !== "boolean") return false;
   if (p.clearIndexedDB !== undefined && typeof p.clearIndexedDB !== "boolean") return false;
@@ -131,7 +156,7 @@ export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
       if (!hasPayload(request) || !validateCreateCookiePayload(request.payload)) {
         return createErrorResponse(
           ErrorCode.INVALID_PARAMETERS,
-          "Invalid payload for createCookie: name, domain, and path are required"
+          "Invalid payload for createCookie: name, domain, and value are required"
         );
       }
       return await getCookiesHandler().createCookie(request.payload);
@@ -140,7 +165,7 @@ export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
       if (!hasPayload(request) || !validateUpdateCookiePayload(request.payload)) {
         return createErrorResponse(
           ErrorCode.INVALID_PARAMETERS,
-          "Invalid payload for updateCookie: original (with name, domain) and updates are required"
+          "Invalid payload for updateCookie: original (with name, domain, path, value, secure) and updates are required"
         );
       }
       return await getCookiesHandler().updateCookie(
@@ -152,7 +177,7 @@ export const handleMessage = async (request: unknown): Promise<ApiResponse> => {
       if (!hasPayload(request) || !validateDeleteCookiePayload(request.payload)) {
         return createErrorResponse(
           ErrorCode.INVALID_PARAMETERS,
-          "Invalid payload for deleteCookie: name and domain are required"
+          "Invalid payload for deleteCookie: name, domain, path, and secure are required"
         );
       }
       return await getCookiesHandler().deleteCookie(request.payload);

@@ -16,6 +16,12 @@ export interface CookieRemoveResult {
   error?: string;
 }
 
+export interface CookieCreateResult {
+  success: boolean;
+  cookie?: chrome.cookies.Cookie;
+  error?: string;
+}
+
 const shouldClearCookieByType = (
   cookie: chrome.cookies.Cookie,
   clearType: CookieClearType
@@ -120,11 +126,11 @@ const buildCookieSetDetails = (
 
 export const createCookie = async (
   cookie: Partial<chrome.cookies.Cookie>
-): Promise<chrome.cookies.Cookie | null> => {
+): Promise<CookieCreateResult> => {
   try {
     if (!cookie.name || !cookie.domain) {
       console.warn("createCookie: missing required fields (name or domain)");
-      return null;
+      return { success: false, error: "Missing required fields (name or domain)" };
     }
 
     const fullCookie: chrome.cookies.Cookie = {
@@ -134,21 +140,25 @@ export const createCookie = async (
 
     const result = buildCookieSetDetails(fullCookie);
     if (!result.success) {
-      return null;
+      return { success: false, error: "Invalid cookie data" };
     }
 
     const createdCookie = await chrome.cookies.set(result.setDetails);
-    return createdCookie ?? null;
+    if (!createdCookie) {
+      return { success: false, error: "Failed to create cookie" };
+    }
+    return { success: true, cookie: createdCookie };
   } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
     console.warn("Failed to create cookie:", e);
-    return null;
+    return { success: false, error: errorMessage };
   }
 };
 
 export const editCookie = async (
   originalCookie: chrome.cookies.Cookie,
   updates: Partial<chrome.cookies.Cookie>
-): Promise<chrome.cookies.Cookie | null> => {
+): Promise<CookieCreateResult> => {
   try {
     const safeUpdates: Partial<chrome.cookies.Cookie> = {};
 
@@ -185,14 +195,18 @@ export const editCookie = async (
 
     const result = buildCookieSetDetails(nextCookie);
     if (!result.success) {
-      return null;
+      return { success: false, error: "Invalid cookie data" };
     }
 
     const updatedCookie = await chrome.cookies.set(result.setDetails);
-    return updatedCookie ?? null;
+    if (!updatedCookie) {
+      return { success: false, error: "Failed to edit cookie" };
+    }
+    return { success: true, cookie: updatedCookie };
   } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
     console.warn("Failed to edit cookie:", e);
-    return null;
+    return { success: false, error: errorMessage };
   }
 };
 
