@@ -16,6 +16,7 @@ export interface Translations {
     domains: string;
     allWebsites: string;
     unknownError: string;
+    listSeparator: string;
   };
   app: {
     title: string;
@@ -301,6 +302,7 @@ export interface Translations {
     filterDomainAll: string;
     filterDomainCurrent: string;
     filterDomainThirdParty: string;
+    filterDomainDisabled: string;
     filterResult: string;
     clearFilters: string;
     noMatchingCookies: string;
@@ -311,6 +313,15 @@ export interface Translations {
     sessionCookie: string;
     expand: string;
     collapse: string;
+    errorInsufficientPermissions: string;
+    partialDeleteFailed: string;
+    deleteFailedWithReason: string;
+    errorInvalidParameters: string;
+    errorInternalError: string;
+    errorCookieRemoveFailed: string;
+    errorCookieCreateFailed: string;
+    errorCookieUpdateFailed: string;
+    errorOperationFailed: string;
   };
   cookieEditor: {
     editCookie: string;

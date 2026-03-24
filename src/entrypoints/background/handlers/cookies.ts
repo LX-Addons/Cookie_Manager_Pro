@@ -54,8 +54,8 @@ export class CookiesHandler {
         },
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
       if (isPermissionDeniedError(error)) {
+        const message = error instanceof Error ? error.message : String(error);
         reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "getCurrentTabCookies", message, {
           recoverable: false,
           originalError: error,
@@ -65,13 +65,10 @@ export class CookiesHandler {
           error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
         };
       }
-      reportBackgroundError(ErrorCode.INTERNAL_ERROR, "getCurrentTabCookies", message, {
-        recoverable: true,
-        originalError: error,
-      });
+      const report = classifyError(error, "getCurrentTabCookies");
       return {
         success: false,
-        error: { code: ErrorCode.INTERNAL_ERROR, message },
+        error: { code: report.code as ErrorCode, message: report.message },
       };
     }
   }
@@ -102,8 +99,8 @@ export class CookiesHandler {
         },
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
       if (isPermissionDeniedError(error)) {
+        const message = error instanceof Error ? error.message : String(error);
         reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "getStats", message, {
           domain,
           recoverable: false,
@@ -114,14 +111,10 @@ export class CookiesHandler {
           error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
         };
       }
-      reportBackgroundError(ErrorCode.INTERNAL_ERROR, "getStats", message, {
-        domain,
-        recoverable: true,
-        originalError: error,
-      });
+      const report = classifyError(error, "getStats", { domain });
       return {
         success: false,
-        error: { code: ErrorCode.INTERNAL_ERROR, message },
+        error: { code: report.code as ErrorCode, message: report.message },
       };
     }
   }
@@ -162,10 +155,22 @@ export class CookiesHandler {
         error: { code: ErrorCode.COOKIE_CREATE_FAILED, message: "Failed to create cookie" },
       };
     } catch (e) {
-      classifyError(e, "createCookie", { domain: cookie.domain });
+      const message = e instanceof Error ? e.message : String(e);
+      if (isPermissionDeniedError(e)) {
+        reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "createCookie", message, {
+          domain: cookie.domain,
+          recoverable: false,
+          originalError: e,
+        });
+        return {
+          success: false,
+          error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
+        };
+      }
+      const report = classifyError(e, "createCookie", { domain: cookie.domain });
       return {
         success: false,
-        error: { code: ErrorCode.INTERNAL_ERROR, message: (e as Error).message },
+        error: { code: report.code as ErrorCode, message: report.message },
       };
     }
   }
@@ -214,10 +219,22 @@ export class CookiesHandler {
         error: { code: ErrorCode.COOKIE_UPDATE_FAILED, message: "Failed to update cookie" },
       };
     } catch (e) {
-      classifyError(e, "updateCookie", { domain: original.domain });
+      const message = e instanceof Error ? e.message : String(e);
+      if (isPermissionDeniedError(e)) {
+        reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "updateCookie", message, {
+          domain: original.domain,
+          recoverable: false,
+          originalError: e,
+        });
+        return {
+          success: false,
+          error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
+        };
+      }
+      const report = classifyError(e, "updateCookie", { domain: original.domain });
       return {
         success: false,
-        error: { code: ErrorCode.INTERNAL_ERROR, message: (e as Error).message },
+        error: { code: report.code as ErrorCode, message: report.message },
       };
     }
   }
@@ -246,10 +263,22 @@ export class CookiesHandler {
         error: { code: ErrorCode.COOKIE_REMOVE_FAILED, message: "Failed to delete cookie" },
       };
     } catch (e) {
-      classifyError(e, "deleteCookie", { domain: cookie.domain });
+      const message = e instanceof Error ? e.message : String(e);
+      if (isPermissionDeniedError(e)) {
+        reportBackgroundError(ErrorCode.INSUFFICIENT_PERMISSIONS, "deleteCookie", message, {
+          domain: cookie.domain,
+          recoverable: false,
+          originalError: e,
+        });
+        return {
+          success: false,
+          error: { code: ErrorCode.INSUFFICIENT_PERMISSIONS, message },
+        };
+      }
+      const report = classifyError(e, "deleteCookie", { domain: cookie.domain });
       return {
         success: false,
-        error: { code: ErrorCode.INTERNAL_ERROR, message: (e as Error).message },
+        error: { code: report.code as ErrorCode, message: report.message },
       };
     }
   }

@@ -294,7 +294,7 @@ export interface ApiResponse<T = unknown> {
 }
 
 export interface ExtensionErrorReport {
-  code: string;
+  code: ErrorCode | string;
   operation: string;
   trigger?: string;
   domain?: string;

@@ -86,9 +86,10 @@ export const assessCookieRisk = (
     reasons.push(getReason("notSecure"));
   }
 
+  const separator = t ? t("common.listSeparator") : "、";
   return {
     level: riskLevel,
-    reason: reasons.length > 0 ? reasons.join("、") : getReason("lowRisk"),
+    reason: reasons.length > 0 ? reasons.join(separator) : getReason("lowRisk"),
     isTracking,
     isThirdParty,
   };

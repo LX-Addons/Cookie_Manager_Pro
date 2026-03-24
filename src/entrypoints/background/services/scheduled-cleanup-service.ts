@@ -28,16 +28,18 @@ export class ScheduledCleanupService {
       const now = Date.now();
 
       if (shouldPerformCleanup(settings, lastCleanup, now)) {
-        await storage.setItem(LAST_SCHEDULED_CLEANUP_KEY, now);
-
         const trigger = "scheduled" as const;
-        await this.cleanupHandler.cleanupWithFilter(
+        const result = await this.cleanupHandler.cleanupWithFilter(
           "all",
           undefined,
           undefined,
           trigger,
           this.getCleanupOptions(settings)
         );
+
+        if (result.success) {
+          await storage.setItem(LAST_SCHEDULED_CLEANUP_KEY, now);
+        }
       }
     } catch (e) {
       console.error("Failed to perform scheduled cleanup:", e);

@@ -15,7 +15,8 @@
     "count": "{count} 个",
     "domains": "{domain} 等 {count} 个域名",
     "allWebsites": "所有网站",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "listSeparator": "、"
   },
   "app": { "title": "Cookie Manager Pro", "subtitle": "站点 Cookie 管理专家" },
   "tabs": {

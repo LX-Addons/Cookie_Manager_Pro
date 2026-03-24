@@ -70,12 +70,22 @@ function validateDeleteCookiePayload(
   return typeof p.name === "string" && typeof p.domain === "string";
 }
 
-function validateCleanupByDomainPayload(
-  payload: unknown
-): payload is { domain: string; trigger: string } {
+function validateCleanupByDomainPayload(payload: unknown): payload is {
+  domain: string;
+  trigger: string;
+  clearType?: string;
+  clearCache?: boolean;
+  clearLocalStorage?: boolean;
+  clearIndexedDB?: boolean;
+} {
   if (typeof payload !== "object" || payload === null) return false;
   const p = payload as Record<string, unknown>;
-  return typeof p.domain === "string" && typeof p.trigger === "string";
+  if (typeof p.domain !== "string" || typeof p.trigger !== "string") return false;
+  if (p.clearType !== undefined && typeof p.clearType !== "string") return false;
+  if (p.clearCache !== undefined && typeof p.clearCache !== "boolean") return false;
+  if (p.clearLocalStorage !== undefined && typeof p.clearLocalStorage !== "boolean") return false;
+  if (p.clearIndexedDB !== undefined && typeof p.clearIndexedDB !== "boolean") return false;
+  return true;
 }
 
 function validateCleanupWithFilterPayload(payload: unknown): payload is {

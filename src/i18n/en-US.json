@@ -15,7 +15,8 @@
     "count": "{count}",
     "domains": "{domain} and {count} other domains",
     "allWebsites": "All Websites",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "listSeparator": ", "
   },
   "app": { "title": "Cookie Manager Pro", "subtitle": "Your Site Cookie Expert" },
   "tabs": {

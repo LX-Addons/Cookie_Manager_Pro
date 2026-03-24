@@ -26,12 +26,11 @@ export const getCleanupSettings = async (): Promise<{
   whitelist: string[];
   blacklist: string[];
 }> => {
-  let settings = await storage.getItem<Settings>(SETTINGS_KEY);
-  if (!settings) {
-    settings = DEFAULT_SETTINGS;
+  const storedSettings = await storage.getItem<Settings>(SETTINGS_KEY);
+  const settings = storedSettings ? { ...DEFAULT_SETTINGS, ...storedSettings } : DEFAULT_SETTINGS;
+
+  if (!storedSettings) {
     await storage.setItem(SETTINGS_KEY, DEFAULT_SETTINGS);
-  } else {
-    settings = { ...DEFAULT_SETTINGS, ...settings };
   }
 
   const whitelist = (await storage.getItem<string[]>(WHITELIST_KEY)) || [];

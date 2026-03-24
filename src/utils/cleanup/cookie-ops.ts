@@ -70,7 +70,7 @@ const buildCookieSetDetails = (
   }
 
   const sameSiteForChrome = toChromeSameSite(cookie.sameSite);
-  const secure = cookie.secure ?? sameSiteForChrome === "no_restriction";
+  const secure = sameSiteForChrome === "no_restriction" ? true : (cookie.secure ?? false);
 
   const cleanedDomain = cookie.domain.replace(/^\./, "");
   const normalizedPath = cookie.path?.startsWith("/") ? cookie.path : `/${cookie.path ?? ""}`;
