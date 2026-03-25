@@ -182,6 +182,7 @@ export const Settings = ({ onMessage }: Props) => {
                 label: t("settings.cleanupExpiredCookies"),
                 description: t("settings.cleanupExpiredCookiesDesc"),
                 checked: settings.cleanupExpiredCookies,
+                disabled: !settings.enableAutoCleanup,
               },
             ]}
             onChange={(values) => {

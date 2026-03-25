@@ -7,7 +7,8 @@ export const BLACKLIST_KEY = "local:blacklist" as const;
 export const SETTINGS_KEY = "local:settings" as const;
 export const CLEAR_LOG_KEY = "local:clearLog" as const;
 export const CLEANUP_ON_STARTUP_KEY = "local:cleanupOnStartup" as const;
-export const TAB_URL_MAP_KEY = "local:tabUrlMap" as const;
+export const LAST_SCHEDULED_CLEANUP_KEY = "local:lastScheduledCleanup" as const;
+export const LAST_EXPIRED_COOKIE_CLEANUP_KEY = "local:lastExpiredCookieCleanup" as const;
 
 export const LOG_RETENTION_MAP: Record<string, number> = {
   [LogRetention.ONE_HOUR]: 1 * 60 * 60 * 1000,
@@ -18,6 +19,7 @@ export const LOG_RETENTION_MAP: Record<string, number> = {
   [LogRetention.SEVEN_DAYS]: 7 * 24 * 60 * 60 * 1000,
   [LogRetention.TEN_DAYS]: 10 * 24 * 60 * 60 * 1000,
   [LogRetention.THIRTY_DAYS]: 30 * 24 * 60 * 60 * 1000,
+  [LogRetention.FOREVER]: Infinity,
 };
 
 export const SCHEDULE_INTERVAL_MAP: Record<string, number> = {
@@ -38,6 +40,7 @@ export const DEFAULT_CUSTOM_THEME: CustomTheme = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
+  settingsVersion: 1,
   clearType: CookieClearType.ALL,
   logRetention: LogRetention.SEVEN_DAYS,
   themeMode: ThemeMode.AUTO,

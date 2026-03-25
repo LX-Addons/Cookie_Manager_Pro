@@ -135,6 +135,11 @@ jobs:
           AUDIT_STATUS="${{ steps.audit.outputs.audit_status }}"
           LICENSE_STATUS="${{ steps.license.outputs.license_status }}"
           
+          if [ -z "$AUDIT_STATUS" ]; then
+            echo "⚠️ 安全审计未产生结果，可能存在执行异常"
+            exit 1
+          fi
+          
           if [ -z "$LICENSE_STATUS" ]; then
             echo "⚠️ 许可证检查未产生结果，可能存在执行异常"
             exit 1

@@ -12,6 +12,9 @@ export interface Cookie {
   sameSite: SameSite;
   expirationDate?: number;
   storeId?: string;
+  partitionKey?: chrome.cookies.CookiePartitionKey;
+  firstPartyDomain?: string;
+  hostOnly?: boolean;
 }
 
 export interface CookieStats {
@@ -74,6 +77,7 @@ export interface CustomTheme {
 export type Locale = "zh-CN" | "en-US";
 
 export interface Settings {
+  settingsVersion: number;
   clearType: CookieClearType;
   logRetention: LogRetention;
   themeMode: ThemeMode;
@@ -97,8 +101,9 @@ export interface Settings {
 
 export interface ClearLogEntry {
   id: string;
-  domain: string;
-  cookieType: CookieClearType;
+  domain?: string;
+  domains?: string[];
+  cookieType?: CookieClearType;
   count: number;
   timestamp: number;
   action: "clear" | "edit" | "delete" | "import" | "export";
@@ -110,4 +115,258 @@ export interface CookieRisk {
   reason: string;
   isTracking: boolean;
   isThirdParty: boolean;
+}
+
+export type CleanupTrigger =
+  | "manual-current"
+  | "manual-all"
+  | "scheduled"
+  | "tab-close"
+  | "browser-close-recovery"
+  | "startup"
+  | "navigate"
+  | "tab-discard"
+  | "expired-cookies";
+
+export interface DataClearResult {
+  success: boolean;
+  attempted: boolean;
+  error?: string;
+}
+
+export interface CleanupExecutionResult {
+  success: boolean;
+  trigger: CleanupTrigger;
+  requestedDomain?: string;
+  matchedDomains: string[];
+  cookiesRemoved: number;
+  browserDataCleared: {
+    cache: DataClearResult;
+    localStorage: DataClearResult;
+    indexedDB: DataClearResult;
+  };
+  partialFailures: Array<{
+    stage: CleanupStage;
+    domain?: string;
+    reason: string;
+  }>;
+  durationMs: number;
+  timestamp: number;
+}
+
+export interface PendingCleanupTask {
+  id: string;
+  type: "browser-close-recovery";
+  domain: string;
+  createdAt: number;
+  retryCount: number;
+}
+
+export interface JobLease {
+  key: string;
+  startedAt: number;
+  expiresAt: number;
+}
+
+export interface BackgroundMessage {
+  type: string;
+  payload?: unknown;
+}
+
+export interface GetCurrentTabCookiesRequest extends BackgroundMessage {
+  type: "getCurrentTabCookies";
+}
+
+export interface GetCurrentTabCookiesData {
+  cookies: Cookie[];
+  domain: string;
+}
+
+export interface GetStatsRequest extends BackgroundMessage {
+  type: "getStats";
+  domain?: string;
+}
+
+export interface CleanupByDomainRequest extends BackgroundMessage {
+  type: "cleanupByDomain";
+  payload: {
+    domain: string;
+    trigger: CleanupTrigger;
+    clearType?: CookieClearType;
+    clearCache?: boolean;
+    clearLocalStorage?: boolean;
+    clearIndexedDB?: boolean;
+  };
+}
+
+export interface CleanupWithFilterRequest extends BackgroundMessage {
+  type: "cleanupWithFilter";
+  payload: {
+    filterType: "all" | "domain" | "domain-list";
+    filterValue?: string;
+    domainList?: string[];
+    trigger: CleanupTrigger;
+    clearType?: CookieClearType;
+    clearCache?: boolean;
+    clearLocalStorage?: boolean;
+    clearIndexedDB?: boolean;
+  };
+}
+
+export interface CreateCookieRequest extends BackgroundMessage {
+  type: "createCookie";
+  payload: Partial<Cookie>;
+}
+
+export interface UpdateCookieRequest extends BackgroundMessage {
+  type: "updateCookie";
+  payload: {
+    original: Cookie;
+    updates: Partial<Cookie>;
+  };
+}
+
+export interface DeleteCookieRequest extends BackgroundMessage {
+  type: "deleteCookie";
+  payload: Cookie;
+}
+
+export interface ExportLogsRequest extends BackgroundMessage {
+  type: "exportLogs";
+  payload?: {
+    options?: {
+      sanitize?: boolean;
+      includeMetadata?: boolean;
+    };
+  };
+}
+
+export type BackgroundRequest =
+  | GetCurrentTabCookiesRequest
+  | GetStatsRequest
+  | CleanupByDomainRequest
+  | CleanupWithFilterRequest
+  | CreateCookieRequest
+  | UpdateCookieRequest
+  | DeleteCookieRequest
+  | ExportLogsRequest;
+
+export enum ErrorCode {
+  SUCCESS = "SUCCESS",
+  INVALID_URL = "INVALID_URL",
+  PERMISSION_DENIED = "PERMISSION_DENIED",
+  INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS",
+  INVALID_PARAMETERS = "INVALID_PARAMETERS",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+  COOKIE_REMOVE_FAILED = "COOKIE_REMOVE_FAILED",
+  BROWSING_DATA_FAILED = "BROWSING_DATA_FAILED",
+  STORAGE_READ_FAILED = "STORAGE_READ_FAILED",
+  STORAGE_WRITE_FAILED = "STORAGE_WRITE_FAILED",
+  TAB_QUERY_FAILED = "TAB_QUERY_FAILED",
+  COOKIE_CREATE_FAILED = "COOKIE_CREATE_FAILED",
+  COOKIE_UPDATE_FAILED = "COOKIE_UPDATE_FAILED",
+}
+
+export enum CleanupStage {
+  COOKIES = "cookies",
+  CACHE = "cache",
+  LOCAL_STORAGE = "localStorage",
+  INDEXED_DB = "indexedDB",
+  STORAGE = "storage",
+}
+
+export class CleanupError extends Error {
+  constructor(
+    public readonly code: ErrorCode,
+    public readonly stage: CleanupStage,
+    message: string
+  ) {
+    super(message);
+    this.name = "CleanupError";
+  }
+}
+
+export enum CookieRemoveErrorType {
+  NOT_FOUND = "not_found",
+  PERMISSION_DENIED = "permission_denied",
+  API_ERROR = "api_error",
+}
+
+export class CookieRemoveError extends Error {
+  constructor(
+    public readonly errorType: CookieRemoveErrorType,
+    message: string,
+    public readonly originalError?: unknown
+  ) {
+    super(message);
+    this.name = "CookieRemoveError";
+  }
+
+  static notFound(cookieName: string, domain: string): CookieRemoveError {
+    return new CookieRemoveError(
+      CookieRemoveErrorType.NOT_FOUND,
+      `Cookie "${cookieName}" not found on domain "${domain}"`,
+      null
+    );
+  }
+
+  static permissionDenied(message: string, originalError?: unknown): CookieRemoveError {
+    return new CookieRemoveError(CookieRemoveErrorType.PERMISSION_DENIED, message, originalError);
+  }
+
+  static apiError(message: string, originalError?: unknown): CookieRemoveError {
+    return new CookieRemoveError(CookieRemoveErrorType.API_ERROR, message, originalError);
+  }
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: ErrorCode;
+    message: string;
+  };
+}
+
+export interface ExtensionErrorReport {
+  code: ErrorCode | string;
+  operation: string;
+  trigger?: string;
+  domain?: string;
+  message: string;
+  recoverable: boolean;
+  timestamp: number;
+  originalError?: unknown;
+}
+
+export enum MetricType {
+  CLEANUP = "cleanup",
+  COOKIE_MUTATION = "cookie_mutation",
+  AUDIT = "audit",
+  ERROR = "error",
+  MAINTENANCE = "maintenance",
+}
+
+export interface BackgroundMetric {
+  id: string;
+  type: MetricType;
+  operation: string;
+  success: boolean;
+  durationMs: number;
+  timestamp: number;
+  domain?: string;
+  trigger?: string;
+  errorCode?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface MetricsSummary {
+  totalTasks: number;
+  successRate: number;
+  failureRate: number;
+  averageDurationMs: number;
+  successCount: number;
+  failureCount: number;
+  recentFailures: BackgroundMetric[];
+  byType: Record<MetricType, { count: number; successRate: number; averageDurationMs: number }>;
 }

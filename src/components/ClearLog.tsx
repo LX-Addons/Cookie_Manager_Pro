@@ -2,15 +2,16 @@ import { useStorage } from "@/hooks/useStorage";
 import { CLEAR_LOG_KEY, SETTINGS_KEY, DEFAULT_SETTINGS, LOG_RETENTION_MAP } from "@/lib/store";
 import type { ClearLogEntry, Settings } from "@/types";
 import { LogRetention } from "@/types";
-import { getCookieTypeName, getActionText, formatLogTime } from "@/utils";
+import { getCookieTypeName, getActionText, formatLogTime } from "@/utils/format";
 import { useMemo, useState } from "react";
 import { ConfirmDialogWrapper, type ShowConfirmFn } from "@/components/ConfirmDialogWrapper";
 import { useTranslation } from "@/hooks/useTranslation";
+import { BackgroundService } from "@/lib/background-service";
 
 type ActionFilter = "all" | "clear" | "edit" | "delete" | "import" | "export";
 
 interface Props {
-  onMessage: (msg: string) => void;
+  onMessage: (msg: string, isError?: boolean) => void;
 }
 
 interface ClearLogContentProps extends Props {
@@ -61,19 +62,48 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
     });
   };
 
-  const exportLogs = () => {
-    const dataStr = JSON.stringify(logs, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `cookie-manager-logs-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    onMessage(t("clearLog.logsExported"));
+  const exportLogs = async () => {
+    try {
+      const response = await BackgroundService.exportLogs({
+        sanitize: false,
+        includeMetadata: true,
+      });
+
+      if (response.success && response.data) {
+        const dataStr = response.data;
+        const dataBlob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `lxcookie-manager-logs-${Date.now()}.json`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        onMessage(t("clearLog.logsExported"));
+      } else {
+        console.error("Failed to export logs:", response.error);
+        onMessage(t("common.unknownError"), true);
+      }
+    } catch (e) {
+      console.error("Failed to export logs:", e);
+      onMessage(t("common.unknownError"), true);
+    }
   };
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp - a.timestamp), [logs]);
+
+  const getDomainDisplay = (domains: string[] | undefined, domain: string | undefined): string => {
+    if (!domains || domains.length === 0) {
+      return domain ?? "";
+    }
+    const separator = t("common.listSeparator");
+    if (domains.length > 2) {
+      return t("clearLog.domainListWithMore", {
+        domains: domains.slice(0, 2).join(separator),
+        count: domains.length - 2,
+      });
+    }
+    return domains.join(separator);
+  };
 
   const filteredLogs = useMemo(() => {
     if (actionFilter === "all") return sortedLogs;
@@ -142,18 +172,20 @@ const ClearLogContent = ({ onMessage, showConfirm }: ClearLogContentProps) => {
                     {formatLogTime(log.timestamp, settings.locale)}
                   </span>
                 </div>
-                <div className="log-entry-domain">{log.domain}</div>
+                <div className="log-entry-domain">{getDomainDisplay(log.domains, log.domain)}</div>
                 <div className="log-entry-meta">
                   <span className="log-entry-meta-item">
                     <span className="log-entry-meta-label">{t("clearLog.count")}:</span>
                     <span className="log-entry-meta-value">{log.count}</span>
                   </span>
-                  <span className="log-entry-meta-item">
-                    <span className="log-entry-meta-label">{t("clearLog.cookieType")}:</span>
-                    <span className="log-entry-meta-value">
-                      {getCookieTypeName(log.cookieType, t)}
+                  {log.cookieType && (
+                    <span className="log-entry-meta-item">
+                      <span className="log-entry-meta-label">{t("clearLog.cookieType")}:</span>
+                      <span className="log-entry-meta-value">
+                        {getCookieTypeName(log.cookieType, t)}
+                      </span>
                     </span>
-                  </span>
+                  )}
                 </div>
                 {log.details && <div className="log-entry-details">{log.details}</div>}
               </div>

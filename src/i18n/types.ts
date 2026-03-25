@@ -15,6 +15,8 @@ export interface Translations {
     count: string;
     domains: string;
     allWebsites: string;
+    unknownError: string;
+    listSeparator: string;
   };
   app: {
     title: string;
@@ -43,7 +45,13 @@ export interface Translations {
     clearAllCookies: string;
     unableToGetDomain: string;
     updateStatsFailed: string;
+    permissionDenied: string;
+    permissionDeniedDesc: string;
     clearCookiesFailed: string;
+    loading: string;
+    domainUnavailableDesc: string;
+    loadFailedDesc: string;
+    retry: string;
     startupCleanup: string;
     expiredCookieCleanup: string;
     cleanedExpired: string;
@@ -84,7 +92,19 @@ export interface Translations {
       appearanceDesc: string;
       languageLogs: string;
       languageLogsDesc: string;
+      permissions: string;
+      permissionsDesc: string;
     };
+    allHostsPermission: string;
+    allHostsPermissionDesc: string;
+    permissionGranted: string;
+    permissionNotGranted: string;
+    grantPermission: string;
+    revokePermission: string;
+    permissionWarning: string;
+    permissionGrantSuccess: string;
+    permissionRevokeSuccess: string;
+    permissionGrantFailed: string;
     workMode: string;
     workModeDesc: string;
     whitelistMode: string;
@@ -222,6 +242,8 @@ export interface Translations {
     count: string;
     time: string;
     details: string;
+    andMoreDomains: string;
+    domainListWithMore: string;
   };
   cookieList: {
     noCookies: string;
@@ -281,6 +303,7 @@ export interface Translations {
     filterDomainAll: string;
     filterDomainCurrent: string;
     filterDomainThirdParty: string;
+    filterDomainDisabled: string;
     filterResult: string;
     clearFilters: string;
     noMatchingCookies: string;
@@ -291,6 +314,15 @@ export interface Translations {
     sessionCookie: string;
     expand: string;
     collapse: string;
+    errorInsufficientPermissions: string;
+    partialDeleteFailed: string;
+    deleteFailedWithReason: string;
+    errorInvalidParameters: string;
+    errorInternalError: string;
+    errorCookieRemoveFailed: string;
+    errorCookieCreateFailed: string;
+    errorCookieUpdateFailed: string;
+    errorOperationFailed: string;
   };
   cookieEditor: {
     editCookie: string;

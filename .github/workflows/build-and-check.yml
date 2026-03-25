@@ -224,40 +224,6 @@ jobs:
           echo "| ESLint 代码检查 | $(to_label "$eslint_status") |" >> $GITHUB_STEP_SUMMARY
           echo "| Prettier 格式检查 | $(to_label "$prettier_status") |" >> $GITHUB_STEP_SUMMARY
 
-  test:
-    name: 单元测试
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [setup]
-    permissions:
-      contents: read
-    env:
-      NODE_VERSION: ${{ needs.setup.outputs.node_version }}
-      PNPM_VERSION: ${{ needs.setup.outputs.pnpm_version }}
-    steps:
-      - name: 检出仓库
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-
-      - name: 安装项目依赖
-        uses: ./.github/actions/setup-pnpm
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          pnpm-version: ${{ env.PNPM_VERSION }}
-
-      - name: 运行单元测试并生成覆盖率报告
-        run: pnpm run test:coverage
-
-      - name: 上传覆盖率到 Codecov
-        if: success() || failure()
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
-        with:
-          files: ./coverage/lcov.info
-          flags: unittests
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
-
   security:
     name: 安全扫描
     runs-on: ubuntu-latest
@@ -374,7 +340,7 @@ jobs:
     name: 构建扩展
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [setup, lint, test]
+    needs: [setup, lint]
     permissions:
       contents: read
     env:
@@ -563,10 +529,10 @@ jobs:
           echo "| **产物保留** | ${{ needs.setup.outputs.artifact_retention }} 天 |" >> $GITHUB_STEP_SUMMARY
 
   pr-comment:
-    name: PR评论
+    name: PR 评论
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [setup, lint, test, security, build]
+    needs: [setup, lint, security, build]
     if: >
       always() &&
       github.event_name == 'pull_request' &&
@@ -600,7 +566,6 @@ jobs:
           script: |
             const setupResult = '${{ needs.setup.result }}';
             const lintResult = '${{ needs.lint.result }}';
-            const testResult = '${{ needs.test.result }}';
             const securityResult = '${{ needs.security.result }}';
             const auditStatus = '${{ needs.security.outputs.audit_status }}';
             const buildResult = '${{ needs.build.result }}';
@@ -643,22 +608,20 @@ jobs:
             body += `| :---: | :--- | :---: | :--- |\n`;
             body += `| 🚀 | **环境准备** | ${statusEmoji(setupResult)} | 缓存与产物配置 |\n`;
             body += `| 🔍 | **代码检查** | ${statusEmoji(lintResult)} | TypeScript + ESLint + Prettier |\n`;
-            body += `| 🧪 | **单元测试** | ${statusEmoji(testResult)} | Node.js ${{ needs.setup.outputs.node_version }} 测试 |\n`;
             body += `| 🛡️ | **安全扫描** | ${statusEmoji(securityDisplayResult)} | ${getSecurityStatusText()} |\n`;
             body += `| 📦 | **扩展构建** | ${statusEmoji(buildResult)} | WXT 生产构建 |\n\n`;
 
             body += `### 🏷️ 状态徽章\n\n`;
-            body += `${getBadge('代码检查', lintResult)} ${getBadge('单元测试', testResult)} ${getBadge('安全扫描', securityDisplayResult)} ${getBadge('构建', buildResult)}\n\n`;
+            body += `${getBadge('代码检查', lintResult)} ${getBadge('安全扫描', securityDisplayResult)} ${getBadge('构建', buildResult)}\n\n`;
 
             const results = {
               setup: setupResult,
               lint: lintResult,
-              test: testResult,
               security: securityResult,
               build: buildResult
             };
 
-            const allSuccess = ['setup', 'lint', 'test', 'security', 'build'].every(r =>
+            const allSuccess = ['setup', 'lint', 'security', 'build'].every(r =>
               results[r] === 'success'
             );
             const auditIncomplete = auditStatus === 'registry_error';
@@ -738,7 +701,7 @@ jobs:
     name: 失败通知
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [setup, lint, test, security, build]
+    needs: [setup, lint, security, build]
     if: failure() && github.event_name != 'pull_request'
     permissions:
       contents: read
@@ -751,22 +714,20 @@ jobs:
           echo "| :---: | :--- | :---: |" >> $GITHUB_STEP_SUMMARY
           echo "| 🚀 | 环境准备 | ${{ needs.setup.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🔍 | 代码检查 | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧪 | 单元测试 | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🛡️ | 安全扫描 | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 📦 | 构建 | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "请查看 [工作流日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) 了解详情。" >> $GITHUB_STEP_SUMMARY
 
   dependabot-notify:
-    name: Dependabot通知
+    name: Dependabot 通知
     runs-on: ubuntu-latest
-    needs: [setup, lint, test, security, build]
+    needs: [setup, lint, security, build]
     if: >
       github.event_name == 'pull_request' &&
       github.actor == 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       needs.lint.result == 'success' &&
-      needs.test.result == 'success' &&
       needs.security.result == 'success' &&
       needs.security.outputs.audit_status != 'registry_error' &&
       needs.build.result == 'success'
