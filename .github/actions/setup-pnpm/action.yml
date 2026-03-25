@@ -31,4 +31,6 @@ runs:
       shell: bash
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
-      run: pnpm install $INSTALL_ARGS
+      run: |
+        read -ra ARGS <<< "$INSTALL_ARGS"
+        pnpm install "${ARGS[@]}"
