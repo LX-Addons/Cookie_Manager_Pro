@@ -62,7 +62,8 @@ body {
   height: var(--popup-height);
   min-width: var(--popup-width);
   min-height: var(--popup-height);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-resolution: 2dppx) {

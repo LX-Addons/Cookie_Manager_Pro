@@ -1550,6 +1550,10 @@
   padding: var(--space-3) var(--space-4);
 }
 
+.settings-group-header + .settings-note + .settings-subsection {
+  padding-top: var(--space-3);
+}
+
 .settings-subsection:not(:last-child) {
   border-bottom: 1px solid var(--line-soft);
 }
@@ -1684,6 +1688,27 @@
 .theme-dark .settings-group {
   background: var(--surface-0);
   border-color: var(--line-soft);
+}
+
+.settings-note {
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-1);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.settings-note-icon {
+  flex-shrink: 0;
+  color: var(--text-3);
+  margin-top: 1px;
+}
+
+.settings-note-text {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  margin: 0;
+  line-height: var(--line-height-relaxed);
 }
 
 .theme-dark .settings-group-header {
