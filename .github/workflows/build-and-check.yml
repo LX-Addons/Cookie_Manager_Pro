@@ -263,7 +263,7 @@ jobs:
           echo "### 🛡️ 依赖安全审计" >> $GITHUB_STEP_SUMMARY
 
           # 首先测试网络连接
-          if ! curl -s --head --fail "https://registry.npmjs.org" > /dev/null 2>&1; then
+          if ! curl -s --head --fail --connect-timeout 10 --max-time 15 "https://registry.npmjs.org" > /dev/null 2>&1; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "❌ **审计失败：无法连接到 npm registry**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -273,12 +273,23 @@ jobs:
             exit 0
           fi
 
-          # 获取 JSON 格式的审计结果
+          # 获取 JSON 格式的审计结果（仅执行一次）
           AUDIT_EXIT_CODE=0
           AUDIT_JSON=$(pnpm audit --json 2>&1) || AUDIT_EXIT_CODE=$?
           
-          # 同时获取人类可读的输出
-          AUDIT_OUTPUT=$(pnpm audit --audit-level=moderate 2>&1) || true
+          # 从 JSON 中提取或格式化人类可读的输出
+          if command -v jq &> /dev/null && echo "$AUDIT_JSON" | jq -e . &> /dev/null; then
+            AUDIT_OUTPUT=$(echo "$AUDIT_JSON" | jq -r '
+              if .vulnerabilities then
+                "Found \(.metadata.vulnerabilities.total // 0) vulnerabilities\n" +
+                (to_entries | map("\(.key): \(.value.severity // "unknown")") | join("\n"))
+              else
+                .
+              end
+            ' 2>/dev/null) || AUDIT_OUTPUT="$AUDIT_JSON"
+          else
+            AUDIT_OUTPUT="$AUDIT_JSON"
+          fi
 
           echo "<details><summary>点击查看完整审计报告</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -292,8 +303,8 @@ jobs:
             echo "✅ 未发现安全漏洞" >> $GITHUB_STEP_SUMMARY
             echo "audit_status=clean" >> $GITHUB_OUTPUT
           else
-            # 检查 JSON 输出中是否有 vulnerabilities 字段（说明有漏洞而不是网络错误）
-            if echo "$AUDIT_JSON" | grep -q '"vulnerabilities":'; then
+            # 使用 jq 检查 JSON 输出中是否有 vulnerabilities 字段（说明有漏洞而不是网络错误）
+            if echo "$AUDIT_JSON" | jq -e '.vulnerabilities' > /dev/null 2>&1; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "⚠️ **发现安全漏洞！** 请查看上方审计报告并修复。" >> $GITHUB_STEP_SUMMARY
               echo "audit_status=warning" >> $GITHUB_OUTPUT

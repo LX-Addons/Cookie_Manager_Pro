@@ -188,7 +188,8 @@ function IndexPopup() {
     setCurrentCookies([]);
   }, []);
 
-  const init = useCallback(async () => {
+  const loadStats = useCallback(async (options: { isInit: boolean }) => {
+    const { isInit } = options;
     try {
       setLoadingState("loading");
       const cookiesResponse = await BackgroundService.getCurrentTabCookies();
@@ -205,36 +206,9 @@ function IndexPopup() {
           resetPermissionDeniedState();
         } else {
           setLoadingState("load-failed");
-        }
-      } else if (cookiesResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
-        resetPermissionDeniedState();
-      } else {
-        setLoadingState("domain-unavailable");
-        setCurrentDomain("");
-      }
-    } catch {
-      setLoadingState("load-failed");
-    }
-  }, [resetPermissionDeniedState]);
-
-  const updateStats = useCallback(async () => {
-    try {
-      setLoadingState("loading");
-      const cookiesResponse = await BackgroundService.getCurrentTabCookies();
-
-      if (cookiesResponse.success && cookiesResponse.data) {
-        const statsResponse = await BackgroundService.getStats(cookiesResponse.data.domain);
-
-        if (statsResponse.success && statsResponse.data) {
-          setCurrentDomain(cookiesResponse.data.domain);
-          setCurrentCookies(cookiesResponse.data.cookies);
-          setStats(statsResponse.data);
-          setLoadingState("idle");
-        } else if (statsResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
-          resetPermissionDeniedState();
-        } else {
-          setLoadingState("load-failed");
-          showMessage(t("popup.updateStatsFailed"), true);
+          if (!isInit) {
+            showMessage(t("popup.updateStatsFailed"), true);
+          }
         }
       } else if (cookiesResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
         resetPermissionDeniedState();
@@ -243,11 +217,21 @@ function IndexPopup() {
         setCurrentDomain("");
       }
     } catch (e) {
-      console.error("Failed to update stats:", { error: e, currentDomain });
+      console.error("Failed to load stats:", { error: e, currentDomain, isInit });
       setLoadingState("load-failed");
-      showMessage(t("popup.updateStatsFailed"), true);
+      if (!isInit) {
+        showMessage(t("popup.updateStatsFailed"), true);
+      }
     }
   }, [showMessage, t, currentDomain, resetPermissionDeniedState]);
+
+  const init = useCallback(async () => {
+    await loadStats({ isInit: true });
+  }, [loadStats]);
+
+  const updateStats = useCallback(async () => {
+    await loadStats({ isInit: false });
+  }, [loadStats]);
 
   const clearCookies = useCallback(
     async (
@@ -385,7 +369,7 @@ function IndexPopup() {
       }
       chrome.cookies.onChanged.removeListener(cookieListener);
     };
-  }, [updateStats, init]);
+  }, [updateStats]);
 
   useEffect(() => {
     const mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");

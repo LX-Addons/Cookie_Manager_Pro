@@ -62,46 +62,73 @@ const SelectInner = <T extends string>({
     }
   }, []);
 
-  const handleKeyDown = useCallback(
+  const handleClosedKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (disabled) return;
+      const openSelect = (startIndex: number) => {
+        const selectedIndex = options.findIndex((opt) => opt.value === value);
+        setFocusedIndex(selectedIndex !== -1 ? selectedIndex : startIndex);
+        setIsOpen(true);
+      };
 
-      if (!isOpen) {
-        if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+      switch (e.key) {
+        case "Enter":
+        case " ":
+        case "ArrowDown":
           e.preventDefault();
-          const selectedIndex = options.findIndex((opt) => opt.value === value);
-          setFocusedIndex(selectedIndex !== -1 ? selectedIndex : 0);
-          setIsOpen(true);
-        } else if (e.key === "ArrowUp") {
+          openSelect(0);
+          break;
+        case "ArrowUp":
           e.preventDefault();
-          const selectedIndex = options.findIndex((opt) => opt.value === value);
-          setFocusedIndex(selectedIndex !== -1 ? selectedIndex : options.length - 1);
-          setIsOpen(true);
-        }
-      } else {
-        if (e.key === "ArrowDown") {
+          openSelect(options.length - 1);
+          break;
+      }
+    },
+    [options, value]
+  );
+
+  const handleOpenKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const closeSelect = () => {
+        setIsOpen(false);
+        setFocusedIndex(-1);
+      };
+
+      switch (e.key) {
+        case "ArrowDown":
           e.preventDefault();
           setFocusedIndex((prev) => (prev + 1) % options.length);
-        } else if (e.key === "ArrowUp") {
+          break;
+        case "ArrowUp":
           e.preventDefault();
           setFocusedIndex((prev) => (prev - 1 + options.length) % options.length);
-        } else if (e.key === "Enter" || e.key === " ") {
+          break;
+        case "Enter":
+        case " ":
           e.preventDefault();
           if (focusedIndex >= 0 && focusedIndex < options.length) {
             onChange(options[focusedIndex].value);
-            setIsOpen(false);
-            setFocusedIndex(-1);
+            closeSelect();
           }
-        } else if (e.key === "Escape") {
-          setIsOpen(false);
-          setFocusedIndex(-1);
-        } else if (e.key === "Tab") {
-          setIsOpen(false);
-          setFocusedIndex(-1);
-        }
+          break;
+        case "Escape":
+        case "Tab":
+          closeSelect();
+          break;
       }
     },
-    [disabled, isOpen, options, value, onChange, focusedIndex]
+    [options, onChange, focusedIndex]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (disabled) return;
+      if (!isOpen) {
+        handleClosedKeyDown(e);
+      } else {
+        handleOpenKeyDown(e);
+      }
+    },
+    [disabled, isOpen, handleClosedKeyDown, handleOpenKeyDown]
   );
 
   useEffect(() => {
@@ -146,21 +173,14 @@ const SelectInner = <T extends string>({
         {isOpen && (
           <ul className="custom-select-dropdown" role="listbox" aria-label={label || name}>
             {placeholder && (
-              <li
-                className="custom-select-option disabled"
-                role="option"
-                aria-disabled="true"
-                aria-selected="false"
-              >
+              <li className="custom-select-option disabled" role="option" aria-disabled="true" aria-selected="false">
                 {placeholder}
               </li>
             )}
             {options.map((option, index) => (
               <li
                 key={option.value}
-                ref={(el) => {
-                  optionRefs.current[index] = el;
-                }}
+                ref={(el) => { optionRefs.current[index] = el; }}
                 className={`custom-select-option ${option.value === value ? "selected" : ""} ${focusedIndex === index ? "focused" : ""}`}
                 role="option"
                 aria-selected={option.value === value}

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useId, useCallback } from "react";
 import { Icon } from "@/components/Icon";
+import { Select } from "@/components/Select";
 import type { Cookie, SameSite } from "@/types";
 import { useTranslation } from "@/hooks/useTranslation";
 import { fromChromeSameSite } from "@/utils/format";
+import { useDialog } from "@/hooks/useDialog";
 
 interface Props {
   isOpen: boolean;
@@ -45,86 +47,32 @@ const CookieEditorContent = ({
   });
   const [isSaving, setIsSaving] = useState(false);
   const { t } = useTranslation();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const titleId = useId();
   const isClosingRef = useRef(false);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
 
-  const handleClose = useCallback(() => {
+  const handleCloseInternal = useCallback(() => {
     if (isSaving || isClosingRef.current) return;
     isClosingRef.current = true;
     onClose();
   }, [onClose, isSaving]);
 
-  useEffect(() => {
-    if (isOpen) {
-      isClosingRef.current = false;
+  const handleOpenFocus = useCallback(() => {
+    if (cookie) {
+      valueInputRef.current?.focus();
+    } else {
+      nameInputRef.current?.focus();
     }
-  }, [isOpen]);
+  }, [cookie]);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen && !dialog.open) {
-      previousFocusRef.current = triggerElement || (document.activeElement as HTMLElement);
-      dialog.showModal();
-      requestAnimationFrame(() => {
-        if (cookie) {
-          valueInputRef.current?.focus();
-        } else {
-          nameInputRef.current?.focus();
-        }
-      });
-    } else if (!isOpen && dialog.open) {
-      const focusTarget = previousFocusRef.current;
-      dialog.close();
-      requestAnimationFrame(() => {
-        focusTarget?.focus();
-      });
-    }
-  }, [isOpen, triggerElement, cookie]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleCancel = (e: Event) => {
-      e.preventDefault();
-      handleClose();
-    };
-
-    const handleCloseEvent = () => {
-      if (!isClosingRef.current) {
-        handleClose();
-      }
-    };
-
-    const handleClick = (e: MouseEvent) => {
-      const rect = dialog.getBoundingClientRect();
-      const isInDialog =
-        rect.top <= e.clientY &&
-        e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX &&
-        e.clientX <= rect.left + rect.width;
-      if (!isInDialog) {
-        handleClose();
-      }
-    };
-
-    dialog.addEventListener("cancel", handleCancel);
-    dialog.addEventListener("close", handleCloseEvent);
-    dialog.addEventListener("click", handleClick);
-
-    return () => {
-      dialog.removeEventListener("cancel", handleCancel);
-      dialog.removeEventListener("close", handleCloseEvent);
-      dialog.removeEventListener("click", handleClick);
-    };
-  }, [handleClose]);
+  const { dialogRef, handleClose } = useDialog({
+    isOpen,
+    onClose: handleCloseInternal,
+    triggerElement,
+    onOpenFocus: handleOpenFocus,
+  });
 
   useEffect(() => {
     const justOpened = isOpen && !wasOpenRef.current;
@@ -273,24 +221,24 @@ const CookieEditorContent = ({
               <Icon name="shield" size={14} className="form-label-icon" />
               <span className="form-label-text">{t("cookieEditor.sameSite")}</span>
             </label>
-            <select
-              id="cookie-samesite"
-              className="select-input"
+            <Select
+              name="cookie-samesite"
               value={formData.sameSite}
-              onChange={(e) => {
-                const newSameSite = e.target.value as SameSite;
+              onChange={(value) => {
+                const newSameSite = value as SameSite;
                 setFormData({
                   ...formData,
                   sameSite: newSameSite,
                   secure: newSameSite === "none" ? true : formData.secure,
                 });
               }}
-            >
-              <option value="unspecified">{t("cookieEditor.unspecified")}</option>
-              <option value="strict">{t("cookieEditor.strict")}</option>
-              <option value="lax">{t("cookieEditor.lax")}</option>
-              <option value="none">{t("cookieEditor.none")}</option>
-            </select>
+              options={[
+                { value: "unspecified", label: t("cookieEditor.unspecified") },
+                { value: "strict", label: t("cookieEditor.strict") },
+                { value: "lax", label: t("cookieEditor.lax") },
+                { value: "none", label: t("cookieEditor.none") },
+              ]}
+            />
           </div>
           <div className="checkbox-group">
             <label className="checkbox-label">

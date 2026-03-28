@@ -1,6 +1,7 @@
-import { useEffect, useRef, useId, useCallback } from "react";
+import { useRef, useId, useCallback } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Icon } from "./Icon";
+import { useDialog } from "@/hooks/useDialog";
 
 interface ConfirmDialogProps {
   readonly isOpen: boolean;
@@ -38,14 +39,12 @@ export function ConfirmDialog({
   triggerElement,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const descriptionId = useId();
   const bodyId = useId();
   const isClosingRef = useRef(false);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const iconName = iconNameMap[variant];
   let confirmButtonClass: string;
@@ -59,84 +58,26 @@ export function ConfirmDialog({
     confirmButtonClass = "btn-primary";
   }
 
-  const handleClose = useCallback(() => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    onCancel();
-  }, [onCancel]);
-
   const handleConfirm = useCallback(() => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
     onConfirm();
   }, [onConfirm]);
 
-  useEffect(() => {
-    if (isOpen) {
-      isClosingRef.current = false;
+  const handleOpenFocus = useCallback(() => {
+    if (variant === "danger") {
+      cancelButtonRef.current?.focus();
+    } else {
+      confirmButtonRef.current?.focus();
     }
-  }, [isOpen]);
+  }, [variant]);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen && !dialog.open) {
-      previousFocusRef.current = triggerElement || (document.activeElement as HTMLElement);
-      dialog.showModal();
-      requestAnimationFrame(() => {
-        if (variant === "danger") {
-          cancelButtonRef.current?.focus();
-        } else {
-          confirmButtonRef.current?.focus();
-        }
-      });
-    } else if (!isOpen && dialog.open) {
-      const focusTarget = previousFocusRef.current;
-      dialog.close();
-      requestAnimationFrame(() => {
-        focusTarget?.focus();
-      });
-    }
-  }, [isOpen, triggerElement, variant]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleCancel = (e: Event) => {
-      e.preventDefault();
-      handleClose();
-    };
-
-    const handleCloseEvent = () => {
-      if (!isClosingRef.current) {
-        handleClose();
-      }
-    };
-
-    const handleClick = (e: MouseEvent) => {
-      const rect = dialog.getBoundingClientRect();
-      const isInDialog =
-        rect.top <= e.clientY &&
-        e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX &&
-        e.clientX <= rect.left + rect.width;
-      if (!isInDialog) {
-        handleClose();
-      }
-    };
-
-    dialog.addEventListener("cancel", handleCancel);
-    dialog.addEventListener("close", handleCloseEvent);
-    dialog.addEventListener("click", handleClick);
-
-    return () => {
-      dialog.removeEventListener("cancel", handleCancel);
-      dialog.removeEventListener("close", handleCloseEvent);
-      dialog.removeEventListener("click", handleClick);
-    };
-  }, [handleClose]);
+  const { dialogRef, handleClose } = useDialog({
+    isOpen,
+    onClose: onCancel,
+    triggerElement,
+    onOpenFocus: handleOpenFocus,
+  });
 
   const describedByIds = description ? `${descriptionId} ${bodyId}` : bodyId;
 
