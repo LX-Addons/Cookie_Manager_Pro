@@ -78,6 +78,7 @@ const CookieEditorContent = ({
     const justOpened = isOpen && !wasOpenRef.current;
     wasOpenRef.current = isOpen;
     if (justOpened) {
+      isClosingRef.current = false;
       if (cookie) {
         setFormData({
           ...cookie,
@@ -217,7 +218,7 @@ const CookieEditorContent = ({
             />
           </div>
           <div className="form-group">
-            <label className="form-label" htmlFor="cookie-samesite">
+            <label className="form-label" htmlFor="cookie-samesite-select">
               <Icon name="shield" size={14} className="form-label-icon" />
               <span className="form-label-text">{t("cookieEditor.sameSite")}</span>
             </label>

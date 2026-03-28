@@ -1,5 +1,7 @@
 import { memo, useState, useRef, useEffect, useCallback } from "react";
 
+type CloseReason = "escape" | "select" | "toggle" | "outside" | "tab";
+
 interface Props<T extends string> {
   name: string;
   value: T;
@@ -27,11 +29,18 @@ const SelectInner = <T extends string>({
   const id = `${name}-select`;
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [closeReason, setCloseReason] = useState<CloseReason | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedOption = options.find((opt) => opt.value === value);
+
+  const closeSelect = useCallback((reason: CloseReason) => {
+    setCloseReason(reason);
+    setIsOpen(false);
+    setFocusedIndex(-1);
+  }, []);
 
   const handleToggle = useCallback(() => {
     if (!disabled) {
@@ -43,31 +52,31 @@ const SelectInner = <T extends string>({
         } else if (newIsOpen) {
           setFocusedIndex(-1);
         } else {
-          setFocusedIndex(-1);
-          setTimeout(() => triggerRef.current?.focus(), 0);
+          closeSelect("toggle");
         }
         return newIsOpen;
       });
     }
-  }, [disabled, options, value]);
+  }, [disabled, options, value, closeSelect]);
 
   const handleOptionClick = useCallback(
     (optionValue: T) => {
       if (!disabled) {
         onChange(optionValue);
-        setIsOpen(false);
-        setTimeout(() => triggerRef.current?.focus(), 0);
+        closeSelect("select");
       }
     },
-    [disabled, onChange]
+    [disabled, onChange, closeSelect]
   );
 
-  const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-      setIsOpen(false);
-      setTimeout(() => triggerRef.current?.focus(), 0);
-    }
-  }, []);
+  const handleClickOutside = useCallback(
+    (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        closeSelect("outside");
+      }
+    },
+    [closeSelect]
+  );
 
   const handleClosedKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -97,14 +106,8 @@ const SelectInner = <T extends string>({
 
   const handleOpenKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const closeSelect = () => {
-        setIsOpen(false);
-        setFocusedIndex(-1);
-        setTimeout(() => triggerRef.current?.focus(), 0);
-      };
-
       if (options.length === 0) {
-        closeSelect();
+        closeSelect("escape");
         return;
       }
 
@@ -122,16 +125,19 @@ const SelectInner = <T extends string>({
           e.preventDefault();
           if (focusedIndex >= 0 && focusedIndex < options.length) {
             onChange(options[focusedIndex].value);
-            closeSelect();
+            closeSelect("select");
           }
           break;
         case "Escape":
+          e.preventDefault();
+          closeSelect("escape");
+          break;
         case "Tab":
-          closeSelect();
+          closeSelect("tab");
           break;
       }
     },
-    [options, onChange, focusedIndex]
+    [options, onChange, focusedIndex, closeSelect]
   );
 
   const handleKeyDown = useCallback(
@@ -161,6 +167,22 @@ const SelectInner = <T extends string>({
       optionRefs.current[focusedIndex]?.focus();
     }
   }, [focusedIndex, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen && closeReason) {
+      switch (closeReason) {
+        case "escape":
+        case "select":
+        case "toggle":
+          setTimeout(() => triggerRef.current?.focus(), 0);
+          break;
+        case "outside":
+        case "tab":
+          break;
+      }
+      setCloseReason(null);
+    }
+  }, [isOpen, closeReason]);
 
   return (
     <div className="select-wrapper">
@@ -193,6 +215,7 @@ const SelectInner = <T extends string>({
             role="listbox"
             aria-label={label || name}
             onKeyDown={handleKeyDown}
+            tabIndex={0}
           >
             {placeholder && (
               <div

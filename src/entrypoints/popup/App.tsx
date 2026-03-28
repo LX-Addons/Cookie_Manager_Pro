@@ -58,6 +58,7 @@ function IndexPopup() {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const loadRequestIdRef = useRef(0);
 
   const { confirmState, showConfirm, closeConfirm, handleConfirm } = useConfirmDialog();
 
@@ -131,29 +132,29 @@ function IndexPopup() {
     [settings.mode, t]
   );
 
+  const getNewTabId = (e: React.KeyboardEvent, activeTab: string, tabs: Array<{ id: string }>) => {
+    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+    switch (e.key) {
+      case "ArrowRight":
+        e.preventDefault();
+        return tabs[(currentIndex + 1) % tabs.length].id;
+      case "ArrowLeft":
+        e.preventDefault();
+        return tabs[(currentIndex - 1 + tabs.length) % tabs.length].id;
+      case "Home":
+        e.preventDefault();
+        return tabs[0].id;
+      case "End":
+        e.preventDefault();
+        return tabs.at(-1)?.id;
+      default:
+        return null;
+    }
+  };
+
   const handleTabKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
-      let newTabId: string | null = null;
-
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        const nextIndex = (currentIndex + 1) % tabs.length;
-        newTabId = tabs[nextIndex].id;
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-        newTabId = tabs[prevIndex].id;
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        newTabId = tabs[0].id;
-      } else if (e.key === "End") {
-        e.preventDefault();
-        const lastTab = tabs.at(-1);
-        if (lastTab) {
-          newTabId = lastTab.id;
-        }
-      }
+      const newTabId = getNewTabId(e, activeTab, tabs);
 
       if (newTabId && newTabId !== activeTab) {
         setActiveTab(newTabId);
@@ -191,14 +192,17 @@ function IndexPopup() {
   const loadStats = useCallback(
     async (options: { isInit: boolean }) => {
       const { isInit } = options;
+      const requestId = ++loadRequestIdRef.current;
       let requestedDomain: string | undefined;
       try {
         setLoadingState("loading");
         const cookiesResponse = await BackgroundService.getCurrentTabCookies();
+        if (requestId !== loadRequestIdRef.current) return;
 
         if (cookiesResponse.success && cookiesResponse.data) {
           requestedDomain = cookiesResponse.data.domain;
           const statsResponse = await BackgroundService.getStats(requestedDomain);
+          if (requestId !== loadRequestIdRef.current) return;
 
           if (statsResponse.success && statsResponse.data) {
             setCurrentDomain(requestedDomain);
@@ -220,6 +224,7 @@ function IndexPopup() {
           setCurrentDomain("");
         }
       } catch (e) {
+        if (requestId !== loadRequestIdRef.current) return;
         console.error("Failed to load stats:", {
           error: e,
           currentDomain: requestedDomain,
@@ -305,11 +310,11 @@ function IndexPopup() {
       alreadyInKey: string
     ) => {
       const isIn = isInList(domain, list);
-      if (!isIn) {
+      if (isIn) {
+        showMessage(t(alreadyInKey, { domain }));
+      } else {
         setList([...list, domain]);
         showMessage(t(addedKey, { domain }));
-      } else {
-        showMessage(t(alreadyInKey, { domain }));
       }
     },
     [showMessage, t]

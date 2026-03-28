@@ -275,14 +275,22 @@ jobs:
 
           # 获取 JSON 格式的审计结果（仅执行一次）
           AUDIT_EXIT_CODE=0
-          AUDIT_JSON=$(pnpm audit --json 2>&1) || AUDIT_EXIT_CODE=$?
+          AUDIT_JSON=$(pnpm audit --json --audit-level=moderate 2>&1) || AUDIT_EXIT_CODE=$?
           
           # 从 JSON 中提取或格式化人类可读的输出
           if command -v jq &> /dev/null && echo "$AUDIT_JSON" | jq -e . &> /dev/null; then
             AUDIT_OUTPUT=$(echo "$AUDIT_JSON" | jq -r '
-              if .vulnerabilities then
-                "Found \(.metadata.vulnerabilities.total // 0) vulnerabilities\n" +
-                (to_entries | map("\(.key): \(.value.severity // "unknown")") | join("\n"))
+              if .advisories then
+                (
+                  "Found \(.metadata.vulnerabilities.total // 0) vulnerabilities\n" +
+                  "  Info: \(.metadata.vulnerabilities.info // 0), Low: \(.metadata.vulnerabilities.low // 0), Moderate: \(.metadata.vulnerabilities.moderate // 0), High: \(.metadata.vulnerabilities.high // 0), Critical: \(.metadata.vulnerabilities.critical // 0)\n" +
+                  (if (.advisories | length) > 0 then
+                    "\nAdvisories:\n" +
+                    (.advisories | to_entries | map("  - \(.key): \(.value.title // "unknown") [\(.value.severity // "unknown")]") | join("\n"))
+                  else
+                    ""
+                  end)
+                )
               else
                 .
               end

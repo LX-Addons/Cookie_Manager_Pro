@@ -19,16 +19,11 @@ export function useDialog({ isOpen, onClose, triggerElement, onOpenFocus }: UseD
   }, [onClose]);
 
   useEffect(() => {
-    if (isOpen) {
-      isClosingRef.current = false;
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
     if (isOpen && !dialog.open) {
+      isClosingRef.current = false;
       previousFocusRef.current = triggerElement || (document.activeElement as HTMLElement);
       dialog.showModal();
       requestAnimationFrame(() => {
@@ -36,6 +31,7 @@ export function useDialog({ isOpen, onClose, triggerElement, onOpenFocus }: UseD
       });
     } else if (!isOpen && dialog.open) {
       const focusTarget = previousFocusRef.current;
+      isClosingRef.current = true;
       dialog.close();
       requestAnimationFrame(() => {
         focusTarget?.focus();
@@ -56,6 +52,7 @@ export function useDialog({ isOpen, onClose, triggerElement, onOpenFocus }: UseD
       if (!isClosingRef.current) {
         handleClose();
       }
+      isClosingRef.current = true;
     };
 
     const handleClick = (e: MouseEvent) => {
