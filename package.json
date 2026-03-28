@@ -51,8 +51,7 @@
       "esbuild": "0.25.0",
       "flatted": ">=3.4.2",
       "node-forge": ">=1.4.0",
-      "picomatch": ">=4.0.4",
-      "brace-expansion": "^1.1.12"
+      "picomatch": ">=4.0.4"
     }
   }
 }
