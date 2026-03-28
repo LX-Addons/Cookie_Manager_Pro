@@ -188,42 +188,51 @@ function IndexPopup() {
     setCurrentCookies([]);
   }, []);
 
-  const loadStats = useCallback(async (options: { isInit: boolean }) => {
-    const { isInit } = options;
-    try {
-      setLoadingState("loading");
-      const cookiesResponse = await BackgroundService.getCurrentTabCookies();
+  const loadStats = useCallback(
+    async (options: { isInit: boolean }) => {
+      const { isInit } = options;
+      let requestedDomain: string | undefined;
+      try {
+        setLoadingState("loading");
+        const cookiesResponse = await BackgroundService.getCurrentTabCookies();
 
-      if (cookiesResponse.success && cookiesResponse.data) {
-        const statsResponse = await BackgroundService.getStats(cookiesResponse.data.domain);
+        if (cookiesResponse.success && cookiesResponse.data) {
+          requestedDomain = cookiesResponse.data.domain;
+          const statsResponse = await BackgroundService.getStats(requestedDomain);
 
-        if (statsResponse.success && statsResponse.data) {
-          setCurrentDomain(cookiesResponse.data.domain);
-          setCurrentCookies(cookiesResponse.data.cookies);
-          setStats(statsResponse.data);
-          setLoadingState("idle");
-        } else if (statsResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
+          if (statsResponse.success && statsResponse.data) {
+            setCurrentDomain(requestedDomain);
+            setCurrentCookies(cookiesResponse.data.cookies);
+            setStats(statsResponse.data);
+            setLoadingState("idle");
+          } else if (statsResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
+            resetPermissionDeniedState();
+          } else {
+            setLoadingState("load-failed");
+            if (!isInit) {
+              showMessage(t("popup.updateStatsFailed"), true);
+            }
+          }
+        } else if (cookiesResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
           resetPermissionDeniedState();
         } else {
-          setLoadingState("load-failed");
-          if (!isInit) {
-            showMessage(t("popup.updateStatsFailed"), true);
-          }
+          setLoadingState("domain-unavailable");
+          setCurrentDomain("");
         }
-      } else if (cookiesResponse.error?.code === ErrorCode.INSUFFICIENT_PERMISSIONS) {
-        resetPermissionDeniedState();
-      } else {
-        setLoadingState("domain-unavailable");
-        setCurrentDomain("");
+      } catch (e) {
+        console.error("Failed to load stats:", {
+          error: e,
+          currentDomain: requestedDomain,
+          isInit,
+        });
+        setLoadingState("load-failed");
+        if (!isInit) {
+          showMessage(t("popup.updateStatsFailed"), true);
+        }
       }
-    } catch (e) {
-      console.error("Failed to load stats:", { error: e, currentDomain, isInit });
-      setLoadingState("load-failed");
-      if (!isInit) {
-        showMessage(t("popup.updateStatsFailed"), true);
-      }
-    }
-  }, [showMessage, t, currentDomain, resetPermissionDeniedState]);
+    },
+    [showMessage, t, resetPermissionDeniedState]
+  );
 
   const init = useCallback(async () => {
     await loadStats({ isInit: true });
@@ -287,25 +296,44 @@ function IndexPopup() {
     ]
   );
 
+  const addToListOrShowMessage = useCallback(
+    (
+      domain: string,
+      list: DomainList,
+      setList: (newList: DomainList) => void,
+      addedKey: string,
+      alreadyInKey: string
+    ) => {
+      const isIn = isInList(domain, list);
+      if (!isIn) {
+        setList([...list, domain]);
+        showMessage(t(addedKey, { domain }));
+      } else {
+        showMessage(t(alreadyInKey, { domain }));
+      }
+    },
+    [showMessage, t]
+  );
+
   const quickAddToRule = useCallback(() => {
     if (!currentDomain) return;
 
     if (settings.mode === ModeType.WHITELIST) {
-      const isNotInList = !isInList(currentDomain, whitelist);
-      if (isNotInList) {
-        setWhitelist([...whitelist, currentDomain]);
-        showMessage(t("popup.addedToWhitelist", { domain: currentDomain }));
-      } else {
-        showMessage(t("popup.alreadyInWhitelist", { domain: currentDomain }));
-      }
+      addToListOrShowMessage(
+        currentDomain,
+        whitelist,
+        setWhitelist,
+        "popup.addedToWhitelist",
+        "popup.alreadyInWhitelist"
+      );
     } else {
-      const isNotInList = !isInList(currentDomain, blacklist);
-      if (isNotInList) {
-        setBlacklist([...blacklist, currentDomain]);
-        showMessage(t("popup.addedToBlacklist", { domain: currentDomain }));
-      } else {
-        showMessage(t("popup.alreadyInBlacklist", { domain: currentDomain }));
-      }
+      addToListOrShowMessage(
+        currentDomain,
+        blacklist,
+        setBlacklist,
+        "popup.addedToBlacklist",
+        "popup.alreadyInBlacklist"
+      );
     }
   }, [
     currentDomain,
@@ -313,8 +341,7 @@ function IndexPopup() {
     blacklist,
     setWhitelist,
     setBlacklist,
-    showMessage,
-    t,
+    addToListOrShowMessage,
     settings.mode,
   ]);
 

@@ -28,18 +28,23 @@ const SelectInner = <T extends string>({
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const optionRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedOption = options.find((opt) => opt.value === value);
 
   const handleToggle = useCallback(() => {
     if (!disabled) {
       setIsOpen((prevIsOpen) => {
         const newIsOpen = !prevIsOpen;
-        if (newIsOpen) {
+        if (newIsOpen && options.length > 0) {
           const selectedIndex = options.findIndex((opt) => opt.value === value);
-          setFocusedIndex(selectedIndex !== -1 ? selectedIndex : 0);
+          setFocusedIndex(selectedIndex === -1 ? 0 : selectedIndex);
+        } else if (newIsOpen) {
+          setFocusedIndex(-1);
         } else {
           setFocusedIndex(-1);
+          setTimeout(() => triggerRef.current?.focus(), 0);
         }
         return newIsOpen;
       });
@@ -51,6 +56,7 @@ const SelectInner = <T extends string>({
       if (!disabled) {
         onChange(optionValue);
         setIsOpen(false);
+        setTimeout(() => triggerRef.current?.focus(), 0);
       }
     },
     [disabled, onChange]
@@ -59,14 +65,17 @@ const SelectInner = <T extends string>({
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
       setIsOpen(false);
+      setTimeout(() => triggerRef.current?.focus(), 0);
     }
   }, []);
 
   const handleClosedKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (options.length === 0) return;
+
       const openSelect = (startIndex: number) => {
         const selectedIndex = options.findIndex((opt) => opt.value === value);
-        setFocusedIndex(selectedIndex !== -1 ? selectedIndex : startIndex);
+        setFocusedIndex(selectedIndex === -1 ? startIndex : selectedIndex);
         setIsOpen(true);
       };
 
@@ -91,7 +100,13 @@ const SelectInner = <T extends string>({
       const closeSelect = () => {
         setIsOpen(false);
         setFocusedIndex(-1);
+        setTimeout(() => triggerRef.current?.focus(), 0);
       };
+
+      if (options.length === 0) {
+        closeSelect();
+        return;
+      }
 
       switch (e.key) {
         case "ArrowDown":
@@ -122,10 +137,10 @@ const SelectInner = <T extends string>({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (disabled) return;
-      if (!isOpen) {
-        handleClosedKeyDown(e);
-      } else {
+      if (isOpen) {
         handleOpenKeyDown(e);
+      } else {
+        handleClosedKeyDown(e);
       }
     },
     [disabled, isOpen, handleClosedKeyDown, handleOpenKeyDown]
@@ -157,6 +172,7 @@ const SelectInner = <T extends string>({
       {description && <p className="select-description">{description}</p>}
       <div ref={wrapperRef} className="custom-select-wrapper">
         <button
+          ref={triggerRef}
           id={id}
           name={name}
           type="button"
@@ -171,33 +187,41 @@ const SelectInner = <T extends string>({
           <span className="custom-select-arrow" aria-hidden="true"></span>
         </button>
         {isOpen && (
-          <ul className="custom-select-dropdown" role="listbox" aria-label={label || name}>
+          <div
+            ref={dropdownRef}
+            className="custom-select-dropdown"
+            role="listbox"
+            aria-label={label || name}
+            onKeyDown={handleKeyDown}
+          >
             {placeholder && (
-              <li className="custom-select-option disabled" role="option" aria-disabled="true" aria-selected="false">
+              <div
+                className="custom-select-option disabled"
+                role="option"
+                aria-disabled="true"
+                aria-selected="false"
+              >
                 {placeholder}
-              </li>
+              </div>
             )}
             {options.map((option, index) => (
-              <li
+              <button
                 key={option.value}
-                ref={(el) => { optionRefs.current[index] = el; }}
+                ref={(el) => {
+                  optionRefs.current[index] = el;
+                }}
                 className={`custom-select-option ${option.value === value ? "selected" : ""} ${focusedIndex === index ? "focused" : ""}`}
                 role="option"
                 aria-selected={option.value === value}
                 tabIndex={focusedIndex === index ? 0 : -1}
                 onClick={() => handleOptionClick(option.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleOptionClick(option.value);
-                  }
-                }}
                 onMouseEnter={() => setFocusedIndex(index)}
+                type="button"
               >
                 {option.label}
-              </li>
+              </button>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>

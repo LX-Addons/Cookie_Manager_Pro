@@ -318,6 +318,10 @@
   cursor: pointer;
   border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .custom-select-option:hover {

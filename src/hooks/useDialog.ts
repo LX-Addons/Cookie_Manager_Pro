@@ -7,12 +7,7 @@ export interface UseDialogOptions {
   onOpenFocus?: () => void;
 }
 
-export function useDialog({
-  isOpen,
-  onClose,
-  triggerElement,
-  onOpenFocus,
-}: UseDialogOptions) {
+export function useDialog({ isOpen, onClose, triggerElement, onOpenFocus }: UseDialogOptions) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const isClosingRef = useRef(false);
   const previousFocusRef = useRef<HTMLElement | null>(null);

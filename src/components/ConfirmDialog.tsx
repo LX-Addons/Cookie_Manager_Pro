@@ -1,4 +1,4 @@
-import { useRef, useId, useCallback } from "react";
+import { useRef, useId, useCallback, useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Icon } from "./Icon";
 import { useDialog } from "@/hooks/useDialog";
@@ -45,6 +45,12 @@ export function ConfirmDialog({
   const descriptionId = useId();
   const bodyId = useId();
   const isClosingRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      isClosingRef.current = false;
+    }
+  }, [isOpen]);
 
   const iconName = iconNameMap[variant];
   let confirmButtonClass: string;
