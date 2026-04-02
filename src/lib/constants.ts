@@ -76,7 +76,7 @@ function hasValidMetadata(data: TrackerData): boolean {
     return false;
   }
 
-  if (!data.sources.disconnect || typeof data.sources.disconnect !== "object") {
+  if (!data.sources.peterlowe || typeof data.sources.peterlowe !== "object") {
     return false;
   }
 
@@ -89,7 +89,12 @@ function hasValidMetadata(data: TrackerData): boolean {
     return false;
   }
 
-  if (typeof data.sources.disconnect.count !== "number" || data.sources.disconnect.count < 0) {
+  if (
+    typeof data.sources.peterlowe.count !== "number" ||
+    data.sources.peterlowe.count < 0 ||
+    typeof data.sources.peterlowe.version !== "string" ||
+    data.sources.peterlowe.version.trim().length === 0
+  ) {
     return false;
   }
 
@@ -139,6 +144,14 @@ function hasValidTrackerData(data: TrackerData): boolean {
 }
 
 const trackerDataValid = hasValidTrackerData(trackerData);
+
+export const TRACKING_COOKIE_KEYWORDS_SET: Set<string> = trackerDataValid
+  ? new Set(trackerData.trackingCookieKeywords)
+  : new Set(DEFAULT_TRACKING_COOKIE_KEYWORDS);
+
+export const THIRD_PARTY_TRACKERS_SET: Set<string> = trackerDataValid
+  ? new Set(trackerData.trackingDomains)
+  : new Set(DEFAULT_THIRD_PARTY_TRACKERS);
 
 export const TRACKING_COOKIE_KEYWORDS: string[] = trackerDataValid
   ? trackerData.trackingCookieKeywords

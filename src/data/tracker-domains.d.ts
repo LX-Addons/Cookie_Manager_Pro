@@ -4,6 +4,6 @@ export interface TrackerData {
   lastUpdated: string;
   sources: {
     easyprivacy: { count: number; version: string };
-    disconnect: { count: number };
+    peterlowe: { count: number; version: string };
   };
 }

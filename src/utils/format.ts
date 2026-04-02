@@ -21,6 +21,8 @@ export const getCookieTypeName = (type: string, t?: (key: string) => string): st
 
 export const getRiskLevelColor = (level: string): string => {
   switch (level) {
+    case "critical":
+      return "#7c2d12";
     case "high":
       return "#ef4444";
     case "medium":
@@ -33,6 +35,8 @@ export const getRiskLevelColor = (level: string): string => {
 export const getRiskLevelText = (level: string, t?: (key: string) => string): string => {
   if (t) {
     switch (level) {
+      case "critical":
+        return t("cookieList.criticalRisk");
       case "high":
         return t("cookieList.highRisk");
       case "medium":
@@ -42,6 +46,8 @@ export const getRiskLevelText = (level: string, t?: (key: string) => string): st
     }
   }
   switch (level) {
+    case "critical":
+      return "极高风险";
     case "high":
       return "高风险";
     case "medium":

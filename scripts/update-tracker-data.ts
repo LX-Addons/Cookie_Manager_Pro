@@ -45,11 +45,14 @@ const ROOT_DIR = join(__dirname, "..");
 const DATA_DIR = join(ROOT_DIR, "src", "data");
 
 const EASYPRIVACY_URL = "https://easylist-downloads.adblockplus.org/easyprivacy.txt";
-const DISCONNECT_URL =
-  "https://raw.githubusercontent.com/disconnectme/disconnect-tracking-protection/master/services.json";
+const PETER_LOWE_URLS = [
+  "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus&showintro=0&mimetype=plaintext",
+];
 
 const MAX_STALENESS_DAYS = 14;
 const FETCH_TIMEOUT_MS = 30000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
 async function fetchWithTimeout(
   url: string,
@@ -63,6 +66,48 @@ async function fetchWithTimeout(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface FetchWithRetryResult {
+  response: Response | null;
+  success: boolean;
+  usedUrl: string;
+  attempts: number;
+  errors: string[];
+}
+
+async function fetchWithRetryAndFallback(
+  urls: string[],
+  maxRetries: number = MAX_RETRIES
+): Promise<FetchWithRetryResult> {
+  const errors: string[] = [];
+  let attempts = 0;
+
+  for (const url of urls) {
+    for (let retry = 0; retry < maxRetries; retry++) {
+      attempts++;
+      try {
+        const response = await fetchWithTimeout(url);
+        if (response.ok) {
+          return { response, success: true, usedUrl: url, attempts, errors };
+        }
+        errors.push(`${url} -> HTTP ${response.status}`);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        errors.push(`${url} -> ${errorMsg}`);
+      }
+
+      if (retry < maxRetries - 1) {
+        await sleep(RETRY_DELAY_MS * (retry + 1));
+      }
+    }
+  }
+
+  return { response: null, success: false, usedUrl: "", attempts, errors };
 }
 
 interface FreshnessCheckResult {
@@ -190,89 +235,42 @@ function parseEasyPrivacy(text: string): {
   return { domains, version, versionDate, filteredCount, totalProcessed };
 }
 
-function processDomain(
-  domain: unknown,
-  domains: Set<string>
-): { processed: number; filtered: number } {
-  let filtered = 0;
-  if (typeof domain === "string" && isValidHostname(domain)) {
-    domains.add(domain.toLowerCase());
-  } else {
-    filtered++;
-  }
-  return { processed: 1, filtered };
-}
-
-function processTrackerDomains(
-  trackerDomains: unknown,
-  domains: Set<string>
-): { processed: number; filtered: number } {
-  if (!Array.isArray(trackerDomains)) {
-    return { processed: 0, filtered: 0 };
-  }
-  let processed = 0;
-  let filtered = 0;
-  for (const domain of trackerDomains) {
-    const result = processDomain(domain, domains);
-    processed += result.processed;
-    filtered += result.filtered;
-  }
-  return { processed, filtered };
-}
-
-function processEntityData(
-  entityData: Record<string, unknown>,
-  domains: Set<string>
-): { processed: number; filtered: number } {
-  let processed = 0;
-  let filtered = 0;
-  for (const trackerDomains of Object.values(entityData)) {
-    const result = processTrackerDomains(trackerDomains, domains);
-    processed += result.processed;
-    filtered += result.filtered;
-  }
-  return { processed, filtered };
-}
-
-function processEntity(
-  entity: Record<string, unknown>,
-  domains: Set<string>
-): { processed: number; filtered: number } {
-  let processed = 0;
-  let filtered = 0;
-  for (const entityData of Object.values(entity)) {
-    if (entityData && typeof entityData === "object") {
-      const result = processEntityData(entityData as Record<string, unknown>, domains);
-      processed += result.processed;
-      filtered += result.filtered;
-    }
-  }
-  return { processed, filtered };
-}
-
-function parseDisconnect(json: Record<string, unknown>): {
+function parsePeterLowe(text: string): {
   domains: Set<string>;
+  version: string;
   filteredCount: number;
   totalProcessed: number;
 } {
   const domains = new Set<string>();
+  let version = "unknown";
   let filteredCount = 0;
   let totalProcessed = 0;
 
-  const categories = json.categories as Record<string, Array<Record<string, unknown>>> | undefined;
-  if (!categories) {
-    return { domains, filteredCount: 0, totalProcessed: 0 };
-  }
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (line.startsWith("!Last modified:") || line.startsWith("! Last modified:")) {
+      version = line.replace(/^!?\s*Last modified:/, "").trim();
+      continue;
+    }
+    if (line.startsWith("!Entries:") || line.startsWith("! Entries:")) {
+      continue;
+    }
 
-  for (const category of Object.values(categories)) {
-    for (const entity of category) {
-      const result = processEntity(entity, domains);
-      totalProcessed += result.processed;
-      filteredCount += result.filtered;
+    if (shouldSkipLine(line)) {
+      continue;
+    }
+
+    const domain = cleanRule(line);
+    totalProcessed++;
+
+    if (isValidHostname(domain)) {
+      domains.add(domain);
+    } else {
+      filteredCount++;
     }
   }
 
-  return { domains, filteredCount, totalProcessed };
+  return { domains, version, filteredCount, totalProcessed };
 }
 
 function validateTrackingDomains(domains: unknown, errors: string[]): void {
@@ -326,8 +324,8 @@ function validateSources(sources: unknown, errors: string[]): void {
     if (!src.easyprivacy || typeof src.easyprivacy !== "object") {
       errors.push("sources.easyprivacy 必须是对象");
     }
-    if (!src.disconnect || typeof src.disconnect !== "object") {
-      errors.push("sources.disconnect 必须是对象");
+    if (!src.peterlowe || typeof src.peterlowe !== "object") {
+      errors.push("sources.peterlowe 必须是对象");
     }
   } else {
     errors.push("sources 必须是对象");
@@ -424,7 +422,7 @@ async function fetchEasyPrivacy(): Promise<EasyPrivacyResult> {
   return result;
 }
 
-interface DisconnectResult {
+interface PeterLoweResult {
   domains: Set<string>;
   downloaded: boolean;
   parsed: boolean;
@@ -433,10 +431,11 @@ interface DisconnectResult {
   count: number;
   filtered: number;
   total: number;
+  version: string;
 }
 
-async function fetchDisconnect(): Promise<DisconnectResult> {
-  const result: DisconnectResult = {
+async function fetchPeterLowe(): Promise<PeterLoweResult> {
+  const result: PeterLoweResult = {
     domains: new Set<string>(),
     downloaded: false,
     parsed: false,
@@ -445,40 +444,57 @@ async function fetchDisconnect(): Promise<DisconnectResult> {
     count: 0,
     filtered: 0,
     total: 0,
+    version: "unknown",
   };
 
-  console.log("\n📥 正在下载 Disconnect.me 数据...");
+  console.log("\n📥 正在下载 Peter Lowe's Blocklist 数据...");
+  console.log(
+    "   尝试 " + PETER_LOWE_URLS.length + " 个备用源，每个最多重试 " + MAX_RETRIES + " 次"
+  );
+
+  const fetchResult = await fetchWithRetryAndFallback(PETER_LOWE_URLS);
+
+  if (!fetchResult.success || !fetchResult.response) {
+    console.log("❌ Peter Lowe's Blocklist 所有下载尝试均失败:");
+    for (const error of fetchResult.errors) {
+      console.log("   - " + error);
+    }
+    console.log("   总计尝试: " + fetchResult.attempts + " 次");
+    return result;
+  }
+
+  result.downloaded = true;
+  console.log("✅ 从备用源下载成功: " + fetchResult.usedUrl);
+  console.log("   总计尝试: " + fetchResult.attempts + " 次");
+
   try {
-    const response = await fetchWithTimeout(DISCONNECT_URL);
-    result.downloaded = response.ok;
-    if (response.ok) {
-      const json = (await response.json()) as Record<string, unknown>;
-      const parsed = parseDisconnect(json);
-      result.parsed = true;
-      result.domains = parsed.domains;
-      result.count = parsed.domains.size;
-      result.filtered = parsed.filteredCount;
-      result.total = parsed.totalProcessed;
-      result.valid = result.count > 0;
-      if (result.valid) {
-        result.success = true;
-        console.log("✅ Disconnect.me: " + result.count + " 个有效域名");
-        console.log(
-          "   - 下载: 成功, 解析: 成功, 有效: 是, 过滤: " +
-            result.filtered +
-            " 个非法条目, 处理: " +
-            result.total +
-            " 个原始条目"
-        );
-      } else {
-        console.log("⚠️ Disconnect.me 数据为空，未提取到有效域名");
-        console.log("   - 下载: 成功, 解析: 成功, 有效: 否");
-      }
+    const text = await fetchResult.response.text();
+    const parsed = parsePeterLowe(text);
+    result.parsed = true;
+    result.domains = parsed.domains;
+    result.version = parsed.version;
+    result.count = parsed.domains.size;
+    result.filtered = parsed.filteredCount;
+    result.total = parsed.totalProcessed;
+    result.valid = result.count > 0;
+    if (result.valid) {
+      result.success = true;
+      console.log(
+        "✅ Peter Lowe's: " + result.count + " 个有效域名 (更新时间: " + result.version + ")"
+      );
+      console.log(
+        "   - 下载: 成功, 解析: 成功, 有效: 是, 过滤: " +
+          result.filtered +
+          " 个非法条目, 处理: " +
+          result.total +
+          " 个原始规则"
+      );
     } else {
-      console.log("❌ Disconnect.me 下载失败: HTTP " + response.status);
+      console.log("⚠️ Peter Lowe's 数据为空，未提取到有效域名");
+      console.log("   - 下载: 成功, 解析: 成功, 有效: 否");
     }
   } catch (error) {
-    console.log("❌ Disconnect.me 下载出错: " + error);
+    console.log("❌ Peter Lowe's 解析出错: " + error);
   }
 
   return result;
@@ -517,7 +533,7 @@ async function fetchData(): Promise<{
       version: string;
       versionDate: Date | null;
     };
-    disconnect: {
+    peterLowe: {
       downloaded: boolean;
       parsed: boolean;
       valid: boolean;
@@ -525,15 +541,16 @@ async function fetchData(): Promise<{
       count: number;
       filtered: number;
       total: number;
+      version: string;
     };
     merged: { count: number; duplicates: number };
   };
 }> {
   const easyPrivacy = await fetchEasyPrivacy();
-  const disconnect = await fetchDisconnect();
+  const peterLowe = await fetchPeterLowe();
 
-  const allDomains = new Set([...easyPrivacy.domains, ...disconnect.domains]);
-  const totalFromBoth = easyPrivacy.domains.size + disconnect.domains.size;
+  const allDomains = new Set([...easyPrivacy.domains, ...peterLowe.domains]);
+  const totalFromBoth = easyPrivacy.domains.size + peterLowe.domains.size;
   const duplicates = totalFromBoth - allDomains.size;
   console.log("\n📊 合并后总计: " + allDomains.size + " 个唯一追踪域名");
   console.log("   - 去重: " + duplicates + " 个重复域名");
@@ -550,8 +567,9 @@ async function fetchData(): Promise<{
           count: easyPrivacy.count,
           version: easyPrivacy.version,
         },
-        disconnect: {
-          count: disconnect.count,
+        peterlowe: {
+          count: peterLowe.count,
+          version: peterLowe.version,
         },
       },
     },
@@ -567,14 +585,15 @@ async function fetchData(): Promise<{
         version: easyPrivacy.version,
         versionDate: easyPrivacy.versionDate,
       },
-      disconnect: {
-        downloaded: disconnect.downloaded,
-        parsed: disconnect.parsed,
-        valid: disconnect.valid,
-        success: disconnect.success,
-        count: disconnect.count,
-        filtered: disconnect.filtered,
-        total: disconnect.total,
+      peterLowe: {
+        downloaded: peterLowe.downloaded,
+        parsed: peterLowe.parsed,
+        valid: peterLowe.valid,
+        success: peterLowe.success,
+        count: peterLowe.count,
+        filtered: peterLowe.filtered,
+        total: peterLowe.total,
+        version: peterLowe.version,
       },
       merged: {
         count: allDomains.size,
@@ -695,7 +714,7 @@ function printStats(
   console.log("\n📊 数据更新结果:");
   console.log("----------------------------------------");
   printSourceStatus("EasyPrivacy", stats.easyPrivacy);
-  printSourceStatus("Disconnect.me", stats.disconnect);
+  printSourceStatus("Peter Lowe's", stats.peterLowe);
 
   console.log("📈 合并结果:");
   console.log("   最终唯一域名: " + stats.merged.count);
@@ -761,17 +780,17 @@ async function main(
       if (allowFailure) {
         console.log("\n⚠️  允许失败模式：EasyPrivacy 失败，不覆盖现有 tracker-domains.json");
         console.log("   - EasyPrivacy: ❌ 失败");
-        console.log("   - Disconnect: " + (stats.disconnect.success ? "✅ 成功" : "❌ 失败"));
+        console.log("   - Peter Lowe's: " + (stats.peterLowe.success ? "✅ 成功" : "❌ 失败"));
         return;
       }
       handleEasyPrivacyFailure(false);
       return;
     }
 
-    if (!stats.disconnect.success && !allowFailure) {
-      console.error("\n❌ Disconnect.me 来源失败：默认模式下不写入部分数据");
+    if (!stats.peterLowe.success && !allowFailure) {
+      console.error("\n❌ Peter Lowe's 来源失败：默认模式下不写入部分数据");
       console.error("   - EasyPrivacy: ✅ 成功");
-      console.error("   - Disconnect: ❌ 失败");
+      console.error("   - Peter Lowe's: ❌ 失败");
       process.exit(1);
     }
 
