@@ -290,7 +290,6 @@ export interface Translations {
     notSecure: string;
     sameSiteNone: string;
     longLifetime: string;
-    pathTooBroad: string;
     searchPlaceholder: string;
     filterRiskAll: string;
     filterRiskLow: string;

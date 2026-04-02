@@ -913,12 +913,6 @@ export const CookieListContent = memo(
                                                   {t("cookieList.longLifetime")}
                                                 </span>
                                               )}
-                                              {risk.factors.pathTooBroad && (
-                                                <span className="risk-factor-item factor-path">
-                                                  <Icon name="fileText" size={12} />
-                                                  {t("cookieList.pathTooBroad")}
-                                                </span>
-                                              )}
                                             </div>
                                           </div>
                                         )}

@@ -4,10 +4,9 @@ import {
   THIRD_PARTY_TRACKERS_SET,
   SENSITIVE_COOKIE_KEYWORDS,
 } from "@/lib/constants";
-import { isCookieDomainMatch, normalizeDomain, isInSet } from "./domain";
+import { isCookieDomainMatch, isInSet } from "./domain";
 
 const LONG_LIFETIME_DAYS = 90;
-const PATH_TOO_BROAD = "/";
 
 export const isTrackingCookie = (cookie: { name: string; domain: string }): boolean => {
   const lowerName = cookie.name.toLowerCase();
@@ -32,9 +31,7 @@ export const isSensitiveCookie = (cookie: { name: string }): boolean => {
 
 export const isThirdPartyCookie = (cookieDomain: string, currentDomain?: string): boolean => {
   if (!currentDomain) return false;
-  const normalizedCookie = normalizeDomain(cookieDomain);
-  const normalizedCurrent = normalizeDomain(currentDomain);
-  return !isCookieDomainMatch(normalizedCookie, normalizedCurrent);
+  return !isCookieDomainMatch(cookieDomain, currentDomain);
 };
 
 export const hasLongLifetime = (cookie: { expirationDate?: number }): boolean => {
@@ -53,10 +50,6 @@ export const isSessionCookie = (cookie: {
   return false;
 };
 
-export const hasBroadPath = (cookie: { path?: string }): boolean => {
-  return cookie.path === PATH_TOO_BROAD || !cookie.path;
-};
-
 const RISK_SCORES = {
   tracking: 40,
   sensitive: 25,
@@ -65,7 +58,6 @@ const RISK_SCORES = {
   notSecure: 10,
   sameSiteNone: 8,
   longLifetime: 8,
-  pathTooBroad: 5,
   sessionCookie: -5,
 };
 
@@ -79,7 +71,6 @@ const calculateRiskScore = (factors: CookieRiskFactors): number => {
   if (factors.notSecure) score += RISK_SCORES.notSecure;
   if (factors.sameSiteNone) score += RISK_SCORES.sameSiteNone;
   if (factors.longLifetime) score += RISK_SCORES.longLifetime;
-  if (factors.pathTooBroad) score += RISK_SCORES.pathTooBroad;
   if (factors.sessionCookie) score += RISK_SCORES.sessionCookie;
 
   return Math.max(0, Math.min(100, score));
@@ -102,7 +93,6 @@ const buildRiskReason = (t?: (key: string) => string): ((reasonKey: string) => s
       notSecure: t ? t("cookieList.notSecure") : "非 Secure（可能在不安全连接中传输）",
       sameSiteNone: t ? t("cookieList.sameSiteNone") : "SameSite=None（允许跨站发送）",
       longLifetime: t ? t("cookieList.longLifetime") : "长期有效（超过 90 天）",
-      pathTooBroad: t ? t("cookieList.pathTooBroad") : "路径过于宽泛（/）",
       lowRisk: t ? t("cookieList.lowRisk") : "低风险",
     };
     return reasonMap[reasonKey] || reasonKey;
@@ -119,7 +109,6 @@ const buildReasons = (factors: CookieRiskFactors, getReason: (key: string) => st
   if (factors.notSecure) reasons.push(getReason("notSecure"));
   if (factors.sameSiteNone) reasons.push(getReason("sameSiteNone"));
   if (factors.longLifetime) reasons.push(getReason("longLifetime"));
-  if (factors.pathTooBroad) reasons.push(getReason("pathTooBroad"));
 
   return reasons;
 };
@@ -148,13 +137,9 @@ export const assessCookieRisk = (
     isSensitive: isSensitiveCookie(cookie),
     notHttpOnly: !cookie.httpOnly,
     notSecure: !cookie.secure,
-    sameSiteNone:
-      cookie.sameSite === "no_restriction" ||
-      cookie.sameSite === "none" ||
-      (!cookie.sameSite && !cookie.secure),
+    sameSiteNone: cookie.sameSite === "no_restriction" || cookie.sameSite === "none",
     longLifetime: hasLongLifetime(cookie),
     sessionCookie: isSessionCookie(cookie),
-    pathTooBroad: hasBroadPath(cookie),
   };
 
   const score = calculateRiskScore(factors);

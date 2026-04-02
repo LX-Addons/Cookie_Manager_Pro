@@ -1,3 +1,5 @@
+import { RiskLevel } from "@/types";
+
 export const getCookieTypeName = (type: string, t?: (key: string) => string): string => {
   if (t) {
     switch (type) {
@@ -19,7 +21,7 @@ export const getCookieTypeName = (type: string, t?: (key: string) => string): st
   }
 };
 
-export const getRiskLevelColor = (level: string): string => {
+export const getRiskLevelColor = (level: RiskLevel): string => {
   switch (level) {
     case "critical":
       return "#7c2d12";
@@ -32,7 +34,7 @@ export const getRiskLevelColor = (level: string): string => {
   }
 };
 
-export const getRiskLevelText = (level: string, t?: (key: string) => string): string => {
+export const getRiskLevelText = (level: RiskLevel, t?: (key: string) => string): string => {
   if (t) {
     switch (level) {
       case "critical":

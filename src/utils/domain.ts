@@ -40,7 +40,7 @@ export const isInSet = (domain: string, domainSet: Set<string>): boolean => {
   }
 
   const parts = normalizedDomain.split(".");
-  for (let i = 0; i < parts.length - 1; i++) {
+  for (let i = 1; i < parts.length - 1; i++) {
     const parentDomain = parts.slice(i).join(".");
     if (domainSet.has(parentDomain)) {
       return true;

@@ -727,6 +727,32 @@ function printStats(
   console.log("   数据最新: " + (finalDataIsStale ? "❌ 否" : "✅ 是"));
 }
 
+function handleSourceFailures(
+  easyPrivacySuccess: boolean,
+  peterLoweSuccess: boolean,
+  allowFailure: boolean
+): boolean {
+  if (!easyPrivacySuccess) {
+    if (allowFailure) {
+      console.log("\n⚠️  允许失败模式：EasyPrivacy 失败，不覆盖现有 tracker-domains.json");
+      console.log("   - EasyPrivacy: ❌ 失败");
+      console.log("   - Peter Lowe's: " + (peterLoweSuccess ? "✅ 成功" : "❌ 失败"));
+      return false;
+    }
+    handleEasyPrivacyFailure(false);
+    return false;
+  }
+
+  if (!peterLoweSuccess && !allowFailure) {
+    console.error("\n❌ Peter Lowe's 来源失败：默认模式下不写入部分数据");
+    console.error("   - EasyPrivacy: ✅ 成功");
+    console.error("   - Peter Lowe's: ❌ 失败");
+    process.exit(1);
+  }
+
+  return true;
+}
+
 async function main(
   allowFailure: boolean = false,
   requireEasyPrivacy: boolean = false,
@@ -776,22 +802,8 @@ async function main(
       return;
     }
 
-    if (!stats.easyPrivacy.success) {
-      if (allowFailure) {
-        console.log("\n⚠️  允许失败模式：EasyPrivacy 失败，不覆盖现有 tracker-domains.json");
-        console.log("   - EasyPrivacy: ❌ 失败");
-        console.log("   - Peter Lowe's: " + (stats.peterLowe.success ? "✅ 成功" : "❌ 失败"));
-        return;
-      }
-      handleEasyPrivacyFailure(false);
+    if (!handleSourceFailures(stats.easyPrivacy.success, stats.peterLowe.success, allowFailure)) {
       return;
-    }
-
-    if (!stats.peterLowe.success && !allowFailure) {
-      console.error("\n❌ Peter Lowe's 来源失败：默认模式下不写入部分数据");
-      console.error("   - EasyPrivacy: ✅ 成功");
-      console.error("   - Peter Lowe's: ❌ 失败");
-      process.exit(1);
     }
 
     writeTrackerData(data, outputPath, tempPath);

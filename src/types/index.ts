@@ -121,7 +121,6 @@ export interface CookieRiskFactors {
   sameSiteNone: boolean;
   longLifetime: boolean;
   sessionCookie: boolean;
-  pathTooBroad: boolean;
 }
 
 export interface CookieRisk {

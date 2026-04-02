@@ -1219,8 +1219,8 @@
 }
 
 .tag-risk-critical {
-  background: #7c2d12;
-  color: #fef2f2;
+  background: var(--critical-tint-10);
+  color: var(--critical-700);
 }
 
 .tag-session {
@@ -1249,8 +1249,8 @@
 }
 
 .theme-dark .tag-risk-critical {
-  background: #451a03;
-  color: #fecaca;
+  background: var(--critical-tint-15);
+  color: var(--critical-500);
 }
 
 .theme-dark .tag-session {
