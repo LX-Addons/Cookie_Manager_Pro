@@ -1,6 +1,7 @@
 import trackerData from "@/data/tracker-domains.json";
 import type { TrackerData } from "@/data/tracker-domains.d.ts";
 import { isValidHostname, isValidCookieKeyword } from "./cookie-data-validators";
+import { normalizeDomain } from "@/utils/domain";
 
 export const MESSAGE_DURATION = 3000;
 
@@ -146,12 +147,12 @@ function hasValidTrackerData(data: TrackerData): boolean {
 const trackerDataValid = hasValidTrackerData(trackerData);
 
 export const TRACKING_COOKIE_KEYWORDS_SET: Set<string> = trackerDataValid
-  ? new Set(trackerData.trackingCookieKeywords)
+  ? new Set(trackerData.trackingCookieKeywords.map((k) => k.toLowerCase()))
   : new Set(DEFAULT_TRACKING_COOKIE_KEYWORDS);
 
 export const THIRD_PARTY_TRACKERS_SET: Set<string> = trackerDataValid
-  ? new Set(trackerData.trackingDomains)
-  : new Set(DEFAULT_THIRD_PARTY_TRACKERS);
+  ? new Set(trackerData.trackingDomains.map(normalizeDomain))
+  : new Set(DEFAULT_THIRD_PARTY_TRACKERS.map(normalizeDomain));
 
 export const TRACKING_COOKIE_KEYWORDS: string[] = trackerDataValid
   ? trackerData.trackingCookieKeywords
