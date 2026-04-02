@@ -9,6 +9,33 @@
  * 【注意】修改此文件必须同步刷新 src/data/tracker-domains.json
  */
 
+const IPV4_OCTET_REGEX = /^(25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
+
+function isIPv4Address(hostname: string): boolean {
+  const parts = hostname.split(".");
+  if (parts.length !== 4) return false;
+  return parts.every((part) => IPV4_OCTET_REGEX.test(part));
+}
+
+const HEX_GROUP = /^[0-9a-fA-F]{1,4}$/;
+
+function isIPv6Address(hostname: string): boolean {
+  if (hostname === "::" || hostname === "::1") return true;
+
+  if (hostname.includes("::")) {
+    const parts = hostname.split("::");
+    if (parts.length > 2) return false;
+    const left = parts[0] ? parts[0].split(":") : [];
+    const right = parts[1] ? parts[1].split(":") : [];
+    if (left.length + right.length > 7) return false;
+    return [...left, ...right].every((group) => group === "" || HEX_GROUP.test(group));
+  }
+
+  const groups = hostname.split(":");
+  if (groups.length !== 8) return false;
+  return groups.every((group) => HEX_GROUP.test(group));
+}
+
 export function isValidHostname(hostname: string): boolean {
   if (!hostname || hostname.length === 0) {
     return false;
@@ -59,15 +86,11 @@ export function isValidHostname(hostname: string): boolean {
     return false;
   }
 
-  const ipv4Regex =
-    /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  if (ipv4Regex.test(hostname)) {
+  if (isIPv4Address(hostname)) {
     return false;
   }
 
-  const ipv6Regex =
-    /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^::1$|^::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:)*:[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:){2,7}:$|^(?:[0-9a-fA-F]{1,4}:){1,7}:[0-9a-fA-F]{1,4}$/;
-  if (ipv6Regex.test(hostname)) {
+  if (isIPv6Address(hostname)) {
     return false;
   }
 

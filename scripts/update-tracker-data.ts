@@ -1,4 +1,4 @@
-import { writeFileSync, mkdirSync, existsSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isValidHostname, isValidCookieKeyword } from "../src/lib/cookie-data-validators.js";
@@ -93,11 +93,9 @@ function checkDataFreshness(
     } else {
       return { isStale: true, checkDate: null, checkSource: "EasyPrivacy 成功但版本日期不可解析" };
     }
-  } else {
-    if (isValidExistingDataForFreshness(existingData)) {
-      checkDate = new Date(existingData.lastUpdated);
-      checkSource = "现有数据 lastUpdated";
-    }
+  } else if (isValidExistingDataForFreshness(existingData)) {
+    checkDate = new Date(existingData.lastUpdated);
+    checkSource = "现有数据 lastUpdated";
   }
 
   let isStale = true;
@@ -110,6 +108,47 @@ function checkDataFreshness(
   }
 
   return { isStale, checkDate, checkSource };
+}
+
+function parseVersion(line: string): { version: string; versionDate: Date | null } {
+  const version = line.replace("! Version:", "").trim();
+  const dateMatch = /(\d{4})(\d{2})(\d{2})/.exec(version);
+  if (!dateMatch) {
+    return { version, versionDate: null };
+  }
+  const year = Number.parseInt(dateMatch[1], 10);
+  const month = Number.parseInt(dateMatch[2], 10) - 1;
+  const day = Number.parseInt(dateMatch[3], 10);
+  return { version, versionDate: new Date(Date.UTC(year, month, day)) };
+}
+
+function shouldSkipLine(line: string): boolean {
+  return (
+    line.startsWith("!") ||
+    line.startsWith("[") ||
+    !line.trim() ||
+    line.startsWith("@@") ||
+    line.startsWith("##") ||
+    line.startsWith("#?#") ||
+    line.startsWith("#@#")
+  );
+}
+
+function cleanRule(rule: string): string {
+  let cleaned = rule.trim();
+  if (cleaned.startsWith("||")) {
+    cleaned = cleaned.slice(2);
+  }
+  cleaned = cleaned.replace(/\^.*$/, "");
+  cleaned = cleaned.replace(/\$.*$/, "");
+  cleaned = cleaned.replace(/\/\*.*$/, "");
+  if (cleaned.includes("/")) {
+    cleaned = cleaned.split("/")[0];
+  }
+  if (cleaned.includes("?")) {
+    cleaned = cleaned.split("?")[0];
+  }
+  return cleaned.toLowerCase().trim();
 }
 
 function parseEasyPrivacy(text: string): {
@@ -128,48 +167,17 @@ function parseEasyPrivacy(text: string): {
   const lines = text.split("\n");
   for (const line of lines) {
     if (line.startsWith("! Version:")) {
-      version = line.replace("! Version:", "").trim();
-      const dateMatch = /(\d{4})(\d{2})(\d{2})/.exec(version);
-      if (dateMatch) {
-        const year = Number.parseInt(dateMatch[1], 10);
-        const month = Number.parseInt(dateMatch[2], 10) - 1;
-        const day = Number.parseInt(dateMatch[3], 10);
-        versionDate = new Date(Date.UTC(year, month, day));
-      }
-    }
-
-    if (line.startsWith("!") || line.startsWith("[") || !line.trim()) {
+      const parsed = parseVersion(line);
+      version = parsed.version;
+      versionDate = parsed.versionDate;
       continue;
     }
 
-    if (line.startsWith("@@")) {
+    if (shouldSkipLine(line)) {
       continue;
     }
 
-    if (line.startsWith("##") || line.startsWith("#?#") || line.startsWith("#@#")) {
-      continue;
-    }
-
-    let rule = line.trim();
-
-    if (rule.startsWith("||")) {
-      rule = rule.slice(2);
-    }
-
-    rule = rule.replace(/\^.*$/, "");
-    rule = rule.replace(/\$.*$/, "");
-    rule = rule.replace(/\/\*.*$/, "");
-
-    // 只取路径前的主机名部分
-    if (rule.includes("/")) {
-      rule = rule.split("/")[0];
-    }
-    if (rule.includes("?")) {
-      rule = rule.split("?")[0];
-    }
-
-    const domain = rule.toLowerCase().trim();
-
+    const domain = cleanRule(line);
     totalProcessed++;
 
     if (isValidHostname(domain)) {
@@ -182,6 +190,66 @@ function parseEasyPrivacy(text: string): {
   return { domains, version, versionDate, filteredCount, totalProcessed };
 }
 
+function processDomain(
+  domain: unknown,
+  domains: Set<string>
+): { processed: number; filtered: number } {
+  let filtered = 0;
+  if (typeof domain === "string" && isValidHostname(domain)) {
+    domains.add(domain.toLowerCase());
+  } else {
+    filtered++;
+  }
+  return { processed: 1, filtered };
+}
+
+function processTrackerDomains(
+  trackerDomains: unknown,
+  domains: Set<string>
+): { processed: number; filtered: number } {
+  if (!Array.isArray(trackerDomains)) {
+    return { processed: 0, filtered: 0 };
+  }
+  let processed = 0;
+  let filtered = 0;
+  for (const domain of trackerDomains) {
+    const result = processDomain(domain, domains);
+    processed += result.processed;
+    filtered += result.filtered;
+  }
+  return { processed, filtered };
+}
+
+function processEntityData(
+  entityData: Record<string, unknown>,
+  domains: Set<string>
+): { processed: number; filtered: number } {
+  let processed = 0;
+  let filtered = 0;
+  for (const trackerDomains of Object.values(entityData)) {
+    const result = processTrackerDomains(trackerDomains, domains);
+    processed += result.processed;
+    filtered += result.filtered;
+  }
+  return { processed, filtered };
+}
+
+function processEntity(
+  entity: Record<string, unknown>,
+  domains: Set<string>
+): { processed: number; filtered: number } {
+  let processed = 0;
+  let filtered = 0;
+  for (const entityData of Object.values(entity)) {
+    if (entityData && typeof entityData === "object") {
+      const result = processEntityData(entityData as Record<string, unknown>, domains);
+      processed += result.processed;
+      filtered += result.filtered;
+    }
+  }
+  return { processed, filtered };
+}
+
 function parseDisconnect(json: Record<string, unknown>): {
   domains: Set<string>;
   filteredCount: number;
@@ -191,90 +259,78 @@ function parseDisconnect(json: Record<string, unknown>): {
   let filteredCount = 0;
   let totalProcessed = 0;
 
-  const categories = json.categories as
-    | Record<string, Array<{ [key: string]: { [key: string]: string[] } }>>
-    | undefined;
+  const categories = json.categories as Record<string, Array<Record<string, unknown>>> | undefined;
   if (!categories) {
     return { domains, filteredCount: 0, totalProcessed: 0 };
   }
 
   for (const category of Object.values(categories)) {
     for (const entity of category) {
-      for (const entityData of Object.values(entity)) {
-        for (const trackerDomains of Object.values(entityData)) {
-          if (Array.isArray(trackerDomains)) {
-            for (const domain of trackerDomains) {
-              totalProcessed++;
-              if (typeof domain === "string") {
-                if (isValidHostname(domain)) {
-                  domains.add(domain.toLowerCase());
-                } else {
-                  filteredCount++;
-                }
-              } else {
-                filteredCount++;
-              }
-            }
-          }
-        }
-      }
+      const result = processEntity(entity, domains);
+      totalProcessed += result.processed;
+      filteredCount += result.filtered;
     }
   }
 
   return { domains, filteredCount, totalProcessed };
 }
 
-function validateTrackerData(data: TrackerData): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  if (!Array.isArray(data.trackingDomains)) {
-    errors.push("trackingDomains 必须是数组");
-  } else {
-    if (data.trackingDomains.length === 0) {
+function validateTrackingDomains(domains: unknown, errors: string[]): void {
+  if (Array.isArray(domains)) {
+    if (domains.length === 0) {
       errors.push("trackingDomains 不能为空");
     }
-
-    for (const domain of data.trackingDomains) {
+    for (const domain of domains) {
       if (!isValidHostname(domain)) {
         errors.push("trackingDomains 包含无效域名: " + domain);
       }
     }
-  }
-
-  if (!Array.isArray(data.trackingCookieKeywords)) {
-    errors.push("trackingCookieKeywords 必须是数组");
   } else {
-    if (data.trackingCookieKeywords.length === 0) {
+    errors.push("trackingDomains 必须是数组");
+  }
+}
+
+function validateTrackingCookieKeywords(keywords: unknown, errors: string[]): void {
+  if (Array.isArray(keywords)) {
+    if (keywords.length === 0) {
       errors.push("trackingCookieKeywords 不能为空");
     }
-
-    for (const keyword of data.trackingCookieKeywords) {
+    for (const keyword of keywords) {
       if (!isValidCookieKeyword(keyword)) {
         errors.push("trackingCookieKeywords 包含无效关键词: " + keyword);
       }
     }
-  }
-
-  if (!data.lastUpdated || typeof data.lastUpdated !== "string") {
-    errors.push("lastUpdated 必须是有效的时间字符串");
   } else {
-    const lastUpdatedDate = new Date(data.lastUpdated);
+    errors.push("trackingCookieKeywords 必须是数组");
+  }
+}
+
+function validateLastUpdated(lastUpdated: unknown, errors: string[]): void {
+  if (lastUpdated && typeof lastUpdated === "string") {
+    const lastUpdatedDate = new Date(lastUpdated);
     if (Number.isNaN(lastUpdatedDate.getTime())) {
       errors.push("lastUpdated 必须是可解析的日期字符串");
     }
-  }
-
-  if (!data.sources || typeof data.sources !== "object") {
-    errors.push("sources 必须是对象");
   } else {
-    if (!data.sources.easyprivacy || typeof data.sources.easyprivacy !== "object") {
+    errors.push("lastUpdated 必须是有效的时间字符串");
+  }
+}
+
+function validateSources(sources: unknown, errors: string[]): void {
+  if (sources && typeof sources === "object") {
+    const src = sources as Record<string, unknown>;
+    if (!src.easyprivacy || typeof src.easyprivacy !== "object") {
       errors.push("sources.easyprivacy 必须是对象");
     }
-    if (!data.sources.disconnect || typeof data.sources.disconnect !== "object") {
+    if (!src.disconnect || typeof src.disconnect !== "object") {
       errors.push("sources.disconnect 必须是对象");
     }
+  } else {
+    errors.push("sources 必须是对象");
   }
+}
 
+function validateKeys(data: TrackerData, errors: string[]): void {
   const allowedKeys = ["trackingDomains", "trackingCookieKeywords", "lastUpdated", "sources"];
   const actualKeys = Object.keys(data);
   for (const key of actualKeys) {
@@ -287,8 +343,160 @@ function validateTrackerData(data: TrackerData): { valid: boolean; errors: strin
       errors.push("缺少必需字段: " + key);
     }
   }
+}
+
+function validateTrackerData(data: TrackerData): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  validateTrackingDomains(data.trackingDomains, errors);
+  validateTrackingCookieKeywords(data.trackingCookieKeywords, errors);
+  validateLastUpdated(data.lastUpdated, errors);
+  validateSources(data.sources, errors);
+  validateKeys(data, errors);
 
   return { valid: errors.length === 0, errors };
+}
+
+interface EasyPrivacyResult {
+  domains: Set<string>;
+  downloaded: boolean;
+  parsed: boolean;
+  valid: boolean;
+  success: boolean;
+  count: number;
+  filtered: number;
+  total: number;
+  version: string;
+  versionDate: Date | null;
+}
+
+async function fetchEasyPrivacy(): Promise<EasyPrivacyResult> {
+  const result: EasyPrivacyResult = {
+    domains: new Set<string>(),
+    downloaded: false,
+    parsed: false,
+    valid: false,
+    success: false,
+    count: 0,
+    filtered: 0,
+    total: 0,
+    version: "unknown",
+    versionDate: null,
+  };
+
+  console.log("📥 正在下载 EasyPrivacy 数据...");
+  try {
+    const response = await fetchWithTimeout(EASYPRIVACY_URL);
+    result.downloaded = response.ok;
+    if (response.ok) {
+      const text = await response.text();
+      const parsed = parseEasyPrivacy(text);
+      result.parsed = true;
+      result.domains = parsed.domains;
+      result.version = parsed.version;
+      result.versionDate = parsed.versionDate;
+      result.count = parsed.domains.size;
+      result.filtered = parsed.filteredCount;
+      result.total = parsed.totalProcessed;
+      result.valid = result.count > 0;
+      result.success = result.valid;
+      console.log("✅ EasyPrivacy: " + result.count + " 个有效域名 (版本: " + result.version + ")");
+      console.log(
+        "   - 下载: 成功, 解析: 成功, 有效: " +
+          (result.valid ? "是" : "否") +
+          ", 过滤: " +
+          result.filtered +
+          " 个非法条目, 处理: " +
+          result.total +
+          " 个原始规则"
+      );
+    } else {
+      console.log("❌ EasyPrivacy 下载失败: HTTP " + response.status);
+    }
+  } catch (error) {
+    console.log("❌ EasyPrivacy 下载出错: " + error);
+  }
+
+  return result;
+}
+
+interface DisconnectResult {
+  domains: Set<string>;
+  downloaded: boolean;
+  parsed: boolean;
+  valid: boolean;
+  success: boolean;
+  count: number;
+  filtered: number;
+  total: number;
+}
+
+async function fetchDisconnect(): Promise<DisconnectResult> {
+  const result: DisconnectResult = {
+    domains: new Set<string>(),
+    downloaded: false,
+    parsed: false,
+    valid: false,
+    success: false,
+    count: 0,
+    filtered: 0,
+    total: 0,
+  };
+
+  console.log("\n📥 正在下载 Disconnect.me 数据...");
+  try {
+    const response = await fetchWithTimeout(DISCONNECT_URL);
+    result.downloaded = response.ok;
+    if (response.ok) {
+      const json = (await response.json()) as Record<string, unknown>;
+      const parsed = parseDisconnect(json);
+      result.parsed = true;
+      result.domains = parsed.domains;
+      result.count = parsed.domains.size;
+      result.filtered = parsed.filteredCount;
+      result.total = parsed.totalProcessed;
+      result.valid = result.count > 0;
+      if (result.valid) {
+        result.success = true;
+        console.log("✅ Disconnect.me: " + result.count + " 个有效域名");
+        console.log(
+          "   - 下载: 成功, 解析: 成功, 有效: 是, 过滤: " +
+            result.filtered +
+            " 个非法条目, 处理: " +
+            result.total +
+            " 个原始条目"
+        );
+      } else {
+        console.log("⚠️ Disconnect.me 数据为空，未提取到有效域名");
+        console.log("   - 下载: 成功, 解析: 成功, 有效: 否");
+      }
+    } else {
+      console.log("❌ Disconnect.me 下载失败: HTTP " + response.status);
+    }
+  } catch (error) {
+    console.log("❌ Disconnect.me 下载出错: " + error);
+  }
+
+  return result;
+}
+
+function processKeywords(): Set<string> {
+  const invalidKeywords: string[] = [];
+  const validKeywords = new Set<string>();
+  for (const rawKeyword of trackingCookieKeywordsConfig.keywords) {
+    const keyword = String(rawKeyword).toLowerCase();
+    if (!isValidCookieKeyword(keyword)) {
+      invalidKeywords.push(String(rawKeyword));
+      continue;
+    }
+    validKeywords.add(keyword);
+  }
+
+  if (invalidKeywords.length > 0) {
+    throw new Error("tracking-cookie-keywords.json 包含无效关键词: " + invalidKeywords.join(", "));
+  }
+
+  return validKeywords;
 }
 
 async function fetchData(): Promise<{
@@ -317,113 +525,16 @@ async function fetchData(): Promise<{
     merged: { count: number; duplicates: number };
   };
 }> {
-  const easyPrivacyDomains = new Set<string>();
-  let easyPrivacyVersion = "unknown";
-  let easyPrivacyVersionDate: Date | null = null;
-  let easyPrivacyDownloaded = false;
-  let easyPrivacyParsed = false;
-  let easyPrivacyValid = false;
-  let easyPrivacySuccess = false;
-  let easyPrivacyCount = 0;
-  let easyPrivacyFiltered = 0;
-  let easyPrivacyTotal = 0;
+  const easyPrivacy = await fetchEasyPrivacy();
+  const disconnect = await fetchDisconnect();
 
-  console.log("📥 正在下载 EasyPrivacy 数据...");
-  try {
-    const easyPrivacyResponse = await fetchWithTimeout(EASYPRIVACY_URL);
-    easyPrivacyDownloaded = easyPrivacyResponse.ok;
-    if (easyPrivacyResponse.ok) {
-      const easyPrivacyText = await easyPrivacyResponse.text();
-      const easyPrivacyData = parseEasyPrivacy(easyPrivacyText);
-      easyPrivacyParsed = true;
-      for (const domain of easyPrivacyData.domains) {
-        easyPrivacyDomains.add(domain);
-      }
-      easyPrivacyVersion = easyPrivacyData.version;
-      easyPrivacyVersionDate = easyPrivacyData.versionDate;
-      easyPrivacyCount = easyPrivacyData.domains.size;
-      easyPrivacyFiltered = easyPrivacyData.filteredCount;
-      easyPrivacyTotal = easyPrivacyData.totalProcessed;
-      easyPrivacyValid = easyPrivacyCount > 0;
-      easyPrivacySuccess = easyPrivacyValid;
-      console.log(
-        "✅ EasyPrivacy: " + easyPrivacyCount + " 个有效域名 (版本: " + easyPrivacyVersion + ")"
-      );
-      console.log(
-        "   - 下载: 成功, 解析: 成功, 有效: " +
-          (easyPrivacyValid ? "是" : "否") +
-          ", 过滤: " +
-          easyPrivacyFiltered +
-          " 个非法条目, 处理: " +
-          easyPrivacyTotal +
-          " 个原始规则"
-      );
-    } else {
-      console.log("❌ EasyPrivacy 下载失败: HTTP " + easyPrivacyResponse.status);
-    }
-  } catch (error) {
-    console.log("❌ EasyPrivacy 下载出错: " + error);
-  }
-
-  const disconnectDomains = new Set<string>();
-  let disconnectDownloaded = false;
-  let disconnectParsed = false;
-  let disconnectValid = false;
-  let disconnectSuccess = false;
-  let disconnectCount = 0;
-  let disconnectFiltered = 0;
-  let disconnectTotal = 0;
-
-  console.log("\n📥 正在下载 Disconnect.me 数据...");
-  try {
-    const disconnectResponse = await fetchWithTimeout(DISCONNECT_URL);
-    disconnectDownloaded = disconnectResponse.ok;
-    if (disconnectResponse.ok) {
-      const disconnectJson = (await disconnectResponse.json()) as Record<string, unknown>;
-      const parsed = parseDisconnect(disconnectJson);
-      disconnectParsed = true;
-      for (const domain of parsed.domains) {
-        disconnectDomains.add(domain);
-      }
-      disconnectCount = parsed.domains.size;
-      disconnectFiltered = parsed.filteredCount;
-      disconnectTotal = parsed.totalProcessed;
-      disconnectValid = disconnectCount > 0;
-      if (disconnectValid) {
-        disconnectSuccess = true;
-        console.log("✅ Disconnect.me: " + disconnectCount + " 个有效域名");
-        console.log(
-          "   - 下载: 成功, 解析: 成功, 有效: 是, 过滤: " +
-            disconnectFiltered +
-            " 个非法条目, 处理: " +
-            disconnectTotal +
-            " 个原始条目"
-        );
-      } else {
-        console.log("⚠️ Disconnect.me 数据为空，未提取到有效域名");
-        console.log("   - 下载: 成功, 解析: 成功, 有效: 否");
-      }
-    } else {
-      console.log("❌ Disconnect.me 下载失败: HTTP " + disconnectResponse.status);
-    }
-  } catch (error) {
-    console.log("❌ Disconnect.me 下载出错: " + error);
-  }
-
-  const allDomains = new Set([...easyPrivacyDomains, ...disconnectDomains]);
-  const totalFromBoth = easyPrivacyDomains.size + disconnectDomains.size;
+  const allDomains = new Set([...easyPrivacy.domains, ...disconnect.domains]);
+  const totalFromBoth = easyPrivacy.domains.size + disconnect.domains.size;
   const duplicates = totalFromBoth - allDomains.size;
   console.log("\n📊 合并后总计: " + allDomains.size + " 个唯一追踪域名");
   console.log("   - 去重: " + duplicates + " 个重复域名");
 
-  const trackingCookieKeywords = trackingCookieKeywordsConfig.keywords.filter(isValidCookieKeyword);
-
-  const validKeywords = new Set<string>();
-  for (const keyword of trackingCookieKeywords) {
-    if (isValidCookieKeyword(keyword)) {
-      validKeywords.add(keyword.toLowerCase());
-    }
-  }
+  const validKeywords = processKeywords();
 
   return {
     data: {
@@ -432,34 +543,34 @@ async function fetchData(): Promise<{
       lastUpdated: new Date().toISOString(),
       sources: {
         easyprivacy: {
-          count: easyPrivacyCount,
-          version: easyPrivacyVersion,
+          count: easyPrivacy.count,
+          version: easyPrivacy.version,
         },
         disconnect: {
-          count: disconnectCount,
+          count: disconnect.count,
         },
       },
     },
     stats: {
       easyPrivacy: {
-        downloaded: easyPrivacyDownloaded,
-        parsed: easyPrivacyParsed,
-        valid: easyPrivacyValid,
-        success: easyPrivacySuccess,
-        count: easyPrivacyCount,
-        filtered: easyPrivacyFiltered,
-        total: easyPrivacyTotal,
-        version: easyPrivacyVersion,
-        versionDate: easyPrivacyVersionDate,
+        downloaded: easyPrivacy.downloaded,
+        parsed: easyPrivacy.parsed,
+        valid: easyPrivacy.valid,
+        success: easyPrivacy.success,
+        count: easyPrivacy.count,
+        filtered: easyPrivacy.filtered,
+        total: easyPrivacy.total,
+        version: easyPrivacy.version,
+        versionDate: easyPrivacy.versionDate,
       },
       disconnect: {
-        downloaded: disconnectDownloaded,
-        parsed: disconnectParsed,
-        valid: disconnectValid,
-        success: disconnectSuccess,
-        count: disconnectCount,
-        filtered: disconnectFiltered,
-        total: disconnectTotal,
+        downloaded: disconnect.downloaded,
+        parsed: disconnect.parsed,
+        valid: disconnect.valid,
+        success: disconnect.success,
+        count: disconnect.count,
+        filtered: disconnect.filtered,
+        total: disconnect.total,
       },
       merged: {
         count: allDomains.size,
@@ -548,6 +659,30 @@ function writeTrackerData(data: TrackerData, outputPath: string, tempPath: strin
   console.log("\n✅ 数据已保存到: " + outputPath);
 }
 
+function printSourceStatus(
+  name: string,
+  stats: {
+    success: boolean;
+    downloaded: boolean;
+    parsed: boolean;
+    valid: boolean;
+    count: number;
+    version?: string;
+  }
+): void {
+  console.log("📍 " + name + ":");
+  if (stats.success) {
+    const versionInfo = stats.version ? " (版本: " + stats.version + ")" : "";
+    console.log("   ✅ " + stats.count + " 个有效域名" + versionInfo);
+  } else if (!stats.downloaded) {
+    console.log("   ❌ 下载失败");
+  } else if (!stats.parsed) {
+    console.log("   ❌ 解析失败");
+  } else if (!stats.valid) {
+    console.log("   ⚠️ 数据为空");
+  }
+}
+
 function printStats(
   data: TrackerData,
   stats: Awaited<ReturnType<typeof fetchData>>["stats"],
@@ -555,33 +690,8 @@ function printStats(
 ): void {
   console.log("\n📊 数据更新结果:");
   console.log("----------------------------------------");
-  console.log("📍 EasyPrivacy:");
-  if (stats.easyPrivacy.success) {
-    console.log(
-      "   ✅ " + stats.easyPrivacy.count + " 个有效域名 (版本: " + stats.easyPrivacy.version + ")"
-    );
-  } else {
-    if (!stats.easyPrivacy.downloaded) {
-      console.log("   ❌ 下载失败");
-    } else if (!stats.easyPrivacy.parsed) {
-      console.log("   ❌ 解析失败");
-    } else if (!stats.easyPrivacy.valid) {
-      console.log("   ⚠️ 数据为空");
-    }
-  }
-
-  console.log("📍 Disconnect.me:");
-  if (stats.disconnect.success) {
-    console.log("   ✅ " + stats.disconnect.count + " 个有效域名");
-  } else {
-    if (!stats.disconnect.downloaded) {
-      console.log("   ❌ 下载失败");
-    } else if (!stats.disconnect.parsed) {
-      console.log("   ❌ 解析失败");
-    } else if (!stats.disconnect.valid) {
-      console.log("   ⚠️ 数据为空");
-    }
-  }
+  printSourceStatus("EasyPrivacy", stats.easyPrivacy);
+  printSourceStatus("Disconnect.me", stats.disconnect);
 
   console.log("📈 合并结果:");
   console.log("   最终唯一域名: " + stats.merged.count);
@@ -654,6 +764,13 @@ async function main(
       return;
     }
 
+    if (!stats.disconnect.success && !allowFailure) {
+      console.error("\n❌ Disconnect.me 来源失败：默认模式下不写入部分数据");
+      console.error("   - EasyPrivacy: ✅ 成功");
+      console.error("   - Disconnect: ❌ 失败");
+      process.exit(1);
+    }
+
     writeTrackerData(data, outputPath, tempPath);
     printStats(data, stats, freshness.isStale);
   } catch (error) {
@@ -669,7 +786,10 @@ async function main(
 const allowFailure = process.argv.includes("--allow-failure");
 const requireEasyPrivacy = process.argv.includes("--require-easyprivacy");
 const enforceFreshness = process.argv.includes("--enforce-freshness");
-main(allowFailure, requireEasyPrivacy, enforceFreshness).catch((error) => {
+
+try {
+  await main(allowFailure, requireEasyPrivacy, enforceFreshness);
+} catch (error) {
   console.error("❌ 未预期的错误:", error);
   process.exit(1);
-});
+}

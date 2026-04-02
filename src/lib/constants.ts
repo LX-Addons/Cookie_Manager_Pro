@@ -63,6 +63,11 @@ function hasValidMetadata(data: TrackerData): boolean {
     return false;
   }
 
+  const lastUpdatedDate = new Date(data.lastUpdated);
+  if (Number.isNaN(lastUpdatedDate.getTime())) {
+    return false;
+  }
+
   if (!data.sources || typeof data.sources !== "object") {
     return false;
   }
@@ -100,21 +105,34 @@ function hasExactKeys(data: TrackerData): boolean {
   );
 }
 
+const SAMPLE_SIZE = 100;
+const FULL_VALIDATION_THRESHOLD = 1000;
+
+function sampleValidateArray<T>(array: T[], validator: (item: T) => boolean): boolean {
+  if (array.length <= FULL_VALIDATION_THRESHOLD) {
+    return array.every(validator);
+  }
+
+  const midStart = Math.floor(array.length / 2) - Math.floor(SAMPLE_SIZE / 2);
+  for (let i = 0; i < SAMPLE_SIZE; i++) {
+    if (!validator(array[i])) return false;
+    if (!validator(array[midStart + i])) return false;
+    if (!validator(array[array.length - SAMPLE_SIZE + i])) return false;
+  }
+  return true;
+}
+
 function hasValidTrackerData(data: TrackerData): boolean {
   if (!hasRequiredArrays(data)) return false;
   if (!hasValidMetadata(data)) return false;
   if (!hasExactKeys(data)) return false;
 
-  for (const domain of data.trackingDomains) {
-    if (!isValidHostname(domain)) {
-      return false;
-    }
+  if (!sampleValidateArray(data.trackingDomains, isValidHostname)) {
+    return false;
   }
 
-  for (const keyword of data.trackingCookieKeywords) {
-    if (!isValidCookieKeyword(keyword)) {
-      return false;
-    }
+  if (!sampleValidateArray(data.trackingCookieKeywords, isValidCookieKeyword)) {
+    return false;
   }
 
   return true;
