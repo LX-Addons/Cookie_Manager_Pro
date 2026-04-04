@@ -15,13 +15,16 @@ export const RulesSection = ({
   onMessage,
   handleClearBlacklist,
 }: RulesSectionProps) => {
+  const isBlacklistMode = settings.mode === ModeType.BLACKLIST;
+  const type = isBlacklistMode ? "blacklist" : "whitelist";
+
   return (
     <div className="tab-content" role="tabpanel" id="rules-panel" aria-labelledby="rules-tab">
       <DomainManager
-        type={settings.mode === ModeType.WHITELIST ? "whitelist" : "blacklist"}
+        type={type}
         currentDomain={currentDomain}
         onMessage={onMessage}
-        onClearBlacklist={settings.mode === ModeType.BLACKLIST ? handleClearBlacklist : undefined}
+        onClearBlacklist={isBlacklistMode ? handleClearBlacklist : undefined}
       />
     </div>
   );
