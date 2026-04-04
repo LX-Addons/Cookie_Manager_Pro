@@ -1,7 +1,6 @@
-import { useRef, useId, useCallback, useEffect } from "react";
-import { useTranslation } from "@/hooks/useTranslation";
+import { useRef, useId, useCallback } from "react";
+import { useTranslation, useDialog } from "@/hooks";
 import { Icon } from "./Icon";
-import { useDialog } from "@/hooks/useDialog";
 
 interface ConfirmDialogProps {
   readonly isOpen: boolean;
@@ -10,7 +9,7 @@ interface ConfirmDialogProps {
   readonly message: string;
   readonly confirmText?: string;
   readonly cancelText?: string;
-  readonly onConfirm: () => void;
+  readonly onConfirm: () => void | Promise<void>;
   readonly onCancel: () => void;
   readonly variant?: "danger" | "warning" | "info" | "success";
   readonly triggerElement?: HTMLElement | null;
@@ -24,6 +23,13 @@ const iconNameMap: Record<
   warning: "alertTriangle",
   info: "info",
   success: "checkCircle",
+};
+
+const buttonClassMap: Record<NonNullable<ConfirmDialogProps["variant"]>, string> = {
+  danger: "btn-danger",
+  warning: "btn-warning",
+  info: "btn-primary",
+  success: "btn-success",
 };
 
 export function ConfirmDialog({
@@ -44,31 +50,6 @@ export function ConfirmDialog({
   const titleId = useId();
   const descriptionId = useId();
   const bodyId = useId();
-  const isClosingRef = useRef(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      isClosingRef.current = false;
-    }
-  }, [isOpen]);
-
-  const iconName = iconNameMap[variant];
-  let confirmButtonClass: string;
-  if (variant === "danger") {
-    confirmButtonClass = "btn-danger";
-  } else if (variant === "warning") {
-    confirmButtonClass = "btn-warning";
-  } else if (variant === "success") {
-    confirmButtonClass = "btn-success";
-  } else {
-    confirmButtonClass = "btn-primary";
-  }
-
-  const handleConfirm = useCallback(() => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    onConfirm();
-  }, [onConfirm]);
 
   const handleOpenFocus = useCallback(() => {
     if (variant === "danger") {
@@ -85,7 +66,13 @@ export function ConfirmDialog({
     onOpenFocus: handleOpenFocus,
   });
 
+  const handleConfirm = useCallback(() => {
+    onConfirm();
+  }, [onConfirm]);
+
   const describedByIds = description ? `${descriptionId} ${bodyId}` : bodyId;
+  const iconName = iconNameMap[variant];
+  const confirmButtonClass = buttonClassMap[variant];
 
   return (
     <dialog
