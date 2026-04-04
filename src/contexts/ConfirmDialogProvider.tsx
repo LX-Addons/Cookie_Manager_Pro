@@ -66,13 +66,14 @@ export const ConfirmDialogProvider = ({ children }: ConfirmDialogProviderProps) 
       return;
     }
     executedRef.current = true;
-    try {
-      Promise.resolve(state.onConfirm()).catch((err) => {
+    void Promise.resolve()
+      .then(() => state.onConfirm())
+      .catch((err) => {
         console.error("ConfirmDialog onConfirm error:", err);
+      })
+      .finally(() => {
+        closeConfirm();
       });
-    } finally {
-      closeConfirm();
-    }
   }, [state, closeConfirm]);
 
   const contextValue = useMemo(() => ({ showConfirm }), [showConfirm]);

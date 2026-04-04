@@ -63,6 +63,21 @@ export function usePopupData({ onErrorMessage }: UsePopupDataProps = {}): UsePop
 
   const handleCookiesResponseSuccess = useCallback(
     async (cookiesData: GetCurrentTabCookiesData, requestId: number, isInit: boolean) => {
+      if (!cookiesData.domain) {
+        setCurrentDomain("");
+        setCurrentCookies([]);
+        setStats({
+          total: 0,
+          current: 0,
+          session: 0,
+          persistent: 0,
+          thirdParty: 0,
+          tracking: 0,
+        });
+        setLoadingState("domain-unavailable");
+        return;
+      }
+
       const statsResponse = await BackgroundService.getStats(cookiesData.domain);
       if (requestId !== loadRequestIdRef.current) return;
 

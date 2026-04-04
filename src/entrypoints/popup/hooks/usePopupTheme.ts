@@ -97,7 +97,10 @@ export const usePopupTheme = ({ settings }: UsePopupThemeProps): UsePopupThemeRe
     if (themeMode === ThemeMode.AUTO) {
       return systemTheme === "dark" ? ThemeMode.DARK : ThemeMode.LIGHT;
     }
-    if (themeMode === ThemeMode.CUSTOM && settings.customTheme) {
+    if (themeMode === ThemeMode.CUSTOM) {
+      if (!settings.customTheme) {
+        return systemTheme === "dark" ? ThemeMode.DARK : ThemeMode.LIGHT;
+      }
       return isCustomThemeDark(settings.customTheme) ? ThemeMode.DARK : ThemeMode.LIGHT;
     }
     return themeMode;
@@ -195,7 +198,7 @@ export const usePopupTheme = ({ settings }: UsePopupThemeProps): UsePopupThemeRe
   }, []);
 
   useEffect(() => {
-    if (settings.themeMode === ThemeMode.CUSTOM) {
+    if (settings.themeMode === ThemeMode.CUSTOM && settings.customTheme) {
       applyCustomTheme(settings.customTheme);
     } else {
       clearCustomTheme();
