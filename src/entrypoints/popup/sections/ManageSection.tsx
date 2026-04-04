@@ -55,7 +55,7 @@ export const ManageSection = ({
   const riskLevel = getRiskLevel(stats);
 
   return (
-    <main className="tab-content" role="tabpanel" id="manage-panel">
+    <main className="tab-content" role="tabpanel" id="manage-panel" aria-labelledby="manage-tab">
       {loadingState === "permission-denied" && (
         <section className="panel permission-denied-panel">
           <StatusPanel

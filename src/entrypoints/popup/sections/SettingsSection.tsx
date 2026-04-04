@@ -6,7 +6,7 @@ interface SettingsSectionProps {
 
 export const SettingsSection = ({ onMessage }: SettingsSectionProps) => {
   return (
-    <div className="tab-content" role="tabpanel" id="settings-panel">
+    <div className="tab-content" role="tabpanel" id="settings-panel" aria-labelledby="settings-tab">
       <Settings onMessage={onMessage} />
     </div>
   );

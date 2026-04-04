@@ -16,7 +16,7 @@ export const RulesSection = ({
   handleClearBlacklist,
 }: RulesSectionProps) => {
   return (
-    <div className="tab-content" role="tabpanel" id="rules-panel">
+    <div className="tab-content" role="tabpanel" id="rules-panel" aria-labelledby="rules-tab">
       <DomainManager
         type={settings.mode === ModeType.WHITELIST ? "whitelist" : "blacklist"}
         currentDomain={currentDomain}

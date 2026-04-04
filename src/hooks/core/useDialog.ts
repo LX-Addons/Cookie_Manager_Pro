@@ -26,6 +26,11 @@ export function useDialog({
     if (isClosingRef.current) return;
     isClosingRef.current = true;
     onClose();
+    requestAnimationFrame(() => {
+      if (dialogRef.current?.open) {
+        isClosingRef.current = false;
+      }
+    });
   }, [onClose]);
 
   useEffect(() => {
