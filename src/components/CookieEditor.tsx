@@ -52,9 +52,11 @@ const CookieEditorContent = ({
 
   const wasOpenRef = useRef(false);
   const savedRef = useRef(false);
+  const allowCloseRef = useRef(false);
 
   // isSaving: 请求中防重复提交
   // savedRef: 成功后关闭完成前防重复点击
+  // allowCloseRef: 只有保存成功后才允许关闭
 
   const handleOpenFocus = useCallback(() => {
     if (cookie) {
@@ -67,6 +69,7 @@ const CookieEditorContent = ({
   const { dialogRef, handleClose } = useDialog({
     isOpen,
     onClose: () => {
+      if (savedRef.current && !allowCloseRef.current) return;
       onClose();
     },
     triggerElement,
@@ -78,6 +81,7 @@ const CookieEditorContent = ({
     wasOpenRef.current = isOpen;
     if (justOpened) {
       savedRef.current = false;
+      allowCloseRef.current = false;
       if (cookie) {
         setFormData({
           ...cookie,
@@ -101,6 +105,7 @@ const CookieEditorContent = ({
     try {
       const success = await onSave(formData);
       if (success) {
+        allowCloseRef.current = true;
         handleClose();
       } else {
         savedRef.current = false;
